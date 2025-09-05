@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserRole {
+  Admin
+  Manager
+}
+
+enum UserStatus {
+  Active
+  Inactive
+}
+
+enum RoomStatus {
+  Occupied
+  Vacant
+  Maintenance
+}
+
+enum AgreementStatus {
+  Active
+  Expired
+  Terminated
+}
+
+enum InvoiceStatus {
+  Paid
+  Unpaid
+  Overdue
+}
+
+enum PaymentStatus {
+  Confirmed
+  Pending
+  Failed
+}
+
+enum NotificationType {
+  Invoice
+  PaymentReminder
+  RenewalReminder
+  SystemAlert
+}
+
+enum NotificationSentVia {
+  Email
+  SMS
+  System
+}
+
+// 1. Users & Roles
+model User {
+  userId      Int        @id @default(autoincrement())
+  username    String     @unique
+  passwordHash String
+  email       String     @unique
+  phone       String?
+  role        UserRole
+  status      UserStatus @default(Active)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  auditLogs   AuditLog[]
+  notifications Notification[]
+  expenses     Expense[]
+  maintenance  Maintenance[]
+}
+
+model AuditLog {
+  logId     Int       @id @default(autoincrement())
+  userId    Int
+  action    String
+  tableName String
+  recordId  Int
+  oldValue  Json?
+  newValue  Json?
+  timestamp DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [userId])
+}
+
+// 2. Room Management
+model RoomType {
+  roomTypeId Int      @id @default(autoincrement())
+  typeName   String
+  description String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  rooms      Room[]
+}
+
+model Room {
+  roomId     Int       @id @default(autoincrement())
+  unitNumber String
+  floor      Int
+  size       Float
+  roomTypeId Int
+  status     RoomStatus @default(Vacant)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  roomType   RoomType  @relation(fields: [roomTypeId], references: [roomTypeId])
+  agreements Agreement[]
+  maintenance Maintenance[]
+}
+
+// 3. Tenant Management
+model Tenant {
+  tenantId      Int        @id @default(autoincrement())
+  companyName   String
+  contactPerson String
+  phone         String
+  email         String
+  idDocument    String?
+  status        UserStatus @default(Active)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  agreements    Agreement[]
+  notifications Notification[]
+}
+
+// 4. Agreements
+model Agreement {
+  agreementId     Int            @id @default(autoincrement())
+  tenantId        Int
+  roomId          Int
+  versionNumber   Int
+  startDate       DateTime
+  endDate         DateTime
+  rentAmount      Float
+  paymentDueDate  Int // e.g., 5 = 5th of month
+  paymentDuration String // Monthly, Quarterly, Yearly
+  status          AgreementStatus
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tenant          Tenant         @relation(fields: [tenantId], references: [tenantId])
+  room            Room           @relation(fields: [roomId], references: [roomId])
+  invoices        Invoice[]
+}
+
+// 5. Payments & Invoicing
+model Invoice {
+  invoiceId     Int           @id @default(autoincrement())
+  agreementId   Int
+  invoiceDate   DateTime
+  dueDate       DateTime
+  baseRent      Float?
+  taxPercentage Float?
+  taxAmount     Float?
+  totalAmount   Float
+  status        InvoiceStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  agreement     Agreement     @relation(fields: [agreementId], references: [agreementId])
+  payments      Payment[]
+}
+
+model Payment {
+  paymentId   Int           @id @default(autoincrement())
+  invoiceId   Int
+  paymentDate DateTime
+  amountPaid  Float
+  method      String
+  lateFee     Float?
+  status      PaymentStatus
+  invoice     Invoice       @relation(fields: [invoiceId], references: [invoiceId])
+}
+
+// 6. Expenses & Maintenance
+model Expense {
+  expenseId   Int      @id @default(autoincrement())
+  category    String
+  description String
+  amount      Float
+  date        DateTime
+  recordedBy  Int
+  user        User     @relation(fields: [recordedBy], references: [userId])
+}
+
+model Maintenance {
+  maintenanceId  Int      @id @default(autoincrement())
+  roomId         Int
+  description    String
+  cost           Float
+  maintenanceDate DateTime
+  recordedBy     Int
+  room           Room     @relation(fields: [roomId], references: [roomId])
+  user           User     @relation(fields: [recordedBy], references: [userId])
+}
+
+// 7. Notifications & Alerts
+model Notification {
+  notificationId Int           @id @default(autoincrement())
+  userId         Int? 
+  tenantId       Int?
+  type           NotificationType
+  message        String
+  sentVia        NotificationSentVia
+  status         String
+  createdAt      DateTime      @default(now())
+  user           User?         @relation(fields: [userId], references: [userId])
+  tenant         Tenant?       @relation(fields: [tenantId], references: [tenantId])
+}
