@@ -200,7 +200,6 @@ model Maintenance {
   user           User     @relation(fields: [recordedBy], references: [userId])
 }
 
-// 7. Notifications & Alerts
 model Notification {
   notificationId Int           @id @default(autoincrement())
   userId         Int? 
