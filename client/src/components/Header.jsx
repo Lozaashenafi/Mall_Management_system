@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, User, Settings, LogOut, SearchIcon, Search } from "lucide-react";
+import { Bell, User, Settings, LogOut, Search } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Dropdown({ trigger, children }) {
   const [open, setOpen] = useState(false);
@@ -37,16 +39,32 @@ function Dropdown({ trigger, children }) {
 }
 
 function Header() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // fallback initials (AD if no user yet)
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "AD";
+
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
       {/* Search */}
-
       <div className="relative flex-1 max-w-sm">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           placeholder="Search anything..."
-          className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md  focus:outline-none focus:ring-2 focus:ring-purple-500  bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
 
@@ -70,18 +88,21 @@ function Header() {
         <Dropdown
           trigger={
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold select-none">
-              AD
+              {initials}
             </div>
           }
         >
           <div className="flex flex-col space-y-1 p-3 text-gray-900 dark:text-gray-100">
-            <p className="text-sm font-medium leading-none">Admin User</p>
+            <p className="text-sm font-medium leading-none">
+              {user?.fullName || "Guest User"}
+            </p>
             <p className="text-xs leading-none text-gray-500 dark:text-gray-400">
-              admin@example.com
+              {user?.email || "guest@example.com"}
             </p>
           </div>
           <div className="border-t border-gray-200 dark:border-gray-700" />
           <button
+            onClick={() => navigate("/profile")}
             type="button"
             className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
@@ -90,6 +111,7 @@ function Header() {
           </button>
           <button
             type="button"
+            onClick={() => navigate("/settings")}
             className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -98,6 +120,7 @@ function Header() {
           <div className="border-t border-gray-200 dark:border-gray-700" />
           <button
             type="button"
+            onClick={handleLogout}
             className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-100 dark:hover:bg-red-700 dark:text-red-400"
           >
             <LogOut className="mr-2 h-4 w-4" />

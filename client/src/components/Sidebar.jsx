@@ -16,8 +16,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-const sidebarItems = [
+const baseSidebarItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
   { title: "Tenants", icon: Users, url: "/manage-tenants" },
   { title: "Rooms", icon: Building2, url: "/manage-rooms" },
@@ -31,18 +32,29 @@ const sidebarItems = [
   { title: "Settings", icon: Settings, url: "/settings" },
 ];
 
+// Extra items only for SuperAdmin
+const superAdminItems = [{ title: "Users", icon: Users, url: "/manage-users" }];
+
 export function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
+
+  // Build final sidebar items based on role
+  let sidebarItems = [...baseSidebarItems];
+  console.log("User role:", user?.role);
+  if (user?.role === "SuperAdmin") {
+    sidebarItems = [...superAdminItems, ...sidebarItems];
+  }
 
   const SidebarContent = (
     <div className="h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 dark:bg-gray-900 dark:border-gray-700">
@@ -109,19 +121,25 @@ export function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer with User Info */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        {!collapsed && (
+        {!collapsed && user && (
           <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-700/50">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-500 rounded-full flex items-center justify-center text-xs font-medium text-white">
-              AD
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-xs font-medium text-white">
+              {user.fullName
+                ? user.fullName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                : "U"}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                Admin User
+                {user.fullName || "Unnamed User"}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                admin@example.com
+                {user.email}
               </p>
             </div>
           </div>

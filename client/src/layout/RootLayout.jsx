@@ -1,5 +1,4 @@
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 import { Outlet } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Sidebar } from "../components/Sidebar";

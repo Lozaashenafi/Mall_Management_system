@@ -194,7 +194,6 @@ export default function Notifications() {
             </div>
           </div>
 
-          {/* Notification Channels */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
               <Settings className="w-5 h-5" /> Notification Channels

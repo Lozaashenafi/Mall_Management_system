@@ -13,11 +13,15 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
+enum MaintenanceRequestStatus {
+  Pending
+  declined
+  approved
+}
 
 enum UserRole {
+  SuperAdmin
   Admin
-  Manager
   Tenant
 }
 
@@ -32,7 +36,7 @@ enum RoomStatus {
   Maintenance
 }
 
-enum AgreementStatus {
+enum RentalStatus {
   Active
   Expired
   Terminated
@@ -112,7 +116,7 @@ model Room {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   roomType   RoomType  @relation(fields: [roomTypeId], references: [roomTypeId])
-  agreements Agreement[]
+  rental Rental[]
   maintenance Maintenance[]
 }
 
@@ -123,17 +127,18 @@ model Tenant {
   contactPerson String
   phone         String
   email         String
-  idDocument    String?
+  identificationDocument    String?
   status        UserStatus @default(Active)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  agreements    Agreement[]
+  rental    Rental[]
   notifications Notification[]
+  feedbacks Feedback[]
 }
 
 // 4. Agreements
-model Agreement {
-  agreementId     Int            @id @default(autoincrement())
+model Rental {
+  rentId     Int            @id @default(autoincrement())
   tenantId        Int
   roomId          Int
   versionNumber   Int
@@ -141,19 +146,30 @@ model Agreement {
   endDate         DateTime
   rentAmount      Float
   paymentDueDate  Int // e.g., 5 = 5th of month
-  paymentDuration String // Monthly, Quarterly, Yearly
-  status          AgreementStatus
+  paymentInterval String // Monthly, Quarterly, Yearly
+  status          RentalStatus
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   tenant          Tenant         @relation(fields: [tenantId], references: [tenantId])
   room            Room           @relation(fields: [roomId], references: [roomId])
   invoices        Invoice[]
+  agreementDocuments AgreementDocument[]
+  maintenanceRequests MaintenanceRequest[]
 }
+model AgreementDocument {
+  documentId   Int       @id @default(autoincrement())
+  rentId       Int
+  filePath     String
+  uploadedAt   DateTime  @default(now())
+  generatedBy  Int?      // userId of admin who generated
+  rental       Rental    @relation(fields: [rentId], references: [rentId])
+}
+
 
 // 5. Payments & Invoicing
 model Invoice {
   invoiceId     Int           @id @default(autoincrement())
-  agreementId   Int
+  rentId   Int
   invoiceDate   DateTime
   dueDate       DateTime
   baseRent      Float?
@@ -163,7 +179,7 @@ model Invoice {
   status        InvoiceStatus
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  agreement     Agreement     @relation(fields: [agreementId], references: [agreementId])
+  rental     Rental     @relation(fields: [rentId], references: [rentId])
   payments      Payment[]
 }
 
@@ -172,10 +188,20 @@ model Payment {
   invoiceId   Int
   paymentDate DateTime
   amountPaid  Float
-  method      String
+  paymentMethod      String
   lateFee     Float?
   status      PaymentStatus
   invoice     Invoice       @relation(fields: [invoiceId], references: [invoiceId])
+}
+
+model Feedback {
+  feedbackId   Int      @id @default(autoincrement())
+  tenantId     Int
+  subject      String
+  message      String
+  createdAt    DateTime @default(now())
+  status       String   @default("New") // Could use enum: New, Reviewed, Resolved
+  tenant       Tenant   @relation(fields: [tenantId], references: [tenantId])
 }
 
 // 6. Expenses & Maintenance
@@ -194,10 +220,21 @@ model Maintenance {
   roomId         Int
   description    String
   cost           Float
-  maintenanceDate DateTime
+  maintenanceStartDate  DateTime
+  maintenanceEndDate    DateTime?
   recordedBy     Int
   room           Room     @relation(fields: [roomId], references: [roomId])
   user           User     @relation(fields: [recordedBy], references: [userId])
+}
+
+model MaintenanceRequest {
+  requestId      Int       @id @default(autoincrement())
+  rentId         Int       // links to the rental (tenant + room)
+  description    String
+  status         MaintenanceRequestStatus @default(Pending) // enum
+  requestDate    DateTime  @default(now())
+  completionDate DateTime?
+  rental         Rental    @relation(fields: [rentId], references: [rentId])
 }
 
 model Notification {

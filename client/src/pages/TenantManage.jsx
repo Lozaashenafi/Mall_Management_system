@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Link } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 // Mock tenants
 const mockTenants = [
@@ -18,7 +19,6 @@ const mockTenants = [
     phone: "+251-911-123456",
     email: "abc@example.com",
     status: "Active",
-    agreements: 3,
   },
   {
     tenantId: 2,
@@ -27,7 +27,6 @@ const mockTenants = [
     phone: "+251-922-654321",
     email: "xyz@example.com",
     status: "Inactive",
-    agreements: 1,
   },
   {
     tenantId: 3,
@@ -36,13 +35,13 @@ const mockTenants = [
     phone: "+251-933-987654",
     email: "global@example.com",
     status: "Active",
-    agreements: 5,
   },
   // Add more mock tenants here to test pagination
 ];
 
 export default function TenantManagement() {
   const [tenants, setTenants] = useState(mockTenants);
+  const navigate = useNavigate();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,7 +77,10 @@ export default function TenantManagement() {
             Manage tenants, agreements, and statuses
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500">
+        <button
+          onClick={() => navigate("/manage-tenants/add")}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+        >
           <Plus className="w-4 h-4" />
           Add Tenant
         </button>
@@ -96,7 +98,6 @@ export default function TenantManagement() {
                 <th className="p-3">Phone</th>
                 <th className="p-3">Email</th>
                 <th className="p-3">Status</th>
-                <th className="p-3">Agreements</th>
                 <th className="p-3">Actions</th>
               </tr>
             </thead>
@@ -121,7 +122,6 @@ export default function TenantManagement() {
                       {tenant.status}
                     </span>
                   </td>
-                  <td className="p-3 text-center">{tenant.agreements}</td>
                   <td className="p-3 flex gap-2">
                     <button className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800">
                       <Eye className="w-4 h-4" />

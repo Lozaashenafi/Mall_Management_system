@@ -27,7 +27,7 @@ export const register = async (req, res) => {
         fullName,
         email,
         passwordHash: hashedPassword,
-        role: UserRole.Admin, // ✅ matches enum
+        role: req.body.role || UserRole.Admin,
         status: UserStatus.Active, // ✅ matches enum
         phone: phone || null,
       },
@@ -46,7 +46,7 @@ export const register = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Admin registered successfully",
+      message: " registered successfully",
       success: true,
       token,
       user: {
