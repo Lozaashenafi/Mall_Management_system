@@ -117,3 +117,75 @@ export const login = async (req, res) => {
     });
   }
 };
+// Edit Profile with image upload
+export const editProfile = async (req, res) => {
+  try {
+    const { fullName, phone } = req.body;
+    console.log("req.body:", req.body);
+    console.log("req.file:", req.file);
+
+    const userId = req.user.userId;
+
+    // If file uploaded, save its path
+    let profilePicture;
+    if (req.file) {
+      profilePicture = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { userId },
+      data: {
+        fullName,
+        phone,
+        ...(profilePicture && { profilePicture }),
+      },
+    });
+
+    res.json({
+      message: "Profile updated successfully",
+      success: true,
+      user: {
+        userId: updatedUser.userId,
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        phone: updatedUser.phone,
+        profilePicture: updatedUser.profilePicture,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Change Password
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.userId; // assume auth middleware decoding JWT
+
+    const user = await prisma.user.findUnique({ where: { userId } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    // console.log("isMatch:", isMatch);
+    // console.log("oldPassword:", oldPassword);
+    // console.log(user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Old password is incorrect" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { userId },
+      data: { passwordHash: hashedPassword },
+    });
+
+    res.json({ message: "Password changed successfully", success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
