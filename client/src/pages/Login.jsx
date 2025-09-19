@@ -16,7 +16,7 @@ const Login = () => {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/"); // ✅ redirect after login
+      navigate("/");
     } catch (err) {
       console.error("Login failed:", err.message);
     } finally {

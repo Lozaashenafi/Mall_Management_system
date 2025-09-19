@@ -1,12 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-
-import { loginRequest, registerRequest } from "../services/authService";
+import {
+  loginRequest,
+  registerRequest,
+  editProfileRequest,
+  changePasswordRequest,
+} from "../services/authService";
+import { toast } from "react-hot-toast";
 
 const AuthContext = createContext();
-
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -15,15 +17,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const loggedInUser = localStorage.getItem("user");
-    if (loggedInUser) {
-      try {
-        const userData = JSON.parse(loggedInUser);
-        setUser(userData);
-      } catch (err) {
-        console.error("Error parsing user data from localStorage:", err);
-        localStorage.removeItem("user");
-      }
-    }
+    if (loggedInUser) setUser(JSON.parse(loggedInUser));
     setLoading(false);
   }, []);
 
@@ -36,44 +30,72 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("token", data.token);
       return data;
     } catch (err) {
-      const errorMessage = err.message || "Login failed";
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      setError(err.message || "Login failed");
+      toast.error(err.message || "Login failed"); // ✅ toast
+      throw err;
     }
   };
 
-  const register = async (fullName, email, password) => {
+  const register = async (userData) => {
     try {
       setError("");
-      const data = await registerRequest({ fullName, email, password });
+      const data = await registerRequest(userData);
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("token", data.token);
       return data;
     } catch (err) {
-      const errorMessage = err.message || "Registration failed";
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      setError(err.message || "Registration failed");
+      toast.error(err.message || "Registration failed");
+      throw err;
     }
   };
 
-  const logout = async () => {
+  // ✅ New editProfile function
+  const editProfile = async (formData) => {
+    try {
+      const data = await editProfileRequest(formData);
+      setUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success("Profile updated successfully"); // ✅ toast
+      return data;
+    } catch (err) {
+      setError(err.message);
+      toast.error(err.message || "Profile update failed");
+      throw err;
+    }
+  };
+  const changePassword = async (oldPassword, newPassword) => {
+    try {
+      const data = await changePasswordRequest({ oldPassword, newPassword });
+      toast.success(data.message || "Password updated successfully");
+      return data;
+    } catch (err) {
+      toast.error(err.message || "Failed to change password");
+      throw err;
+    }
+  };
+  const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
 
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    error,
-    setError,
-    loading,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        editProfile,
+        changePassword,
+        logout,
+        error,
+        setError,
+        loading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
-
-export default AuthContext;

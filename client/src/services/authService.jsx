@@ -4,7 +4,7 @@ import api from "../util/axios";
 export const loginRequest = async (email, password) => {
   try {
     const res = await api.post("/auth/login", { email, password });
-    print(res.data);
+    // print(res.data);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Login failed" };
@@ -17,5 +17,27 @@ export const registerRequest = async (userData) => {
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Registration failed" };
+  }
+};
+export const editProfileRequest = async (formData) => {
+  try {
+    const res = await api.put("/auth/edit-profile", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Profile update failed" };
+  }
+};
+export const changePasswordRequest = async (data) => {
+  try {
+    const res = await api.put("/auth/change-password", data, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to change password" };
   }
 };

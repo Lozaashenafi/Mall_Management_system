@@ -2,6 +2,7 @@ import "./App.css";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import RootLayout from "./layout/RootLayout";
+import { Toaster } from "react-hot-toast";
 
 // Mall Management System Pages
 import Home from "./pages/Home";
@@ -24,10 +25,13 @@ import Login from "./pages/Login";
 import PrivateRoute from "./components/PrivateRoute";
 import Profile from "./pages/Profile";
 import UserManage from "./pages/UserManage";
+import EditProfile from "./components/EditProfile";
+import ChangePassword from "./components/ChangePassword";
 
 function App() {
   return (
     <>
+      <Toaster position="top-right" />
       <ThemeProvider attribute="class">
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -57,6 +61,8 @@ function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/edit-profile" element={<EditProfile />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
