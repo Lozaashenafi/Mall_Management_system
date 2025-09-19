@@ -121,8 +121,8 @@ export const login = async (req, res) => {
 export const editProfile = async (req, res) => {
   try {
     const { fullName, phone } = req.body;
-    console.log("req.body:", req.body);
-    console.log("req.file:", req.file);
+    // console.log("req.body:", req.body);
+    // console.log("req.file:", req.file);
 
     const userId = req.user.userId;
 

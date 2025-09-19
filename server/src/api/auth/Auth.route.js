@@ -14,12 +14,12 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 // Protected routes
-router.put("/edit-profile", userAuth, editProfile);
 router.put(
-  "/change-password",
+  "/edit-profile",
   userAuth,
   uploadProfileImage.single("profilePicture"),
-  changePassword
+  editProfile
 );
+router.put("/change-password", userAuth, changePassword);
 
 export default router;
