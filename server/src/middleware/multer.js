@@ -23,10 +23,10 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const uploadProfileImage = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
 });
 
-export default uploadProfileImage;
+export default upload;

@@ -4,7 +4,6 @@ import config from "../config/index.js";
 
 const { JWT_SECRET } = config;
 
-// Middleware to verify JWT and attach user to req.user
 const userAuth = async (req, res, next) => {
   // console.log("Headers:", req.headers);
   const authHeader = req.headers.authorization;
@@ -50,7 +49,7 @@ const userAuth = async (req, res, next) => {
 
 // Middleware to check if user is Admin
 const isAdmin = (req, res, next) => {
-  if (req.user.role !== "Admin") {
+  if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
     return res.status(403).json({
       message: "User not admin",
       success: false,

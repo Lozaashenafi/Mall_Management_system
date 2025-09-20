@@ -6,7 +6,7 @@ import {
   changePassword,
 } from "./Auth.controller.js";
 import { userAuth, isAdmin } from "../../middleware/auth.js";
-import uploadProfileImage from "../../middleware/multer.js";
+import upload from "../../middleware/multer.js";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.post("/login", login);
 router.put(
   "/edit-profile",
   userAuth,
-  uploadProfileImage.single("profilePicture"),
+  upload.single("profilePicture"),
   editProfile
 );
 router.put("/change-password", userAuth, changePassword);
