@@ -4,9 +4,11 @@ import {
   login,
   editProfile,
   changePassword,
+  getAllUsers,
 } from "./Auth.controller.js";
 import { userAuth, isAdmin } from "../../middleware/auth.js";
 import upload from "../../middleware/multer.js";
+import { get } from "http";
 
 const router = express.Router();
 
@@ -21,5 +23,6 @@ router.put(
   editProfile
 );
 router.put("/change-password", userAuth, changePassword);
+router.get("/all-users", userAuth, isAdmin, getAllUsers);
 
 export default router;

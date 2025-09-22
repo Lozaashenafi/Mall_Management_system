@@ -1,46 +1,17 @@
-import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, UserPlus, User } from "lucide-react";
-
-// Mock admins
-const mockAdmins = [
-  {
-    adminId: 1,
-    firstName: "Alice",
-    lastName: "Johnson",
-    email: "alice@example.com",
-    role: "Super Admin",
-  },
-  {
-    adminId: 2,
-    firstName: "Bob",
-    lastName: "Williams",
-    email: "bob@example.com",
-    role: "Admin",
-  },
-  {
-    adminId: 3,
-    firstName: "Charlie",
-    lastName: "Davis",
-    email: "charlie@example.com",
-    role: "Admin",
-  },
-  {
-    adminId: 4,
-    firstName: "Dana",
-    lastName: "Miller",
-    email: "dana@example.com",
-    role: "Super Admin",
-  },
-];
+import { useState, useEffect } from "react";
+import { Edit, Trash2, UserPlus } from "lucide-react";
+import { registerRequest, allUsers } from "../services/authService"; // your imported API functions
 
 export default function UserManage() {
-  const [admins, setAdmins] = useState(mockAdmins);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdmin, setNewAdmin] = useState({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     email: "",
     role: "Admin",
+    password: "",
+    phone: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
   const adminsPerPage = 5;
@@ -48,33 +19,59 @@ export default function UserManage() {
   const indexOfLastAdmin = currentPage * adminsPerPage;
   const indexOfFirstAdmin = indexOfLastAdmin - adminsPerPage;
   const currentAdmins = admins.slice(indexOfFirstAdmin, indexOfLastAdmin);
-
   const totalPages = Math.ceil(admins.length / adminsPerPage);
+
+  // Fetch all admins
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const users = await allUsers();
+        setAdmins(users);
+      } catch (err) {
+        console.error(err.message || "Failed to fetch users");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAdmins();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewAdmin((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddAdmin = (e) => {
+  const handleAddAdmin = async (e) => {
     e.preventDefault();
-    const newId =
-      admins.length > 0 ? Math.max(...admins.map((a) => a.adminId)) + 1 : 1;
-    const adminToAdd = {
-      ...newAdmin,
-      adminId: newId,
-    };
-    setAdmins((prev) => [...prev, adminToAdd]);
-    setNewAdmin({ firstName: "", lastName: "", email: "", role: "Admin" });
-    setShowAddForm(false);
+    try {
+      const res = await registerRequest(newAdmin);
+      setAdmins((prev) => [res.user, ...prev]);
+      setNewAdmin({
+        fullName: "",
+        email: "",
+        role: "Admin",
+        password: "",
+        phone: "",
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      alert(err.message || "Error creating admin");
+    }
   };
 
-  const handleDeleteAdmin = (adminId) => {
-    setAdmins((prev) => prev.filter((admin) => admin.adminId !== adminId));
+  const handleDeleteAdmin = (userId) => {
+    // Implement API delete later if backend supports it
+    setAdmins((prev) => prev.filter((u) => u.userId !== userId));
   };
+
+  if (loading)
+    return (
+      <p className="text-gray-700 dark:text-gray-300">Loading admins...</p>
+    );
 
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Admin Management</h1>
@@ -91,6 +88,7 @@ export default function UserManage() {
         </button>
       </div>
 
+      {/* Add Form */}
       {showAddForm && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 transition-all duration-300 ease-in-out">
           <h2 className="text-lg font-semibold mb-4">Register New Admin</h2>
@@ -100,21 +98,12 @@ export default function UserManage() {
           >
             <input
               type="text"
-              name="firstName"
-              placeholder="First Name"
-              value={newAdmin.firstName}
+              name="fullName"
+              placeholder="Full Name"
+              value={newAdmin.fullName}
               onChange={handleInputChange}
               required
-              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800"
-            />
-            <input
-              type="text"
-              name="lastName"
-              placeholder="Last Name"
-              value={newAdmin.lastName}
-              onChange={handleInputChange}
-              required
-              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800"
+              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-800"
             />
             <input
               type="email"
@@ -123,13 +112,30 @@ export default function UserManage() {
               value={newAdmin.email}
               onChange={handleInputChange}
               required
-              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 col-span-1 md:col-span-2"
+              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-800"
+            />
+            <input
+              type="text"
+              name="phone"
+              placeholder="Phone"
+              value={newAdmin.phone}
+              onChange={handleInputChange}
+              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-800"
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={newAdmin.password}
+              onChange={handleInputChange}
+              required
+              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-800"
             />
             <select
               name="role"
               value={newAdmin.role}
               onChange={handleInputChange}
-              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 col-span-1 md:col-span-2"
+              className="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-800 col-span-1 md:col-span-2"
             >
               <option value="Admin">Admin</option>
               <option value="Super Admin">Super Admin</option>
@@ -144,6 +150,7 @@ export default function UserManage() {
         </div>
       )}
 
+      {/* Admin List */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <h2 className="text-lg font-semibold mb-4">Admin List</h2>
         <div className="overflow-x-auto">
@@ -159,12 +166,10 @@ export default function UserManage() {
             <tbody>
               {currentAdmins.map((admin) => (
                 <tr
-                  key={admin.adminId}
+                  key={admin.userId}
                   className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <td className="p-3 font-medium">
-                    {admin.firstName} {admin.lastName}
-                  </td>
+                  <td className="p-3 font-medium">{admin.fullName}</td>
                   <td className="p-3">{admin.email}</td>
                   <td className="p-3">
                     <span
@@ -186,7 +191,7 @@ export default function UserManage() {
                     </button>
                     <button
                       title="Delete Admin"
-                      onClick={() => handleDeleteAdmin(admin.adminId)}
+                      onClick={() => handleDeleteAdmin(admin.userId)}
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
                     >
                       <Trash2 className="w-4 h-4" />

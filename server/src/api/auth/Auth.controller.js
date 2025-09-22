@@ -63,6 +63,27 @@ export const register = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: UserRole.User },
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        profilePicture: true,
+        role: true,
+        status: true,
+        phone: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json({ users, success: true });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 // Login Admin / Mall Owner
 export const login = async (req, res) => {
   try {

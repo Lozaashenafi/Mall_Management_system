@@ -47,7 +47,7 @@ function App() {
             <Route path="/manage-users" element={<UserManage />} />
             <Route path="/manage-tenants" element={<TenantManage />} />
 
-            <Route path="/manage-tenants/add" element={<AddTenant />} />
+            <Route path="/add-tenant" element={<AddTenant />} />
             <Route path="/manage-rooms" element={<RoomManage />} />
             <Route path="/manage-rooms/add" element={<AddRoom />} />
             <Route path="/payments" element={<Payments />} />

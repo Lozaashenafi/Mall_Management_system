@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { addTenant } from "../services/tenantService"; // import your service
+import toast from "react-hot-toast";
 
 export default function AddTenant() {
   const navigate = useNavigate();
@@ -10,15 +12,17 @@ export default function AddTenant() {
     contactPerson: "",
     phone: "",
     email: "",
-    idImage: null,
+    identificationDocument: null,
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, files, value } = e.target;
-    if (name === "idImage") {
+    if (name === "identificationDocument") {
       setFormData((prev) => ({
         ...prev,
-        idImage: files[0],
+        identificationDocument: files[0],
       }));
     } else {
       setFormData((prev) => ({
@@ -28,9 +32,33 @@ export default function AddTenant() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Tenant Added:", formData);
+
+    if (!formData.identificationDocument) {
+      toast.error("Please upload an ID image.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Use FormData for file upload
+      const data = new FormData();
+      data.append("companyName", formData.companyName);
+      data.append("contactPerson", formData.contactPerson);
+      data.append("phone", formData.phone);
+      data.append("email", formData.email);
+      data.append("identificationDocument", formData.identificationDocument);
+
+      await addTenant(data); // call your backend API
+      toast.success("Tenant added successfully!");
+      navigate("/manage-tenants");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to add tenant.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,7 +75,6 @@ export default function AddTenant() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grid layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Company Name */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Company Name
@@ -62,7 +89,6 @@ export default function AddTenant() {
             />
           </div>
 
-          {/* Contact Person */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Contact Person
@@ -77,7 +103,6 @@ export default function AddTenant() {
             />
           </div>
 
-          {/* Phone */}
           <div>
             <label className="block text-sm font-medium mb-1">Phone</label>
             <input
@@ -91,7 +116,6 @@ export default function AddTenant() {
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
@@ -104,14 +128,13 @@ export default function AddTenant() {
             />
           </div>
 
-          {/* Tenant ID Image */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">
               Tenant ID Image
             </label>
             <input
               type="file"
-              name="idImage"
+              name="identificationDocument"
               accept="image/*"
               onChange={handleChange}
               required
@@ -131,9 +154,10 @@ export default function AddTenant() {
           </button>
           <button
             type="submit"
+            disabled={loading}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
           >
-            <Save className="w-4 h-4" /> Save Tenant
+            <Save className="w-4 h-4" /> {loading ? "Saving..." : "Save Tenant"}
           </button>
         </div>
       </form>

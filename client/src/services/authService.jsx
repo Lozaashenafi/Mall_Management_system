@@ -19,6 +19,15 @@ export const registerRequest = async (userData) => {
     throw error.response?.data || { message: "Registration failed" };
   }
 };
+export const allUsers = async () => {
+  try {
+    const res = await api.get("/auth/all-users");
+    return res.data.users;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch users" };
+  }
+};
+
 export const editProfileRequest = async (formData) => {
   try {
     const res = await api.put("/auth/edit-profile", formData, {

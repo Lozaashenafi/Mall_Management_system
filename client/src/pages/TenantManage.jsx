@@ -1,136 +1,116 @@
-import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, Link } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { useEffect, useState } from "react";
+import { getTenants, deleteTenant } from "../services/tenantService";
 import { useNavigate } from "react-router-dom";
 
-// Mock tenants
-const mockTenants = [
-  {
-    tenantId: 1,
-    companyName: "ABC Trading PLC",
-    contactPerson: "John Doe",
-    phone: "+251-911-123456",
-    email: "abc@example.com",
-    status: "Active",
-  },
-  {
-    tenantId: 2,
-    companyName: "XYZ Import Export",
-    contactPerson: "Jane Smith",
-    phone: "+251-922-654321",
-    email: "xyz@example.com",
-    status: "Inactive",
-  },
-  {
-    tenantId: 3,
-    companyName: "Global Tech Solutions",
-    contactPerson: "Mike Brown",
-    phone: "+251-933-987654",
-    email: "global@example.com",
-    status: "Active",
-  },
-  // Add more mock tenants here to test pagination
-];
-
-export default function TenantManagement() {
-  const [tenants, setTenants] = useState(mockTenants);
+const TenantManagement = () => {
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTenant, setSelectedTenant] = useState(null); // for popup
   const navigate = useNavigate();
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const tenantsPerPage = 5;
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getTenants();
+        setTenants(data.tenants);
+      } catch (err) {
+        console.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  // Calculate displayed tenants
-  const indexOfLastTenant = currentPage * tenantsPerPage;
-  const indexOfFirstTenant = indexOfLastTenant - tenantsPerPage;
-  const currentTenants = tenants.slice(indexOfFirstTenant, indexOfLastTenant);
-
-  const totalPages = Math.ceil(tenants.length / tenantsPerPage);
-
-  const stats = {
-    total: tenants.length,
-    active: tenants.filter((t) => t.status === "Active").length,
-    inactive: tenants.filter((t) => t.status === "Inactive").length,
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this tenant?")) {
+      try {
+        await deleteTenant(id);
+        setTenants((prev) => prev.filter((t) => t.tenantId !== id));
+      } catch (err) {
+        alert(err.message);
+      }
+    }
   };
 
-  const pieData = [
-    { name: "Active", value: stats.active },
-    { name: "Inactive", value: stats.inactive },
-  ];
+  const handleSaveEdit = () => {
+    // Here you’d normally send update request
+    // For demo, just close popup
+    setSelectedTenant(null);
+  };
 
-  const COLORS = ["#4CAF50", "#FF5252"];
+  if (loading)
+    return (
+      <p className="text-center text-gray-600 dark:text-gray-300">
+        Loading tenants...
+      </p>
+    );
 
   return (
-    <div className="space-y-6 text-gray-900 dark:text-gray-100">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Tenant Management</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage tenants, agreements, and statuses
-          </p>
-        </div>
+    <div className="p-6 bg-white dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Tenant Management</h2>
         <button
-          onClick={() => navigate("/manage-tenants/add")}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow"
+          onClick={() => navigate("/add-tenant")}
         >
-          <Plus className="w-4 h-4" />
           Add Tenant
         </button>
       </div>
 
-      {/* Tenants Table */}
-      <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-4">Tenant List</h2>
+      {tenants.length === 0 ? (
+        <p className="text-gray-600 dark:text-gray-400">No tenants found.</p>
+      ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-              <tr>
-                <th className="p-3">Company</th>
-                <th className="p-3">Contact</th>
-                <th className="p-3">Phone</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Actions</th>
+          <table className="w-full border border-gray-200 dark:border-gray-700 shadow-md rounded-md">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-800 text-left">
+                <th className="p-2 border dark:border-gray-700">No</th>
+                <th className="p-2 border dark:border-gray-700">Company</th>
+                <th className="p-2 border dark:border-gray-700">
+                  Contact Person
+                </th>
+                <th className="p-2 border dark:border-gray-700">Phone</th>
+                <th className="p-2 border dark:border-gray-700">Email</th>
+                <th className="p-2 border dark:border-gray-700">Status</th>
+                <th className="p-2 border dark:border-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {currentTenants.map((tenant) => (
+              {tenants.map((tenant, index) => (
                 <tr
                   key={tenant.tenantId}
-                  className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <td className="p-3 font-medium">{tenant.companyName}</td>
-                  <td className="p-3">{tenant.contactPerson}</td>
-                  <td className="p-3">{tenant.phone}</td>
-                  <td className="p-3">{tenant.email}</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        tenant.status === "Active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {tenant.status}
-                    </span>
+                  <td className="p-2 border dark:border-gray-700">
+                    {index + 1}
                   </td>
-                  <td className="p-3 flex gap-2">
-                    <button className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-                      <Eye className="w-4 h-4" />
+                  <td className="p-2 border dark:border-gray-700">
+                    {tenant.companyName}
+                  </td>
+                  <td className="p-2 border dark:border-gray-700">
+                    {tenant.contactPerson}
+                  </td>
+                  <td className="p-2 border dark:border-gray-700">
+                    {tenant.phone}
+                  </td>
+                  <td className="p-2 border dark:border-gray-700">
+                    {tenant.email}
+                  </td>
+                  <td className="p-2 border dark:border-gray-700">
+                    {tenant.status}
+                  </td>
+                  <td className="p-2 border dark:border-gray-700 space-x-2">
+                    <button
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md"
+                      onClick={() => setSelectedTenant(tenant)}
+                    >
+                      Edit
                     </button>
-                    <button className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600">
-                      <Trash2 className="w-4 h-4" />
+                    <button
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
+                      onClick={() => handleDelete(tenant.tenantId)}
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -138,79 +118,103 @@ export default function TenantManagement() {
             </tbody>
           </table>
         </div>
+      )}
 
-        {/* Pagination Controls */}
-        <div className="flex justify-between items-center mt-4">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            Page {currentPage} of {totalPages}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50"
+      {/* ✅ Edit Popup Modal */}
+      {selectedTenant && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 shadow-lg">
+            <h3 className="text-lg font-bold mb-4">Edit Tenant</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveEdit();
+              }}
+              className="space-y-3"
             >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+              <input
+                type="text"
+                value={selectedTenant.companyName}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    companyName: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Company Name"
+              />
+              <input
+                type="text"
+                value={selectedTenant.contactPerson}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    contactPerson: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Contact Person"
+              />
+              <input
+                type="text"
+                value={selectedTenant.phone}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    phone: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Phone"
+              />
+              <input
+                type="email"
+                value={selectedTenant.email}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    email: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Email"
+              />
+              <select
+                value={selectedTenant.status}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    status: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Quick Stats */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Quick Stats</h2>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>Total Tenants</span>
-              <span className="font-medium">{stats.total}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Active</span>
-              <span className="font-medium">{stats.active}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Inactive</span>
-              <span className="font-medium">{stats.inactive}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Tenant Status</h2>
-          <div className="h-64">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-md"
+                  onClick={() => setSelectedTenant(null)}
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
-}
+};
+
+export default TenantManagement;
