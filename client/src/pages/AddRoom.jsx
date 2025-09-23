@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getRoomTypes, addRoom } from "../services/roomService";
+import { toast } from "react-hot-toast";
 
 export default function AddRoom() {
   const navigate = useNavigate();
@@ -9,31 +11,51 @@ export default function AddRoom() {
     unitNumber: "",
     floor: "",
     size: "",
-    roomType: "",
+    roomTypeId: "", // will store as number on submit
     status: "Vacant",
-    image: null, // optional room image
   });
 
+  const [roomTypes, setRoomTypes] = useState([]);
+
+  // Fetch room types
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      try {
+        const data = await getRoomTypes();
+        setRoomTypes(data.roomTypes || []);
+      } catch (error) {
+        toast.error(error.message || "Failed to load room types");
+      }
+    };
+    fetchRoomTypes();
+  }, []);
+
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "image") {
-      setFormData((prev) => ({ ...prev, image: files[0] }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    const { name, value } = e.target;
+
+    // Convert roomTypeId to number immediately
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "roomTypeId" ? Number(value) : value,
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Room Added:", formData);
 
-    // 🚀 Replace with API call:
-    // const data = new FormData();
-    // Object.keys(formData).forEach(key => data.append(key, formData[key]));
-    // await axios.post("/api/rooms", data, { headers: { "Content-Type": "multipart/form-data" } });
+    // Ensure roomTypeId is a number
+    if (!formData.roomTypeId) {
+      toast.error("Please select a room type");
+      return;
+    }
 
-    // Navigate back after adding room
-    navigate("/manage-rooms");
+    try {
+      await addRoom(formData); // backend expects roomTypeId as number
+      toast.success("Room added successfully");
+      navigate("/manage-rooms");
+    } catch (error) {
+      toast.error(error.message || "Failed to add room");
+    }
   };
 
   return (
@@ -46,7 +68,6 @@ export default function AddRoom() {
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Unit Number */}
@@ -77,6 +98,8 @@ export default function AddRoom() {
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>
+
+          {/* Size */}
           <div>
             <label className="block text-sm font-medium mb-1">Size (sqm)</label>
             <input
@@ -95,21 +118,18 @@ export default function AddRoom() {
           <div>
             <label className="block text-sm font-medium mb-1">Room Type</label>
             <select
-              name="roomType"
-              value={formData.roomType}
+              name="roomTypeId"
+              value={formData.roomTypeId || ""}
               onChange={handleChange}
               required
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             >
               <option value="">Select Room Type</option>
-              <option value="Retail">Retail</option>
-              <option value="Food & Beverage">Food & Beverage</option>
-              <option value="Kiosk">Kiosk</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Service">Service</option>
-              <option value="Office">Office</option>
-              <option value="Storage">Storage</option>
-              <option value="Other">Other</option>
+              {roomTypes.map((type) => (
+                <option key={type.roomTypeId} value={type.roomTypeId}>
+                  {type.typeName}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -127,23 +147,9 @@ export default function AddRoom() {
               <option value="Maintenance">Maintenance</option>
             </select>
           </div>
-
-          {/* Room Image */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1">
-              Room Image (optional)
-            </label>
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              onChange={handleChange}
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-            />
-          </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex justify-end gap-3">
           <button
             type="button"

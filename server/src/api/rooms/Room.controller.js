@@ -37,6 +37,7 @@ export const addRoom = async (req, res) => {
 export const getRooms = async (req, res) => {
   try {
     const rooms = await prisma.room.findMany({
+      where: { status: { not: "Inactive" } }, // exclude Inactive rooms
       include: { roomType: true, rental: true, maintenance: true },
     });
     res.json({ success: true, rooms });
@@ -45,6 +46,14 @@ export const getRooms = async (req, res) => {
   }
 };
 
+export const getRoomType = async (req, res) => {
+  try {
+    const roomTypes = await prisma.roomType.findMany();
+    res.json({ success: true, roomTypes });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 // ✅ Get Room by ID
 export const getRoomById = async (req, res) => {
   try {
