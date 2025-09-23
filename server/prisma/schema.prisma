@@ -28,6 +28,7 @@ enum RoomStatus {
   Occupied
   Vacant
   Maintenance
+  Inactive
 }
 
 enum RentalStatus {
