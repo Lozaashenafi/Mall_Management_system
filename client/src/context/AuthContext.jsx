@@ -16,8 +16,27 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem("user");
-    if (loggedInUser) setUser(JSON.parse(loggedInUser));
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+
+    if (storedUser && token) {
+      try {
+        const decoded = JSON.parse(atob(token.split(".")[1]));
+        const currentTime = Date.now() / 1000;
+
+        if (decoded.exp && decoded.exp > currentTime) {
+          setUser(JSON.parse(storedUser));
+        } else {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+          setUser(null);
+        }
+      } catch {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        setUser(null);
+      }
+    }
     setLoading(false);
   }, []);
 
