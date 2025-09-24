@@ -36,21 +36,30 @@ export default function AddRoom() {
     // Convert roomTypeId to number immediately
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "roomTypeId" ? Number(value) : value,
+      [name]:
+        name === "roomTypeId" || name === "floor" || name === "size"
+          ? Number(value)
+          : value,
     }));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Ensure roomTypeId is a number
-    if (!formData.roomTypeId) {
+    // Make sure roomTypeId, floor, and size are numbers
+    const payload = {
+      ...formData,
+      floor: Number(formData.floor),
+      size: Number(formData.size),
+      roomTypeId: Number(formData.roomTypeId),
+    };
+
+    if (!payload.roomTypeId) {
       toast.error("Please select a room type");
       return;
     }
 
     try {
-      await addRoom(formData); // backend expects roomTypeId as number
+      await addRoom(payload); // send clean payload to backend
       toast.success("Room added successfully");
       navigate("/manage-rooms");
     } catch (error) {

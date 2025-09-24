@@ -31,7 +31,9 @@ export const getRoomTypes = async () => {
 
 export const addRoom = async (formData) => {
   try {
+    console.log("FormData being sent:", formData);
     const res = await api.post("/rooms", formData);
+    console.log("Response from server:", res.data);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to add room" };

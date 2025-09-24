@@ -13,7 +13,9 @@ export const loginRequest = async (email, password) => {
 
 export const registerRequest = async (userData) => {
   try {
+    console.log(userData);
     const res = await api.post("/auth/register", userData);
+    console.log(res.data);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Registration failed" };
@@ -48,5 +50,14 @@ export const changePasswordRequest = async (data) => {
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to change password" };
+  }
+};
+
+export const deleteUser = async (userId) => {
+  try {
+    const res = await api.delete(`/auth/${userId}`);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { message: "Delete failed" };
   }
 };

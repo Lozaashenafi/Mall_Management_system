@@ -1,30 +1,36 @@
 import prisma from "../../config/prismaClient.js";
 import roomSchema from "./Room.schema.js";
-
+import { createAuditLog } from "../../utils/audit.js";
+// adjust path as needed
 export const addRoom = async (req, res) => {
   try {
-    // Validate request body
     const { error } = roomSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
     const { unitNumber } = req.body;
 
-    // Check if unitNumber already exists (MySQL is case-insensitive by default)
     const existingRoom = await prisma.room.findFirst({
-      where: { unitNumber: unitNumber }, // plain equality
+      where: { unitNumber },
     });
-
     if (existingRoom) {
       return res.status(400).json({
         message: `Room with unit number "${unitNumber}" already exists`,
       });
     }
 
-    // Create room
     const room = await prisma.room.create({
       data: req.body,
-      include: { roomType: true }, // include related RoomType
+      include: { roomType: true },
+    });
+
+    // ✅ Audit log
+    await createAuditLog({
+      userId: req.user.userId, // logged-in user
+      action: "created",
+      tableName: "Room",
+      recordId: room.roomId,
+      newValue: room,
     });
 
     res.status(201).json({ success: true, message: "Room created", room });
@@ -71,7 +77,6 @@ export const getRoomById = async (req, res) => {
   }
 };
 
-// ✅ Update Room
 export const updateRoom = async (req, res) => {
   try {
     const { error } = roomSchema.update.validate(req.body);
@@ -81,15 +86,16 @@ export const updateRoom = async (req, res) => {
     const { id } = req.params;
     const { unitNumber, ...rest } = req.body;
 
-    // 🔍 Check if unitNumber already exists (ignore case, exclude this room itself)
+    const room = await prisma.room.findUnique({
+      where: { roomId: Number(id) },
+    });
+    if (!room) return res.status(404).json({ message: "Room not found" });
+
+    // Check for duplicate unitNumber
     if (unitNumber) {
       const existingRoom = await prisma.room.findFirst({
-        where: {
-          unitNumber: unitNumber,
-          NOT: { roomId: Number(id) }, // exclude the room being updated
-        },
+        where: { unitNumber, NOT: { roomId: Number(id) } },
       });
-
       if (existingRoom) {
         return res.status(400).json({
           success: false,
@@ -98,39 +104,40 @@ export const updateRoom = async (req, res) => {
       }
     }
 
-    // ✅ Perform update
-    const room = await prisma.room.update({
+    const updatedRoom = await prisma.room.update({
       where: { roomId: Number(id) },
-      data: {
-        ...(unitNumber && { unitNumber }),
-        ...rest,
-      },
+      data: { ...(unitNumber && { unitNumber }), ...rest },
       include: { roomType: true },
     });
 
-    res.json({ success: true, message: "Room updated", room });
+    // ✅ Audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "updated",
+      tableName: "Room",
+      recordId: updatedRoom.roomId,
+      oldValue: room,
+      newValue: updatedRoom,
+    });
+
+    res.json({ success: true, message: "Room updated", room: updatedRoom });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ Delete Room
 export const deleteRoom = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 🔍 Find the room
     const room = await prisma.room.findUnique({
       where: { roomId: Number(id) },
     });
-
-    if (!room) {
+    if (!room)
       return res
         .status(404)
         .json({ success: false, message: "Room not found" });
-    }
 
-    // 🚫 If Occupied → don't delete
     if (room.status === "Occupied") {
       return res.status(400).json({
         success: false,
@@ -138,10 +145,19 @@ export const deleteRoom = async (req, res) => {
       });
     }
 
-    // ✅ Otherwise → deactivate (soft delete)
     const updatedRoom = await prisma.room.update({
       where: { roomId: Number(id) },
       data: { status: "Inactive" },
+    });
+
+    // ✅ Audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "deleted",
+      tableName: "Room",
+      recordId: updatedRoom.roomId,
+      oldValue: room,
+      newValue: updatedRoom,
     });
 
     res.json({

@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../../config/prismaClient.js";
 import authSchema from "./Auth.schema.js";
 import { UserRole, UserStatus } from "@prisma/client";
+import { createAuditLog } from "../../utils/audit.js";
 
 // Register Admin
 export const register = async (req, res) => {
@@ -28,8 +29,23 @@ export const register = async (req, res) => {
         email,
         passwordHash: hashedPassword,
         role: req.body.role || UserRole.Admin,
-        status: UserStatus.Active, // ✅ matches enum
+        status: UserStatus.Active,
         phone: phone || null,
+      },
+    });
+
+    // Create Audit Log for user creation
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "created",
+      tableName: "User",
+      recordId: user.userId,
+      newValue: {
+        fullName,
+        email,
+        role: user.role,
+        status: user.status,
+        phone,
       },
     });
 
@@ -46,7 +62,7 @@ export const register = async (req, res) => {
     });
 
     res.status(201).json({
-      message: " registered successfully",
+      message: "Registered successfully",
       success: true,
       token,
       user: {
@@ -140,14 +156,14 @@ export const login = async (req, res) => {
     });
   }
 };
-// Edit Profile with image upload
 export const editProfile = async (req, res) => {
   try {
     const { fullName, phone } = req.body;
-    // console.log("req.body:", req.body);
-    // console.log("req.file:", req.file);
-
     const userId = req.user.userId;
+
+    // Find the current user to capture old values for audit
+    const oldUser = await prisma.user.findUnique({ where: { userId } });
+    if (!oldUser) return res.status(404).json({ message: "User not found" });
 
     // If file uploaded, save its path
     let profilePicture;
@@ -155,12 +171,31 @@ export const editProfile = async (req, res) => {
       profilePicture = `/uploads/${req.file.filename}`;
     }
 
+    // Update user
     const updatedUser = await prisma.user.update({
       where: { userId },
       data: {
         fullName,
         phone,
         ...(profilePicture && { profilePicture }),
+      },
+    });
+
+    // Create Audit Log
+    await createAuditLog({
+      userId, // the logged-in user performing the action
+      action: "updated",
+      tableName: "User",
+      recordId: updatedUser.userId,
+      oldValue: {
+        fullName: oldUser.fullName,
+        phone: oldUser.phone,
+        profilePicture: oldUser.profilePicture,
+      },
+      newValue: {
+        fullName: updatedUser.fullName,
+        phone: updatedUser.phone,
+        profilePicture: updatedUser.profilePicture,
       },
     });
 
@@ -178,6 +213,7 @@ export const editProfile = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -209,6 +245,40 @@ export const changePassword = async (req, res) => {
 
     res.json({ message: "Password changed successfully", success: true });
   } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+export const deleteUserRequest = async (req, res) => {
+  try {
+    const userIdInt = Number(req.params.userId);
+    if (isNaN(userIdInt))
+      return res.status(400).json({ message: "Invalid user ID" });
+
+    const user = await prisma.user.findUnique({ where: { userId: userIdInt } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await prisma.user.update({
+      where: { userId: userIdInt },
+      data: { status: UserStatus.Inactive },
+    });
+
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "deleted",
+      tableName: "User",
+      recordId: user.userId,
+      oldValue: {
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        phone: user.phone,
+      },
+    });
+
+    res.json({ message: "User deleted successfully", success: true });
+  } catch (error) {
+    console.error(error); // log exact error
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

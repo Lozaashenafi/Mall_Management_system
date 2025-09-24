@@ -21,7 +21,13 @@ router.post(
 );
 router.get("/", userAuth, isAdmin, getTenants);
 router.get("/:id", userAuth, isAdmin, getTenantById);
-router.put("/:id", userAuth, isAdmin, editTenant);
+router.put(
+  "/:id",
+  userAuth,
+  isAdmin,
+  upload.single("identificationDocument"),
+  editTenant
+);
 router.delete("/:id", userAuth, isAdmin, deleteTenant);
 
 export default router;

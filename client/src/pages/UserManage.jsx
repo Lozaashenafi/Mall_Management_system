@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Edit, Trash2, UserPlus } from "lucide-react";
-import { registerRequest, allUsers } from "../services/authService"; // your imported API functions
+import { registerRequest, allUsers, deleteUser } from "../services/authService";
+import { toast } from "react-hot-toast";
+// your imported API functions
 
 export default function UserManage() {
   const [admins, setAdmins] = useState([]);
@@ -55,15 +57,23 @@ export default function UserManage() {
       });
       setShowAddForm(false);
     } catch (err) {
-      alert(err.message || "Error creating admin");
+      toast.error(err.message || "Error creating admin");
     }
   };
+  const handleDeleteAdmin = async (userId) => {
+    const confirm = window.confirm(
+      "Are you sure you want to delete this admin? This action cannot be undone."
+    );
+    if (!confirm) return;
 
-  const handleDeleteAdmin = (userId) => {
-    // Implement API delete later if backend supports it
-    setAdmins((prev) => prev.filter((u) => u.userId !== userId));
+    try {
+      await deleteUser(userId);
+      setAdmins((prev) => prev.filter((u) => u.userId !== userId));
+      toast.success("Admin deleted successfully!");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete admin");
+    }
   };
-
   if (loading)
     return (
       <p className="text-gray-700 dark:text-gray-300">Loading admins...</p>
@@ -183,12 +193,6 @@ export default function UserManage() {
                     </span>
                   </td>
                   <td className="p-3 flex gap-2">
-                    <button
-                      title="Edit Admin"
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
                     <button
                       title="Delete Admin"
                       onClick={() => handleDeleteAdmin(admin.userId)}
