@@ -27,6 +27,7 @@ import Profile from "./pages/Profile";
 import UserManage from "./pages/UserManage";
 import EditProfile from "./components/EditProfile";
 import ChangePassword from "./components/ChangePassword";
+import RentManage from "./pages/RentManage";
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
             <Route path="/add-tenant" element={<AddTenant />} />
             <Route path="/manage-rooms" element={<RoomManage />} />
             <Route path="/manage-rooms/add" element={<AddRoom />} />
+            <Route path="/manage-rentals" element={<RentManage />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/payments/add" element={<AddPayment />} />
             <Route path="/payments/invoice" element={<AddInvoice />} />
@@ -63,6 +65,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/change-password" element={<ChangePassword />} />
+
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

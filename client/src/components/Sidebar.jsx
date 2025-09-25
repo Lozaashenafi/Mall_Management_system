@@ -22,6 +22,7 @@ const baseSidebarItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
   { title: "Tenants", icon: Users, url: "/manage-tenants" },
   { title: "Rooms", icon: Building2, url: "/manage-rooms" },
+  { title: "Rentals", icon: Building2, url: "/manage-rentals" },
   { title: "Payments", icon: DollarSign, url: "/payments" },
   { title: "Maintenance", icon: Wrench, url: "/maintenance" },
   { title: "Expenses", icon: Receipt, url: "/expenses" },
