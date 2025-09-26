@@ -10,6 +10,19 @@ export const getRooms = async () => {
   }
 };
 
+export const getAvailableRooms = async (checkIn, checkOut) => {
+  try {
+    const res = await api.get("/rooms/vacant", {
+      params: { checkIn, checkOut },
+    });
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || { message: "Failed to fetch available rooms" }
+    );
+  }
+};
+
 // ✅ Get single room by ID
 export const getRoomById = async (id) => {
   try {

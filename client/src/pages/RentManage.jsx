@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getRentals, createRental } from "../services/rentalService";
+import { getTenants } from "../services/tenantService";
+import { getAvailableRooms } from "../services/roomService";
 
 export default function RentManage() {
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [tenants, setTenants] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [newRental, setNewRental] = useState({
     tenantId: "",
     roomId: "",
@@ -25,46 +30,26 @@ export default function RentManage() {
   const currentRentals = rentals.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(rentals.length / rentalsPerPage);
 
-  // Load junk data
   useEffect(() => {
-    const fakeData = [
-      {
-        rentId: 1,
-        tenant: { fullName: "John Doe" },
-        room: { roomNumber: "A101" },
-        rentAmount: 1200,
-        paymentInterval: "Monthly",
-        status: "Active",
-      },
-      {
-        rentId: 2,
-        tenant: { fullName: "Jane Smith" },
-        room: { roomNumber: "B202" },
-        rentAmount: 3500,
-        paymentInterval: "Quarterly",
-        status: "Pending",
-      },
-      {
-        rentId: 3,
-        tenant: { fullName: "David Brown" },
-        room: { roomNumber: "C303" },
-        rentAmount: 10000,
-        paymentInterval: "Yearly",
-        status: "Ended",
-      },
-      {
-        rentId: 4,
-        tenant: { fullName: "Alice Johnson" },
-        room: { roomNumber: "D404" },
-        rentAmount: 2500,
-        paymentInterval: "Monthly",
-        status: "Active",
-      },
-    ];
-    setTimeout(() => {
-      setRentals(fakeData);
-      setLoading(false);
-    }, 800); // fake delay
+    const fetchData = async () => {
+      try {
+        const [rentalData, tenantData, roomData] = await Promise.all([
+          getRentals(),
+          getTenants(),
+          getAvailableRooms(),
+        ]);
+
+        // 👇 If rentalData is an object, extract the array
+        setRentals(rentalData.rentals || rentalData || []);
+        setTenants(tenantData.tenants || tenantData || []);
+        setRooms(roomData.rooms || roomData || []);
+      } catch (error) {
+        toast.error(error.message || "Failed to load rentals");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const handleInputChange = (e) => {
@@ -72,32 +57,33 @@ export default function RentManage() {
     setNewRental((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddRental = (e) => {
+  const handleAddRental = async (e) => {
     e.preventDefault();
-    const newEntry = {
-      ...newRental,
-      rentId: rentals.length + 1,
-      tenant: { fullName: `Tenant #${newRental.tenantId}` },
-      room: { roomNumber: `Room #${newRental.roomId}` },
-    };
-    setRentals((prev) => [newEntry, ...prev]);
-    setNewRental({
-      tenantId: "",
-      roomId: "",
-      startDate: "",
-      endDate: "",
-      rentAmount: "",
-      paymentDueDate: "",
-      paymentInterval: "Monthly",
-      status: "Active",
-    });
-    setShowAddForm(false);
-    toast.success("Rental created (mock)!");
-  };
+    try {
+      const created = await createRental({
+        ...newRental,
+        tenantId: Number(newRental.tenantId),
+        roomId: Number(newRental.roomId),
+        rentAmount: parseFloat(newRental.rentAmount),
+        paymentDueDate: Number(newRental.paymentDueDate),
+      });
 
-  const handleDeleteRental = (rentId) => {
-    setRentals((prev) => prev.filter((r) => r.rentId !== rentId));
-    toast.success("Rental deleted (mock)!");
+      setRentals((prev) => [created, ...prev]);
+      setNewRental({
+        tenantId: "",
+        roomId: "",
+        startDate: "",
+        endDate: "",
+        rentAmount: "",
+        paymentDueDate: "",
+        paymentInterval: "Monthly",
+        status: "Active",
+      });
+      setShowAddForm(false);
+      toast.success("Rental created!");
+    } catch (error) {
+      toast.error(error.message || "Failed to create rental");
+    }
   };
 
   if (loading)
@@ -132,31 +118,45 @@ export default function RentManage() {
             onSubmit={handleAddRental}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
-            <input
-              type="number"
+            {/* Tenant */}
+            <select
               name="tenantId"
-              placeholder="Tenant ID"
               value={newRental.tenantId}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
-            />
-            <input
-              type="number"
+              className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+            >
+              <option value="">Select Tenant</option>
+              {tenants.map((tenant) => (
+                <option key={tenant.tenantId} value={tenant.tenantId}>
+                  {tenant.contactPerson}
+                </option>
+              ))}
+            </select>
+
+            {/* Room */}
+            <select
               name="roomId"
-              placeholder="Room ID"
               value={newRental.roomId}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
-            />
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
+            >
+              <option value="">Select Room</option>
+              {rooms.map((room) => (
+                <option key={room.roomId} value={room.roomId}>
+                  {room.unitNumber} (Floor {room.floor})
+                </option>
+              ))}
+            </select>
+
             <input
               type="date"
               name="startDate"
               value={newRental.startDate}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
             />
             <input
               type="date"
@@ -164,7 +164,7 @@ export default function RentManage() {
               value={newRental.endDate}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
             />
             <input
               type="number"
@@ -173,7 +173,7 @@ export default function RentManage() {
               value={newRental.rentAmount}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
             />
             <input
               type="number"
@@ -182,27 +182,17 @@ export default function RentManage() {
               value={newRental.paymentDueDate}
               onChange={handleInputChange}
               required
-              className="p-2 border rounded-md dark:bg-gray-800"
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
             />
             <select
               name="paymentInterval"
               value={newRental.paymentInterval}
               onChange={handleInputChange}
-              className="p-2 border rounded-md dark:bg-gray-800 col-span-1 md:col-span-2"
+              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800 col-span-1 md:col-span-2"
             >
               <option value="Monthly">Monthly</option>
               <option value="Quarterly">Quarterly</option>
               <option value="Yearly">Yearly</option>
-            </select>
-            <select
-              name="status"
-              value={newRental.status}
-              onChange={handleInputChange}
-              className="p-2 border rounded-md dark:bg-gray-800 col-span-1 md:col-span-2"
-            >
-              <option value="Active">Active</option>
-              <option value="Ended">Ended</option>
-              <option value="Pending">Pending</option>
             </select>
             <button
               type="submit"
@@ -236,10 +226,10 @@ export default function RentManage() {
                   className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <td className="p-3">
-                    {rental.tenant?.fullName || rental.tenantId}
+                    {rental.tenant?.contactPerson || rental.tenantId}
                   </td>
                   <td className="p-3">
-                    {rental.room?.roomNumber || rental.roomId}
+                    {rental.room?.unitNumber || rental.roomId}
                   </td>
                   <td className="p-3">${rental.rentAmount}</td>
                   <td className="p-3">{rental.paymentInterval}</td>
@@ -259,7 +249,6 @@ export default function RentManage() {
                   <td className="p-3">
                     <button
                       title="Delete Rental"
-                      onClick={() => handleDeleteRental(rental.rentId)}
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
                     >
                       <Trash2 className="w-4 h-4" />

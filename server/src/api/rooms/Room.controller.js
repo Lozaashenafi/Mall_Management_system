@@ -169,3 +169,15 @@ export const deleteRoom = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+export const getAvailableRooms = async (req, res) => {
+  try {
+    const availableRooms = await prisma.room.findMany({
+      where: { status: "Vacant" },
+      include: { roomType: true },
+    });
+    res.json({ success: true, rooms: availableRooms });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

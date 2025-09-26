@@ -8,3 +8,11 @@ export const createRental = async (rentalData) => {
     throw error.response?.data || { message: "Failed to create rental" };
   }
 };
+export const getRentals = async (filters) => {
+  try {
+    const res = await api.get("/rentals", { params: filters });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch rentals" };
+  }
+};

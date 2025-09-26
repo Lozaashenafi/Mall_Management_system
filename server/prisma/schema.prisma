@@ -141,8 +141,8 @@ model Rental {
   startDate       DateTime
   endDate         DateTime
   rentAmount      Float
-  paymentDueDate  Int // e.g., 5 = 5th of month
-  paymentInterval String // Monthly, Quarterly, Yearly
+  paymentDueDate  Int 
+  paymentInterval String 
   status          RentalStatus
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
