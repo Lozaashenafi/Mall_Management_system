@@ -1,6 +1,7 @@
 // src/api/rentals/rental.controller.js
 import prisma from "../../config/prismaClient.js";
 import rentalSchema from "./rental.schema.js";
+import { createAuditLog } from "../../utils/audit.js";
 
 export const createRental = async (req, res) => {
   try {
@@ -11,7 +12,6 @@ export const createRental = async (req, res) => {
     const {
       tenantId,
       roomId,
-      versionNumber,
       startDate,
       endDate,
       rentAmount,
@@ -28,7 +28,6 @@ export const createRental = async (req, res) => {
     const room = await prisma.room.findUnique({ where: { roomId } });
     if (!room) return res.status(404).json({ message: "Room not found" });
 
-    // Prevent double-booking: if room is Occupied, reject
     if (room.status === "Occupied") {
       return res.status(400).json({
         message:
@@ -40,6 +39,13 @@ export const createRental = async (req, res) => {
         .status(400)
         .json({ message: "Room is under maintenance. Choose another room." });
     }
+
+    // Get latest version number for this room
+    const lastRental = await prisma.rental.findFirst({
+      where: { roomId, tenantId },
+      orderBy: { versionNumber: "desc" },
+    });
+    const versionNumber = lastRental ? lastRental.versionNumber + 1 : 1;
 
     // Transaction: create rental and mark room occupied
     const result = await prisma.$transaction(async (tx) => {
@@ -62,6 +68,15 @@ export const createRental = async (req, res) => {
         data: { status: "Occupied" },
       });
 
+      // ✅ Audit log
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "Rental",
+        recordId: rental.rentId,
+        newValue: rental,
+      });
+
       return rental;
     });
 
@@ -73,7 +88,6 @@ export const createRental = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 /**
  * Get all rentals (with optional filters: tenantId, roomId, status)
  */
@@ -126,13 +140,6 @@ export const getRentalById = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-/**
- * Update a rental (partial updates only)
- * - validate payload
- * - do not allow roomId change via update (complex)
- * - if status becomes Expired or Terminated, update room.status -> Vacant
- */
 export const updateRental = async (req, res) => {
   try {
     const { error, value } = rentalSchema.update.validate(req.body);
@@ -147,30 +154,31 @@ export const updateRental = async (req, res) => {
     });
     if (!existing) return res.status(404).json({ message: "Rental not found" });
 
-    // Prevent changing roomId here (if needed)
-    if (req.body.roomId && Number(req.body.roomId) !== existing.roomId) {
-      return res
-        .status(400)
-        .json({ message: "Changing roomId is not allowed via this endpoint." });
-    }
+    const updateData = {};
+    if (value.startDate) updateData.startDate = new Date(value.startDate);
+    if (value.endDate) updateData.endDate = new Date(value.endDate);
+    if (value.rentAmount !== undefined)
+      updateData.rentAmount = Number(value.rentAmount);
+    if (value.paymentDueDate !== undefined)
+      updateData.paymentDueDate = Number(value.paymentDueDate);
+    if (value.paymentInterval)
+      updateData.paymentInterval = value.paymentInterval;
 
     // Update rental
     const updated = await prisma.rental.update({
       where: { rentId: Number(id) },
-      data: value,
-      include: { tenant: true, room: true },
+      data: updateData,
     });
 
-    // If rental ended/terminated, free the room
-    if (
-      value.status &&
-      (value.status === "Expired" || value.status === "Terminated")
-    ) {
-      await prisma.room.update({
-        where: { roomId: updated.roomId },
-        data: { status: "Vacant" },
-      });
-    }
+    // ✅ Audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "updated",
+      tableName: "Rental",
+      recordId: updated.rentId,
+      oldValue: existing,
+      newValue: updated,
+    });
 
     res.json({ success: true, message: "Rental updated", rental: updated });
   } catch (err) {
@@ -178,13 +186,6 @@ export const updateRental = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-/**
- * Terminate rental early (soft termination):
- * - set status = Terminated
- * - set endDate = now()
- * - free the room (status -> Vacant)
- */
 export const terminateRental = async (req, res) => {
   try {
     const { id } = req.params;
@@ -210,6 +211,16 @@ export const terminateRental = async (req, res) => {
         data: { status: "Vacant" },
       });
 
+      // ✅ Audit log
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "terminated",
+        tableName: "Rental",
+        recordId: updatedRental.rentId,
+        oldValue: rental,
+        newValue: updatedRental,
+      });
+
       return updatedRental;
     });
 
@@ -220,11 +231,6 @@ export const terminateRental = async (req, res) => {
   }
 };
 
-/**
- * Renew a rental:
- * - Typically create a new version (increment versionNumber) OR update endDate and rentAmount
- * - Here we will update endDate, rentAmount, versionNumber++ and status Active
- */
 export const renewRental = async (req, res) => {
   try {
     const { id } = req.params;
@@ -256,9 +262,6 @@ export const renewRental = async (req, res) => {
   }
 };
 
-/**
- * Get rentals for a specific tenant
- */
 export const getRentalsByTenant = async (req, res) => {
   try {
     const { tenantId } = req.params;

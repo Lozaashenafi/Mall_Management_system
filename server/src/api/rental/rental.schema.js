@@ -19,7 +19,6 @@ export default {
   }),
 
   update: Joi.object({
-    versionNumber: Joi.number().integer().min(1).optional(),
     startDate: Joi.date().optional(),
     endDate: Joi.date().optional(),
     rentAmount: Joi.number().precision(2).optional(),
@@ -27,6 +26,5 @@ export default {
     paymentInterval: Joi.string()
       .valid("Monthly", "Quarterly", "Yearly")
       .optional(),
-    status: Joi.string().valid("Active", "Expired", "Terminated").optional(),
   }),
 };

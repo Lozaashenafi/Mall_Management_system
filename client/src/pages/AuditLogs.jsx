@@ -240,8 +240,7 @@ export default function AuditLogs() {
                         )}
 
                         <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          <User className="w-3 h-3" /> {log.userFullName} (ID:{" "}
-                          {log.userId})
+                          <User className="w-3 h-3" /> {log.userFullName}
                           <span>
                             {new Date(log.timestamp).toLocaleDateString()} at{" "}
                             {new Date(log.timestamp).toLocaleTimeString()}
