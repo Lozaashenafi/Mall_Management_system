@@ -100,12 +100,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
+  const isTenant = user?.role?.toLowerCase() === "tenant";
+
   return (
     <AuthContext.Provider
       value={{
         user,
         login,
         register,
+        isTenant,
         editProfile,
         changePassword,
         logout,

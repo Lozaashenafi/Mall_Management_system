@@ -38,7 +38,7 @@ function Dropdown({ trigger, children }) {
   );
 }
 
-function TenantHeader() {
+function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -102,7 +102,7 @@ function TenantHeader() {
           </div>
           <div className="border-t border-gray-200 dark:border-gray-700" />
           <button
-            onClick={() => navigate("/tenant/profile")}
+            onClick={() => navigate("/profile")}
             type="button"
             className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
@@ -111,7 +111,7 @@ function TenantHeader() {
           </button>
           <button
             type="button"
-            onClick={() => navigate("/tenant/settings")}
+            onClick={() => navigate("/settings")}
             className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -132,4 +132,4 @@ function TenantHeader() {
   );
 }
 
-export default TenantHeader;
+export default Header;

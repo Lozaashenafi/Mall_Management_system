@@ -3,12 +3,11 @@ import { Outlet } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Sidebar } from "../components/Sidebar";
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { TenantSidebar } from "../components/TenantSidebar";
+import TenantHeader from "../components/Header";
 
-function RootLayout() {
+function TenantLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { isTenant } = useAuth();
 
   function toggleSidebar() {
     setCollapsed((prev) => !prev);
@@ -16,15 +15,10 @@ function RootLayout() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {/* <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900"> */}
       <div className="min-h-screen bg-background flex">
-        {isTenant ? (
-          <TenantSidebar collapsed={collapsed} onToggle={toggleSidebar} />
-        ) : (
-          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
-        )}
+        <TenantSidebar collapsed={collapsed} onToggle={toggleSidebar} />
         <div className="flex-1 flex flex-col">
-          <Header />
+          <TenantHeader />
           <main
             className={
               "flex-1 p-6 bg-background-alt overflow-auto transition-all duration-300 bg-gray-50 dark:bg-gray-900"
@@ -38,4 +32,4 @@ function RootLayout() {
   );
 }
 
-export default RootLayout;
+export default TenantLayout;

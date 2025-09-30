@@ -28,6 +28,8 @@ import UserManage from "./pages/UserManage";
 import EditProfile from "./components/EditProfile";
 import ChangePassword from "./components/ChangePassword";
 import RentManage from "./pages/RentManage";
+import TenantLayout from "./layout/TenantLayout";
+import TenantDashboard from "./pages/TenantDashboard";
 
 function App() {
   return (
@@ -39,7 +41,7 @@ function App() {
           <Route
             path="/"
             element={
-              <PrivateRoute>
+              <PrivateRoute adminOnly>
                 <RootLayout />
               </PrivateRoute>
             }
@@ -67,6 +69,31 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
 
             <Route path="*" element={<NotFound />} />
+          </Route>
+          <Route
+            path="/tenant"
+            element={
+              <PrivateRoute tenantOnly>
+                <TenantLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<TenantDashboard />} />
+
+            {/* Shared profile pages */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="change-password" element={<ChangePassword />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="notifications" element={<Notifications />} />
+
+            {/* Tenant-specific pages */}
+            {/* <Route path="payments" element={<Payments />} />
+            <Route path="maintenance" element={<Maintenance />} />
+            <Route path="notifications" element={<Notifications />} />
+           
+            <Route path="terminate-request" element={<NotFound />} /> */}
+            {/* replace NotFound with your actual TerminateRequest page */}
           </Route>
         </Routes>
       </ThemeProvider>
