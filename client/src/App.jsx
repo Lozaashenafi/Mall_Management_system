@@ -30,6 +30,10 @@ import ChangePassword from "./components/ChangePassword";
 import RentManage from "./pages/RentManage";
 import TenantLayout from "./layout/TenantLayout";
 import TenantDashboard from "./pages/TenantDashboard";
+import TenantPayment from "./pages/TenantPayment";
+import TenantMaintenance from "./pages/TenantMaintenance";
+import TenantNotifications from "./pages/TenantNotifications";
+import TenantTerminateRequest from "./pages/TenantTerminateRequest";
 
 function App() {
   return (
@@ -88,12 +92,14 @@ function App() {
             <Route path="notifications" element={<Notifications />} />
 
             {/* Tenant-specific pages */}
-            {/* <Route path="payments" element={<Payments />} />
-            <Route path="maintenance" element={<Maintenance />} />
-            <Route path="notifications" element={<Notifications />} />
-           
-            <Route path="terminate-request" element={<NotFound />} /> */}
-            {/* replace NotFound with your actual TerminateRequest page */}
+            <Route path="payments" element={<TenantPayment />} />
+            <Route path="maintenance" element={<TenantMaintenance />} />
+            <Route path="notifications" element={<TenantNotifications />} />
+
+            <Route
+              path="terminate-request"
+              element={<TenantTerminateRequest />}
+            />
           </Route>
         </Routes>
       </ThemeProvider>

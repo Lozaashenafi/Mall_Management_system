@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const EditProfile = () => {
-  const { user, editProfile } = useAuth(); // ✅ use from context
+  const { user, editProfile, isTenant } = useAuth(); // ✅ use from context
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -121,7 +121,9 @@ const EditProfile = () => {
           <div className="flex justify-between mt-6">
             <button
               type="button"
-              onClick={() => navigate("/profile")}
+              onClick={() =>
+                isTenant ? navigate("/tenant/profile") : navigate("/profile")
+              }
               className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Cancel

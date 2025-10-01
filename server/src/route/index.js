@@ -6,6 +6,7 @@ import roomRoutes from "../api/rooms/Room.route.js";
 import auditLogRoutes from "./auditLog.routes.js";
 import rentalRoutes from "../api/rental/rental.routes.js";
 import agreementRoutes from "../api/agreements/Agreement.route.js";
+import expenseRoutes from "../api/expenses/Expenses.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -13,4 +14,5 @@ router.use("/rooms", roomRoutes);
 router.use("/audit", auditLogRoutes);
 router.use("/rentals", rentalRoutes);
 router.use("/agreements", agreementRoutes);
+router.use("/expenses", expenseRoutes);
 export default router;
