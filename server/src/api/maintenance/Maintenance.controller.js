@@ -1,0 +1,181 @@
+// controllers/maintenanceController.js
+import prisma from "../../config/prismaClient.js";
+import { createAuditLog } from "../../utils/audit.js";
+// controllers/maintenanceController.js
+export const createMaintenance = async (req, res) => {
+  try {
+    const {
+      roomId,
+      description,
+      cost,
+      maintenanceStartDate,
+      maintenanceEndDate,
+    } = req.body;
+    // chacke the room exists
+    const room = await prisma.room.findUnique({
+      where: { roomId: Number(roomId) },
+    });
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Room not found" });
+    }
+
+    // 1. Try to find active rental for the room
+    const rental = await prisma.rental.findFirst({
+      where: {
+        roomId: Number(roomId),
+        status: "Active",
+      },
+      select: { tenantId: true },
+    });
+
+    // 2. recordedBy = tenantId if found, else null
+    const recordedBy = rental ? rental.tenantId : null;
+
+    // 3. Create maintenance
+    const maintenance = await prisma.maintenance.create({
+      data: {
+        roomId: Number(roomId),
+        description,
+        cost: cost ? Number(cost) : 0,
+        maintenanceStartDate: new Date(maintenanceStartDate),
+        maintenanceEndDate: maintenanceEndDate
+          ? new Date(maintenanceEndDate)
+          : null,
+        recordedBy,
+      },
+    });
+
+    res.json({ success: true, message: "Maintenance recorded", maintenance });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const getAllMaintenances = async (req, res) => {
+  try {
+    const maintenances = await prisma.maintenance.findMany({
+      include: {
+        room: true,
+        user: { select: { fullName: true } },
+      },
+    });
+    res.json({ success: true, maintenances });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const updateMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await prisma.maintenance.update({
+      where: { maintenanceId: Number(id) },
+      data: req.body,
+    });
+    res.json({
+      success: true,
+      message: "Maintenance updated",
+      maintenance: updated,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const deleteMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.maintenance.delete({ where: { maintenanceId: Number(id) } });
+    res.json({ success: true, message: "Maintenance deleted" });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const createMaintenanceRequest = async (req, res) => {
+  try {
+    const { rentId, description } = req.body;
+    const rental = await prisma.rental.findUnique({
+      where: { rentId: Number(rentId) },
+    });
+    if (!rental || rental.status !== "Active") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or inactive rental ID" });
+    }
+
+    const request = await prisma.maintenanceRequest.create({
+      data: {
+        rentId,
+        description,
+      },
+    });
+
+    res.json({ success: true, message: "Request submitted", request });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Tenant: Get own requests
+export const getTenantRequests = async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+
+    const requests = await prisma.maintenanceRequest.findMany({
+      where: {
+        rental: { tenantId: Number(tenantId) },
+      },
+      include: {
+        rental: {
+          include: { room: true },
+        },
+      },
+    });
+
+    res.json({ success: true, requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const updateRequestStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Update the request status
+    const updatedRequest = await prisma.maintenanceRequest.update({
+      where: { requestId: Number(id) },
+      data: { status },
+      include: { rental: true }, // rental has tenantId + roomId
+    });
+
+    let maintenance = null;
+
+    // If status is approved, create a maintenance record
+    if (status === "Approved") {
+      maintenance = await prisma.maintenance.create({
+        data: {
+          roomId: updatedRequest.rental.roomId,
+          description: updatedRequest.description,
+          cost: 0, // default, admin can update later
+          maintenanceStartDate: new Date(),
+          maintenanceEndDate: null,
+          recordedBy: updatedRequest.rental.tenantId, // ✅ tenant who requested
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Request status updated",
+      request: updatedRequest,
+      maintenanceCreated: maintenance,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

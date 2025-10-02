@@ -215,12 +215,13 @@ model Maintenance {
   maintenanceId  Int      @id @default(autoincrement())
   roomId         Int
   description    String
-  cost           Float
+  cost           Float?
   maintenanceStartDate  DateTime
   maintenanceEndDate    DateTime?
-  recordedBy     Int
+  status        String @default("InProgress") // Could use enum: Pending, InProgress, Completed
+  recordedBy     Int?
   room           Room     @relation(fields: [roomId], references: [roomId])
-  user           User     @relation(fields: [recordedBy], references: [userId])
+  user           User?    @relation(fields: [recordedBy], references: [userId])
 }
 
 model MaintenanceRequest {
@@ -229,7 +230,6 @@ model MaintenanceRequest {
   description    String
   status         MaintenanceRequestStatus @default(Pending) // enum
   requestDate    DateTime  @default(now())
-  completionDate DateTime?
   rental         Rental    @relation(fields: [rentId], references: [rentId])
 }
 
