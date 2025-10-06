@@ -25,4 +25,7 @@ router.put("/:id", userAuth, isAdmin, updateRental);
 router.post("/:id/terminate", userAuth, isAdmin, terminateRental);
 router.post("/:id/renew", userAuth, isAdmin, renewRental);
 
+// Get active rental for a tenant
+router.get("/active/:tenantId", userAuth, getRentalsByTenant);
+
 export default router;

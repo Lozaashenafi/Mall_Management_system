@@ -276,3 +276,18 @@ export const getRentalsByTenant = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+// get tenant active rental
+export const getActiveRentalByTenant = async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const rental = await prisma.rental.findFirst({
+      where: { tenantId: Number(tenantId), status: "Active" },
+      include: { room },
+      orderBy: { startDate: "desc" },
+    });
+    res.json({ success: true, rental });
+  } catch (err) {
+    console.error("getActiveRentalByTenant error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};

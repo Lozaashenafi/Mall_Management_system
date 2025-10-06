@@ -7,10 +7,17 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
 enum MaintenanceRequestStatus {
   Pending
-  declined
-  approved
+  Declined
+  Approved
+}
+
+enum MaintenanceStatus {
+  Pending
+  InProgress
+  Completed
 }
 
 enum UserRole {
@@ -78,6 +85,29 @@ model User {
   notifications Notification[]
   expenses     Expense[]
   maintenance  Maintenance[]
+  generations  Generation[]
+}
+model Generation {
+  generationId Int       @id @default(autoincrement())
+  month        String    // e.g., "2025-10"
+  totalCost    Float
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  generatedBy  Int?
+  user         User?     @relation(fields: [generatedBy], references: [userId])
+  generationInvoices GenerationInvoice[]
+}
+
+model GenerationInvoice {
+  id           Int        @id @default(autoincrement())
+  generationId Int
+  tenantId     Int
+  amount       Float
+  invoiceId    Int?
+  generation   Generation  @relation(fields: [generationId], references: [generationId])
+  tenant       Tenant      @relation(fields: [tenantId], references: [tenantId])
+  invoice      Invoice?    @relation(fields: [invoiceId], references: [invoiceId])
 }
 
 model AuditLog {
@@ -103,34 +133,62 @@ model RoomType {
 }
 
 model Room {
-  roomId     Int       @id @default(autoincrement())
-  unitNumber String
-  floor      Int
-  size       Float
-  roomTypeId Int
-  status     RoomStatus @default(Vacant)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  roomType   RoomType  @relation(fields: [roomTypeId], references: [roomTypeId])
-  rental Rental[]
-  maintenance Maintenance[]
+  roomId        Int        @id @default(autoincrement())
+  unitNumber    String
+  floor         Int
+  size          Float
+  roomTypeId    Int
+  status        RoomStatus @default(Vacant)
+  hasParking    Boolean    @default(false)
+  parkingType   String?    // "Unlimited" or "Limited"
+  parkingSpaces Int?       // if limited
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  roomType      RoomType   @relation(fields: [roomTypeId], references: [roomTypeId])
+  rental        Rental[]
+  maintenance   Maintenance[]
+  roomFeatures  RoomFeature[]
+}
+model RoomFeatureType {
+  featureTypeId Int     @id @default(autoincrement())
+  name          String   @unique
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  roomFeatures  RoomFeature[]
 }
 
-// 3. Tenant Management
+model RoomFeature {
+  roomFeatureId Int      @id @default(autoincrement())
+  roomId        Int
+  featureTypeId Int
+  count         Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  room          Room            @relation(fields: [roomId], references: [roomId])
+  featureType   RoomFeatureType @relation(fields: [featureTypeId], references: [featureTypeId])
+  @@unique([roomId, featureTypeId])
+}
+
 model Tenant {
   tenantId      Int        @id @default(autoincrement())
   companyName   String
   contactPerson String
   phone         String
   email         String
-  identificationDocument    String?
+  identificationDocument String?
+  tinNumber     String?
+  vatNumber     String?
+  businessLicense String?
   status        UserStatus @default(Active)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  rental    Rental[]
+  rental        Rental[]
   notifications Notification[]
-  feedbacks Feedback[]
+  feedbacks     Feedback[]
+  generationInvoices GenerationInvoice[]
 }
+
 
 // 4. Agreements
 model Rental {
@@ -177,6 +235,7 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
   rental     Rental     @relation(fields: [rentId], references: [rentId])
   payments      Payment[]
+  generationInvoices GenerationInvoice[]
 }
 
 model Payment {
@@ -218,7 +277,7 @@ model Maintenance {
   cost           Float?
   maintenanceStartDate  DateTime
   maintenanceEndDate    DateTime?
-  status        String @default("InProgress") // Could use enum: Pending, InProgress, Completed
+  status        MaintenanceStatus @default(InProgress)
   recordedBy     Int?
   room           Room     @relation(fields: [roomId], references: [roomId])
   user           User?    @relation(fields: [recordedBy], references: [userId])

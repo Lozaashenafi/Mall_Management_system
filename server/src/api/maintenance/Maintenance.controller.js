@@ -70,16 +70,42 @@ export const getAllMaintenances = async (req, res) => {
 export const updateMaintenance = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const allowedFields = [
+      "roomId",
+      "description",
+      "cost",
+      "maintenanceStartDate",
+      "maintenanceEndDate",
+      "status",
+      "recordedBy",
+    ];
+
+    // Pick only valid fields
+    const data = Object.fromEntries(
+      Object.entries(req.body).filter(([key]) => allowedFields.includes(key))
+    );
+
+    // Ensure date strings are valid ISO
+    if (data.maintenanceStartDate) {
+      data.maintenanceStartDate = new Date(data.maintenanceStartDate);
+    }
+    if (data.maintenanceEndDate) {
+      data.maintenanceEndDate = new Date(data.maintenanceEndDate);
+    }
+
     const updated = await prisma.maintenance.update({
       where: { maintenanceId: Number(id) },
-      data: req.body,
+      data,
     });
+
     res.json({
       success: true,
       message: "Maintenance updated",
       maintenance: updated,
     });
   } catch (err) {
+    console.error("Update error:", err);
     res.status(400).json({ success: false, message: err.message });
   }
 };
@@ -89,6 +115,62 @@ export const deleteMaintenance = async (req, res) => {
     const { id } = req.params;
     await prisma.maintenance.delete({ where: { maintenanceId: Number(id) } });
     res.json({ success: true, message: "Maintenance deleted" });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Admin: Get all tenant requests
+export const getTenantsRequests = async (req, res) => {
+  try {
+    // only status == pending
+    const requests = await prisma.maintenanceRequest.findMany({
+      where: { status: "Pending" },
+      include: {
+        rental: {
+          include: { room: true },
+        },
+      },
+    });
+    res.json({ success: true, requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+export const updateRequestStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Update the request status
+    const updatedRequest = await prisma.maintenanceRequest.update({
+      where: { requestId: Number(id) },
+      data: { status },
+      include: { rental: true }, // rental has tenantId + roomId
+    });
+
+    let maintenance = null;
+
+    // If status is approved, create a maintenance record
+    if (status === "Approved") {
+      maintenance = await prisma.maintenance.create({
+        data: {
+          roomId: updatedRequest.rental.roomId,
+          description: updatedRequest.description,
+          cost: 0, // default, admin can update later
+          maintenanceStartDate: new Date(),
+          maintenanceEndDate: null,
+          recordedBy: updatedRequest.rental.tenantId, // ✅ tenant who requested
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Request status updated",
+      request: updatedRequest,
+      maintenanceCreated: maintenance,
+    });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -141,40 +223,13 @@ export const getTenantRequests = async (req, res) => {
   }
 };
 
-export const updateRequestStatus = async (req, res) => {
+export const deleteRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-
-    // Update the request status
-    const updatedRequest = await prisma.maintenanceRequest.update({
+    await prisma.maintenanceRequest.delete({
       where: { requestId: Number(id) },
-      data: { status },
-      include: { rental: true }, // rental has tenantId + roomId
     });
-
-    let maintenance = null;
-
-    // If status is approved, create a maintenance record
-    if (status === "Approved") {
-      maintenance = await prisma.maintenance.create({
-        data: {
-          roomId: updatedRequest.rental.roomId,
-          description: updatedRequest.description,
-          cost: 0, // default, admin can update later
-          maintenanceStartDate: new Date(),
-          maintenanceEndDate: null,
-          recordedBy: updatedRequest.rental.tenantId, // ✅ tenant who requested
-        },
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Request status updated",
-      request: updatedRequest,
-      maintenanceCreated: maintenance,
-    });
+    res.json({ success: true, message: "Request deleted" });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

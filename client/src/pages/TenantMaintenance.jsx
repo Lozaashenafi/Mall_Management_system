@@ -1,11 +1,15 @@
-import React, { useState } from "react";
-import { Wrench, Clock, CheckCircle, PlusCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Wrench, Clock, CheckCircle, PlusCircle, Trash } from "lucide-react";
+import {
+  createMaintenanceRequest,
+  getTenantRequests,
+  deleteRequest,
+} from "../services/maintenanceService"; // 👈 adjust path
+import { getActiveRentalForTenant } from "../services/tenantService"; // 👈 new import
+import { useAuth } from "../context/AuthContext";
 
-// Reusable StatsCard
 const StatsCard = ({ title, value, icon: Icon, color }) => (
-  <div
-    className={`p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 flex flex-col space-y-2`}
-  >
+  <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 flex flex-col space-y-2">
     <div className="flex items-center space-x-3">
       <div className={`p-2 rounded-md ${color}`}>
         <Icon className="w-6 h-6 text-white" />
@@ -21,28 +25,62 @@ const StatsCard = ({ title, value, icon: Icon, color }) => (
 );
 
 const TenantMaintenance = () => {
-  const [requests, setRequests] = useState([
-    { id: 1, title: "Leaky Faucet", status: "Pending", date: "2025-09-15" },
-    {
-      id: 2,
-      title: "Broken Window",
-      status: "In Progress",
-      date: "2025-09-20",
-    },
-    { id: 3, title: "AC Repair", status: "Completed", date: "2025-08-30" },
-  ]);
+  const { user } = useAuth();
+  const [requests, setRequests] = useState([]);
   const [newRequest, setNewRequest] = useState("");
+  const [activeRentalId, setActiveRentalId] = useState(null);
 
-  const handleAddRequest = () => {
-    if (!newRequest.trim()) return;
-    const newItem = {
-      id: requests.length + 1,
-      title: newRequest,
-      status: "Pending",
-      date: new Date().toISOString().split("T")[0],
-    };
-    setRequests([newItem, ...requests]);
-    setNewRequest("");
+  useEffect(() => {
+    if (user?.userId) {
+      fetchActiveRental(user.userId);
+    }
+  }, [user]);
+
+  const fetchActiveRental = async (tenantId) => {
+    try {
+      const res = await getActiveRentalForTenant(tenantId);
+      console.log("Active rental:", res);
+
+      if (res?.rentals?.length > 0) {
+        const rental = res.rentals[0];
+        setActiveRentalId(rental.rentId);
+        fetchRequests(rental.rentId);
+      }
+    } catch (err) {
+      console.error("Failed to fetch active rental:", err);
+    }
+  };
+  const fetchRequests = async (rentId) => {
+    try {
+      const data = await getTenantRequests(user.userId);
+      setRequests(data);
+    } catch (err) {
+      console.error("Failed to fetch maintenance requests:", err);
+    }
+  };
+
+  const handleAddRequest = async () => {
+    if (!newRequest.trim() || !activeRentalId) return;
+
+    try {
+      const res = await createMaintenanceRequest({
+        rentId: activeRentalId,
+        description: newRequest,
+      });
+      setRequests([res.request, ...requests]); // <--- use res.request
+      setNewRequest("");
+    } catch (err) {
+      console.error("Failed to submit request:", err.message || err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteRequest(id);
+      setRequests(requests.filter((req) => req.requestId !== id));
+    } catch (err) {
+      console.error("Failed to delete request:", err);
+    }
   };
 
   return (
@@ -111,30 +149,44 @@ const TenantMaintenance = () => {
           <thead>
             <tr className="border-b dark:border-gray-700">
               <th className="p-3">ID</th>
-              <th className="p-3">Title</th>
+              <th className="p-3">Description</th>
               <th className="p-3">Date</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Action</th>
             </tr>
           </thead>
           <tbody>
             {requests.map((req) => (
-              <tr key={req.id} className="border-b dark:border-gray-700">
-                <td className="p-3">{req.id}</td>
-                <td className="p-3">{req.title}</td>
-                <td className="p-3">{req.date}</td>
+              <tr key={req.requestId} className="border-b dark:border-gray-700">
+                <td className="p-3">{req.requestId}</td>
+                <td className="p-3">{req.description}</td>
+                <td className="p-3">
+                  {req.requestDate
+                    ? new Date(req.requestDate).toLocaleDateString()
+                    : "-"}
+                </td>
                 <td className="p-3">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium
-                    ${
-                      req.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                        : req.status === "In Progress"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                    }`}
+                      ${
+                        req.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+                          : req.status === "In Progress"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                      }`}
                   >
                     {req.status}
                   </span>
+                </td>
+                <td className="p-3">
+                  <button
+                    onClick={() => handleDelete(req.requestId)}
+                    className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 flex items-center gap-1"
+                  >
+                    <Trash className="w-4 h-4" />
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

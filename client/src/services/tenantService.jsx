@@ -63,3 +63,14 @@ export const deleteTenant = async (id) => {
     throw error.response?.data || { message: "Failed to delete tenant" };
   }
 };
+
+// ✅ ger active rental for a tenant
+export const getActiveRentalForTenant = async (tenantId) => {
+  try {
+    const res = await api.get(`/rentals/active/${tenantId}`);
+    console.log("getActiveRentalForTenant response:", res.data); // <--- debug
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch active rental" };
+  }
+};
