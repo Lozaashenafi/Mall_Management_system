@@ -37,6 +37,12 @@ enum RoomStatus {
   Maintenance
   Inactive
 }
+enum UtilityType {
+  Generator
+  Water
+  Electricity
+  Other
+}
 
 enum RentalStatus {
   Active
@@ -85,29 +91,6 @@ model User {
   notifications Notification[]
   expenses     Expense[]
   maintenance  Maintenance[]
-  generations  Generation[]
-}
-model Generation {
-  generationId Int       @id @default(autoincrement())
-  month        String    // e.g., "2025-10"
-  totalCost    Float
-  description  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  generatedBy  Int?
-  user         User?     @relation(fields: [generatedBy], references: [userId])
-  generationInvoices GenerationInvoice[]
-}
-
-model GenerationInvoice {
-  id           Int        @id @default(autoincrement())
-  generationId Int
-  tenantId     Int
-  amount       Float
-  invoiceId    Int?
-  generation   Generation  @relation(fields: [generationId], references: [generationId])
-  tenant       Tenant      @relation(fields: [tenantId], references: [tenantId])
-  invoice      Invoice?    @relation(fields: [invoiceId], references: [invoiceId])
 }
 
 model AuditLog {
@@ -186,7 +169,6 @@ model Tenant {
   rental        Rental[]
   notifications Notification[]
   feedbacks     Feedback[]
-  generationInvoices GenerationInvoice[]
 }
 
 
@@ -209,6 +191,7 @@ model Rental {
   invoices        Invoice[]
   agreementDocuments AgreementDocument[]
   maintenanceRequests MaintenanceRequest[]
+  utilityInvoices UtilityInvoice[]
 }
 model AgreementDocument {
   documentId   Int       @id @default(autoincrement())
@@ -235,19 +218,8 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
   rental     Rental     @relation(fields: [rentId], references: [rentId])
   payments      Payment[]
-  generationInvoices GenerationInvoice[]
 }
 
-model Payment {
-  paymentId   Int           @id @default(autoincrement())
-  invoiceId   Int
-  paymentDate DateTime
-  amountPaid  Float
-  paymentMethod      String
-  lateFee     Float?
-  status      PaymentStatus
-  invoice     Invoice       @relation(fields: [invoiceId], references: [invoiceId])
-}
 
 model Feedback {
   feedbackId   Int      @id @default(autoincrement())
@@ -303,4 +275,42 @@ model Notification {
   createdAt      DateTime      @default(now())
   user           User?         @relation(fields: [userId], references: [userId])
   tenant         Tenant?       @relation(fields: [tenantId], references: [tenantId])
+}
+model UtilityCharge {
+  utilityChargeId Int        @id @default(autoincrement())
+  type            UtilityType
+  month           String      // e.g., "2025-10"
+  totalCost       Float
+  description     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  utilityInvoices UtilityInvoice[]
+}
+model UtilityInvoice {
+  id              Int           @id @default(autoincrement())
+  utilityChargeId Int
+  rentId          Int
+  amount          Float
+  status          String        @default("UNPAID")  // UNPAID | PAID
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  utilityCharge   UtilityCharge @relation(fields: [utilityChargeId], references: [utilityChargeId])
+  rental          Rental        @relation(fields: [rentId], references: [rentId])
+  payments        Payment[]
+}
+model Payment {
+  id               Int            @id @default(autoincrement())
+  invoiceId        Int?           // for rent payment
+  utilityInvoiceId Int?           // for utility payment
+  amount           Float
+  paymentDate      DateTime       @default(now())
+  method           String?        // Cash, Bank, Mobile, etc.
+  reference        String?        // Transaction ID or ref number
+  status           PaymentStatus  @default(Pending)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  invoice          Invoice?        @relation(fields: [invoiceId], references: [invoiceId])
+  utilityInvoice   UtilityInvoice? @relation(fields: [utilityInvoiceId], references: [id])
 }
