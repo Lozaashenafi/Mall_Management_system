@@ -1,7 +1,8 @@
 import prisma from "../../config/prismaClient.js";
 import roomSchema from "./Room.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
-// adjust path as needed
+
+// ✅ Add Room
 export const addRoom = async (req, res) => {
   try {
     const { error } = roomSchema.create.validate(req.body);
@@ -10,9 +11,7 @@ export const addRoom = async (req, res) => {
 
     const { unitNumber } = req.body;
 
-    const existingRoom = await prisma.room.findFirst({
-      where: { unitNumber },
-    });
+    const existingRoom = await prisma.room.findFirst({ where: { unitNumber } });
     if (existingRoom) {
       return res.status(400).json({
         message: `Room with unit number "${unitNumber}" already exists`,
@@ -20,13 +19,24 @@ export const addRoom = async (req, res) => {
     }
 
     const room = await prisma.room.create({
-      data: req.body,
+      data: {
+        unitNumber: req.body.unitNumber,
+        floor: req.body.floor,
+        size: req.body.size,
+        roomTypeId: req.body.roomTypeId,
+        status: req.body.status || "Vacant",
+        hasParking: req.body.hasParking ?? false,
+        parkingType: req.body.parkingType || null,
+        parkingSpaces:
+          req.body.parkingType === "Limited"
+            ? req.body.parkingSpaces ?? 0
+            : null,
+      },
       include: { roomType: true },
     });
 
-    // ✅ Audit log
     await createAuditLog({
-      userId: req.user.userId, // logged-in user
+      userId: req.user.userId,
       action: "created",
       tableName: "Room",
       recordId: room.roomId,
@@ -43,8 +53,13 @@ export const addRoom = async (req, res) => {
 export const getRooms = async (req, res) => {
   try {
     const rooms = await prisma.room.findMany({
-      where: { status: { not: "Inactive" } }, // exclude Inactive rooms
-      include: { roomType: true, rental: true, maintenance: true },
+      where: { status: { not: "Inactive" } },
+      include: {
+        roomType: true,
+        rental: true,
+        maintenance: true,
+        roomFeatures: true,
+      },
     });
     res.json({ success: true, rooms });
   } catch (error) {
@@ -52,6 +67,7 @@ export const getRooms = async (req, res) => {
   }
 };
 
+// ✅ Get Room Types
 export const getRoomType = async (req, res) => {
   try {
     const roomTypes = await prisma.roomType.findMany();
@@ -60,23 +76,29 @@ export const getRoomType = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 // ✅ Get Room by ID
 export const getRoomById = async (req, res) => {
   try {
     const { id } = req.params;
     const room = await prisma.room.findUnique({
       where: { roomId: Number(id) },
-      include: { roomType: true, rental: true, maintenance: true },
+      include: {
+        roomType: true,
+        rental: true,
+        maintenance: true,
+        roomFeatures: true,
+      },
     });
 
     if (!room) return res.status(404).json({ message: "Room not found" });
-
     res.json({ success: true, room });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+// ✅ Update Room
 export const updateRoom = async (req, res) => {
   try {
     const { error } = roomSchema.update.validate(req.body);
@@ -91,7 +113,6 @@ export const updateRoom = async (req, res) => {
     });
     if (!room) return res.status(404).json({ message: "Room not found" });
 
-    // Check for duplicate unitNumber
     if (unitNumber) {
       const existingRoom = await prisma.room.findFirst({
         where: { unitNumber, NOT: { roomId: Number(id) } },
@@ -106,11 +127,17 @@ export const updateRoom = async (req, res) => {
 
     const updatedRoom = await prisma.room.update({
       where: { roomId: Number(id) },
-      data: { ...(unitNumber && { unitNumber }), ...rest },
+      data: {
+        ...(unitNumber && { unitNumber }),
+        ...rest,
+        parkingSpaces:
+          req.body.parkingType === "Limited"
+            ? req.body.parkingSpaces ?? 0
+            : null,
+      },
       include: { roomType: true },
     });
 
-    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "updated",
@@ -126,6 +153,7 @@ export const updateRoom = async (req, res) => {
   }
 };
 
+// ✅ Delete Room (soft delete)
 export const deleteRoom = async (req, res) => {
   try {
     const { id } = req.params;
@@ -150,7 +178,6 @@ export const deleteRoom = async (req, res) => {
       data: { status: "Inactive" },
     });
 
-    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "deleted",
@@ -170,6 +197,7 @@ export const deleteRoom = async (req, res) => {
   }
 };
 
+// ✅ Get Available Rooms
 export const getAvailableRooms = async (req, res) => {
   try {
     const availableRooms = await prisma.room.findMany({

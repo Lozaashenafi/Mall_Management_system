@@ -11,13 +11,16 @@ export default function AddRoom() {
     unitNumber: "",
     floor: "",
     size: "",
-    roomTypeId: "", // will store as number on submit
+    roomTypeId: "",
     status: "Vacant",
+    hasParking: false,
+    parkingType: "",
+    parkingSpaces: "",
   });
 
   const [roomTypes, setRoomTypes] = useState([]);
 
-  // Fetch room types
+  // ✅ Fetch room types
   useEffect(() => {
     const fetchRoomTypes = async () => {
       try {
@@ -30,36 +33,52 @@ export default function AddRoom() {
     fetchRoomTypes();
   }, []);
 
+  // ✅ Handle field changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    // Convert roomTypeId to number immediately
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "roomTypeId" || name === "floor" || name === "size"
+        type === "checkbox"
+          ? checked
+          : name === "floor" ||
+            name === "size" ||
+            name === "roomTypeId" ||
+            name === "parkingSpaces"
           ? Number(value)
           : value,
     }));
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Make sure roomTypeId, floor, and size are numbers
-    const payload = {
-      ...formData,
-      floor: Number(formData.floor),
-      size: Number(formData.size),
-      roomTypeId: Number(formData.roomTypeId),
-    };
-
-    if (!payload.roomTypeId) {
+    // Validation
+    if (!formData.roomTypeId) {
       toast.error("Please select a room type");
       return;
     }
 
+    if (formData.hasParking && !formData.parkingType) {
+      toast.error("Please select parking type");
+      return;
+    }
+
+    if (formData.parkingType === "Limited" && !formData.parkingSpaces) {
+      toast.error("Please enter parking spaces for limited parking");
+      return;
+    }
+
     try {
-      await addRoom(payload); // send clean payload to backend
+      const payload = {
+        ...formData,
+        parkingSpaces:
+          formData.parkingType === "Limited"
+            ? Number(formData.parkingSpaces)
+            : null,
+      };
+
+      await addRoom(payload);
       toast.success("Room added successfully");
       navigate("/manage-rooms");
     } catch (error) {
@@ -69,7 +88,6 @@ export default function AddRoom() {
 
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-gray-900 dark:text-gray-100">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Add Room</h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -79,7 +97,7 @@ export default function AddRoom() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Unit Number */}
+          {/* Basic Info */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Unit Number
@@ -94,7 +112,6 @@ export default function AddRoom() {
             />
           </div>
 
-          {/* Floor */}
           <div>
             <label className="block text-sm font-medium mb-1">Floor</label>
             <input
@@ -108,7 +125,6 @@ export default function AddRoom() {
             />
           </div>
 
-          {/* Size */}
           <div>
             <label className="block text-sm font-medium mb-1">Size (sqm)</label>
             <input
@@ -156,6 +172,54 @@ export default function AddRoom() {
               <option value="Maintenance">Maintenance</option>
             </select>
           </div>
+
+          {/* Parking */}
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              name="hasParking"
+              checked={formData.hasParking}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <label className="text-sm font-medium">Has Parking</label>
+          </div>
+
+          {formData.hasParking && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Parking Type
+                </label>
+                <select
+                  name="parkingType"
+                  value={formData.parkingType}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+                >
+                  <option value="">Select Type</option>
+                  <option value="Unlimited">Unlimited</option>
+                  <option value="Limited">Limited</option>
+                </select>
+              </div>
+
+              {formData.parkingType === "Limited" && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Parking Spaces
+                  </label>
+                  <input
+                    type="number"
+                    name="parkingSpaces"
+                    value={formData.parkingSpaces}
+                    onChange={handleChange}
+                    min="1"
+                    className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Buttons */}

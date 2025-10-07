@@ -1,32 +1,35 @@
 import multer from "multer";
 import path from "path";
 
-// Set storage engine
+// ✅ Storage engine
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads"); // folder to save uploaded images
+    cb(null, "uploads");
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    cb(null, `user-${req.user.userId}-${Date.now()}${ext}`);
+    cb(null, `user-${req.user?.userId || "guest"}-${Date.now()}${ext}`);
   },
 });
 
-// File filter
+// ✅ File filter (images + pdfs)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png/;
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (allowedTypes.test(ext)) {
+  const allowedImageTypes = /jpeg|jpg|png/;
+  const allowedDocTypes = /pdf/;
+  const ext = path.extname(file.originalname).toLowerCase().replace(".", "");
+
+  if (allowedImageTypes.test(ext) || allowedDocTypes.test(ext)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, JPG, PNG images are allowed"), false);
+    cb(new Error("Only JPEG, JPG, PNG images or PDF files are allowed"), false);
   }
 };
 
+// ✅ Multer config
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
 export default upload;

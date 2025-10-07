@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 export default function RoomManage() {
   const [rooms, setRooms] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 3;
+  const pageSize = 10;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
@@ -17,6 +17,7 @@ export default function RoomManage() {
     const fetchRooms = async () => {
       try {
         const data = await getRooms();
+        console.log("rooms", data);
         setRooms(Array.isArray(data.rooms) ? data.rooms : data || []);
       } catch (error) {
         toast.error(error.message || "Failed to fetch rooms");
@@ -57,19 +58,24 @@ export default function RoomManage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Only send editable fields
       const payload = {
         unitNumber: editingRoom.unitNumber,
         floor: editingRoom.floor,
         size: editingRoom.size,
         status: editingRoom.status,
+        hasParking: editingRoom.hasParking,
+        parkingType: editingRoom.hasParking ? editingRoom.parkingType : null,
+        parkingSpaces:
+          editingRoom.hasParking && editingRoom.parkingType === "Limited"
+            ? editingRoom.parkingSpaces
+            : null,
       };
 
       const res = await updateRoom(editingRoom.roomId, payload);
       toast.success(res.message || "Room updated successfully");
       closeEditPopup();
 
-      // Update frontend state
+      // update UI instantly
       setRooms((prev) =>
         prev.map((r) =>
           r.roomId === editingRoom.roomId ? { ...r, ...payload } : r
@@ -86,8 +92,7 @@ export default function RoomManage() {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
+    <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Room Management
@@ -120,6 +125,9 @@ export default function RoomManage() {
               <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
                 Status
               </th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                Parking
+              </th>
               <th className="px-4 py-2 text-right text-sm font-medium text-gray-700 dark:text-gray-200">
                 Actions
               </th>
@@ -145,6 +153,15 @@ export default function RoomManage() {
                 </td>
                 <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
                   {room.status}
+                </td>
+                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
+                  {room.hasParking
+                    ? `${room.parkingType} ${
+                        room.parkingType === "Limited"
+                          ? `(${room.parkingSpaces} spaces)`
+                          : ""
+                      }`
+                    : "No Parking"}
                 </td>
                 <td className="px-4 py-2 text-right flex justify-end gap-2">
                   <button
@@ -253,7 +270,53 @@ export default function RoomManage() {
                 <option value="Occupied">Occupied</option>
                 <option value="Maintenance">Maintenance</option>
               </select>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editingRoom.hasParking}
+                  onChange={(e) =>
+                    setEditingRoom({
+                      ...editingRoom,
+                      hasParking: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+                <label className="text-sm font-medium">Has Parking</label>
+              </div>
+              {editingRoom.hasParking && (
+                <>
+                  <select
+                    value={editingRoom.parkingType || ""}
+                    onChange={(e) =>
+                      setEditingRoom({
+                        ...editingRoom,
+                        parkingType: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Unlimited">Unlimited</option>
+                    <option value="Limited">Limited</option>
+                  </select>
 
+                  {editingRoom.parkingType === "Limited" && (
+                    <input
+                      type="number"
+                      value={editingRoom.parkingSpaces || ""}
+                      onChange={(e) =>
+                        setEditingRoom({
+                          ...editingRoom,
+                          parkingSpaces: Number(e.target.value),
+                        })
+                      }
+                      placeholder="Number of parking spaces"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                  )}
+                </>
+              )}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"

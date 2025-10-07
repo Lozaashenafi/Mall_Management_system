@@ -8,10 +8,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Edit, Trash2 } from "lucide-react";
 
-const TenantManagement = () => {
+const TenantManage = () => {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTenant, setSelectedTenant] = useState(null); // for popup
+  const [selectedTenant, setSelectedTenant] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,44 +27,43 @@ const TenantManagement = () => {
     })();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this tenant?")) {
-      try {
-        await deleteTenant(id);
-        setTenants((prev) => prev.filter((t) => t.tenantId !== id));
-      } catch (err) {
-        toast.error(err.message);
-      }
-    }
-  };
   const handleSaveEdit = async () => {
     try {
       const {
         tenantId,
-        identificationDocument,
         companyName,
         contactPerson,
         phone,
         email,
         status,
+        tinNumber,
+        vatNumber,
+        identificationDocument,
+        businessLicense,
       } = selectedTenant;
 
-      const payload = { companyName, contactPerson, phone, email, status };
+      const payload = {
+        companyName,
+        contactPerson,
+        phone,
+        email,
+        status,
+        tinNumber,
+        vatNumber,
+      };
 
-      // include file if replaced
-      if (identificationDocument instanceof File) {
+      if (identificationDocument instanceof File)
         payload.identificationDocument = identificationDocument;
-      }
+      if (businessLicense instanceof File)
+        payload.businessLicense = businessLicense;
 
-      // call backend
       const updatedTenant = await updateTenant(tenantId, payload);
 
-      // ✅ Update local state immediately
       setTenants((prev) =>
         prev.map((t) => (t.tenantId === tenantId ? updatedTenant.tenant : t))
       );
 
-      setSelectedTenant(null); // close popup
+      setSelectedTenant(null);
       toast.success("Tenant updated successfully");
     } catch (err) {
       toast.error(err.message);
@@ -79,7 +78,7 @@ const TenantManagement = () => {
     );
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
+    <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Tenant Management</h2>
         <button
@@ -97,25 +96,23 @@ const TenantManagement = () => {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                  No
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">No</th>
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Company
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Contact Person
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Phone
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Email
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Status
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                <th className="px-4 py-2 text-left text-sm font-medium">
                   Actions
                 </th>
               </tr>
@@ -126,36 +123,18 @@ const TenantManagement = () => {
                   key={tenant.tenantId}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {index + 1}
-                  </td>
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {tenant.companyName}
-                  </td>
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {tenant.contactPerson}
-                  </td>
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {tenant.phone}
-                  </td>
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {tenant.email}
-                  </td>
-                  <td className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {tenant.status}
-                  </td>
-                  <td className="px-4 py-2 text-right flex justify-end gap-2">
+                  <td className="px-4 py-2">{index + 1}</td>
+                  <td className="px-4 py-2">{tenant.companyName}</td>
+                  <td className="px-4 py-2">{tenant.contactPerson}</td>
+                  <td className="px-4 py-2">{tenant.phone}</td>
+                  <td className="px-4 py-2">{tenant.email}</td>
+                  <td className="px-4 py-2">{tenant.status}</td>
+                  <td className="px-4 py-2 flex gap-2 justify-end">
                     <button
                       className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                       onClick={() => setSelectedTenant(tenant)}
                     >
                       <Edit className="w-4 h-4 text-green-600" />
-                    </button>
-                    <button
-                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => handleDelete(tenant.tenantId)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
                     </button>
                   </td>
                 </tr>
@@ -165,34 +144,35 @@ const TenantManagement = () => {
         </div>
       )}
 
-      {/* ✅ Edit Popup Modal */}
+      {/* ✅ Edit Modal */}
       {selectedTenant && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-[700px] shadow-lg">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-[900px] shadow-lg">
             <h3 className="text-lg font-bold mb-4">Edit Tenant</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSaveEdit();
               }}
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-6"
             >
-              {/* Existing ID Image Preview */}
-              {selectedTenant.identificationDocument && (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Current ID Document:
-                  </p>
-                  <img
-                    src={`http://localhost:3000${selectedTenant.identificationDocument}`}
-                    alt="Tenant ID"
-                    className="w-64 h-44 object-cover border rounded-md mt-1"
-                  />
-                </div>
-              )}
-
-              {/* Replace with new file */}
-              <div className="col-span-2">
+              {/* Side-by-side previews */}
+              <div>
+                {selectedTenant.identificationDocument && (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Current ID Document:
+                    </p>
+                    <img
+                      src={`http://localhost:3000${selectedTenant.identificationDocument}`}
+                      alt="ID"
+                      className="w-full h-48 object-cover border rounded-md"
+                    />
+                  </div>
+                )}
+                <label className="block mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  Replace ID Document
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -205,7 +185,51 @@ const TenantManagement = () => {
                   className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
                 />
               </div>
+              <div>
+                {selectedTenant.businessLicense && (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Current Business License:
+                    </p>
 
+                    {/* ✅ Check if file is PDF or Image */}
+                    {selectedTenant.businessLicense
+                      .toLowerCase()
+                      .endsWith(".pdf") ? (
+                      <a
+                        href={`http://localhost:3000${selectedTenant.businessLicense}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 underline"
+                      >
+                        View PDF License
+                      </a>
+                    ) : (
+                      <img
+                        src={`http://localhost:3000${selectedTenant.businessLicense}`}
+                        alt="Business License"
+                        className="w-full h-48 object-cover border rounded-md"
+                      />
+                    )}
+                  </div>
+                )}
+
+                <label className="block mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  Replace Business License (Image or PDF)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) =>
+                    setSelectedTenant({
+                      ...selectedTenant,
+                      businessLicense: e.target.files[0],
+                    })
+                  }
+                  className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+              {/* Basic Info */}
               <input
                 type="text"
                 value={selectedTenant.companyName}
@@ -255,6 +279,32 @@ const TenantManagement = () => {
                 placeholder="Email"
               />
 
+              {/* Hidden TIN/VAT — kept editable but not in table */}
+              <input
+                type="text"
+                value={selectedTenant.tinNumber || ""}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    tinNumber: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="TIN Number"
+              />
+              <input
+                type="text"
+                value={selectedTenant.vatNumber || ""}
+                onChange={(e) =>
+                  setSelectedTenant({
+                    ...selectedTenant,
+                    vatNumber: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                placeholder="VAT Number"
+              />
+
               <select
                 value={selectedTenant.status}
                 onChange={(e) =>
@@ -269,7 +319,7 @@ const TenantManagement = () => {
                 <option value="Inactive">Inactive</option>
               </select>
 
-              {/* Buttons - full row */}
+              {/* Buttons */}
               <div className="col-span-2 flex justify-end space-x-2 mt-4">
                 <button
                   type="button"
@@ -293,4 +343,4 @@ const TenantManagement = () => {
   );
 };
 
-export default TenantManagement;
+export default TenantManage;

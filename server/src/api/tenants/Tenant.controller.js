@@ -11,27 +11,36 @@ export const addTenant = async (req, res) => {
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { companyName, contactPerson, phone, email } = req.body;
+    const { companyName, contactPerson, phone, email, tinNumber, vatNumber } =
+      req.body;
 
+    // Check if tenant already exists
     const existingTenant = await prisma.tenant.findFirst({ where: { email } });
-    if (existingTenant) {
+    if (existingTenant)
       return res
         .status(400)
         .json({ message: "Tenant with this email already exists" });
-    }
 
-    let identificationDocument = null;
-    if (req.file) {
-      identificationDocument = `/uploads/${req.file.filename}`;
-    }
+    // ✅ Handle file uploads
+    const files = req.files || {};
+    const identificationDocument = files.identificationDocument?.[0]
+      ? `/uploads/${files.identificationDocument[0].filename}`
+      : null;
+    const businessLicense = files.businessLicense?.[0]
+      ? `/uploads/${files.businessLicense[0].filename}`
+      : null;
 
+    // ✅ Create tenant record
     const tenant = await prisma.tenant.create({
       data: {
         companyName,
         contactPerson,
         phone,
         email,
+        tinNumber,
+        vatNumber,
         identificationDocument,
+        businessLicense,
         status: "Active",
       },
     });
@@ -53,14 +62,14 @@ export const addTenant = async (req, res) => {
 
     // ✅ Audit log
     await createAuditLog({
-      userId: req.user.userId, // logged-in admin who created this tenant
+      userId: req.user.userId,
       action: "created",
       tableName: "Tenant",
       recordId: tenant.tenantId,
       newValue: tenant,
     });
 
-    // Send email with login credentials
+    // ✅ Send email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -137,18 +146,19 @@ export const editTenant = async (req, res) => {
     });
     if (!oldTenant)
       return res.status(404).json({ message: "Tenant not found" });
+    const files = req.files || {};
+    const updateData = { ...req.body };
 
-    let updateData = { ...req.body };
-    if (req.file) {
-      updateData.identificationDocument = `/uploads/${req.file.filename}`;
-    }
+    if (files.identificationDocument?.[0])
+      updateData.identificationDocument = `/uploads/${files.identificationDocument[0].filename}`;
+    if (files.businessLicense?.[0])
+      updateData.businessLicense = `/uploads/${files.businessLicense[0].filename}`;
 
     const tenant = await prisma.tenant.update({
       where: { tenantId: Number(id) },
       data: updateData,
     });
 
-    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "updated",
@@ -163,6 +173,7 @@ export const editTenant = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 // ✅ Delete Tenant
 export const deleteTenant = async (req, res) => {
   try {

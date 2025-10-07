@@ -11,14 +11,12 @@ import upload from "../../middleware/multer.js";
 
 const router = express.Router();
 
-// CRUD routes for tenants
-router.post(
-  "/",
-  userAuth,
-  isAdmin,
-  upload.single("identificationDocument"),
-  addTenant
-);
+const uploadTenantDocs = upload.fields([
+  { name: "identificationDocument", maxCount: 1 },
+  { name: "businessLicense", maxCount: 1 },
+]);
+
+router.post("/", userAuth, isAdmin, uploadTenantDocs, addTenant);
 router.get("/", userAuth, isAdmin, getTenants);
 router.get("/:id", userAuth, isAdmin, getTenantById);
 router.put(
