@@ -1,24 +1,34 @@
 import express from "express";
 import {
-  createExpense,
-  getExpenses,
-  getExpenseById,
-  updateExpense,
-  deleteExpense,
+  deleteUtilityExpense,
+  createUtilityExpense,
+  updateUtilityExpense,
+  getUtilityExpenseById,
+  getUtilityExpenses,
 } from "./Expenses.controller.js";
 import { userAuth, isAdmin } from "../../middleware/auth.js";
+import upload from "../../middleware/multer.js";
 
 const router = express.Router();
 
-// List expenses
-router.get("/", userAuth, isAdmin, getExpenses);
+router.get("/", userAuth, isAdmin, getUtilityExpenses);
 
-// Get single expense
-router.get("/:id", userAuth, isAdmin, getExpenseById);
+router.get("/:id", userAuth, isAdmin, getUtilityExpenseById);
 
-// Admin-only actions
-router.post("/", userAuth, isAdmin, createExpense);
-router.put("/:id", userAuth, isAdmin, updateExpense);
-router.delete("/:id", userAuth, isAdmin, deleteExpense);
+router.post(
+  "/",
+  userAuth,
+  isAdmin,
+  upload.single("invoice"),
+  createUtilityExpense
+);
+router.put(
+  "/:id",
+  userAuth,
+  isAdmin,
+  upload.single("invoice"),
+  updateUtilityExpense
+);
+router.delete("/:id", userAuth, isAdmin, deleteUtilityExpense);
 
 export default router;

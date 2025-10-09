@@ -1,56 +1,67 @@
 import prisma from "../../config/prismaClient.js";
-import expenseSchema from "./Expenses.schema.js";
+import utilityExpenseSchema from "./Expenses.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
+import path from "path";
+import fs from "fs";
 
-// Create a new expense
-export const createExpense = async (req, res) => {
+// Create a new utility expense with optional file
+export const createUtilityExpense = async (req, res) => {
   try {
-    const { error, value } = expenseSchema.create.validate(req.body);
+    const { error, value } = utilityExpenseSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { category, description, amount, date, recordedBy } = value;
+    const { type, description, amount, date, createdBy } = value;
 
-    const user = await prisma.user.findUnique({
-      where: { userId: recordedBy },
-    });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    let invoicePath = null;
+    if (req.file) {
+      invoicePath = req.file.path; // multer stores file path
+    }
 
-    const expense = await prisma.expense.create({
-      data: { category, description, amount, date: new Date(date), recordedBy },
+    const expense = await prisma.utilityExpense.create({
+      data: {
+        type,
+        description,
+        amount,
+        date: date ? new Date(date) : new Date(),
+        createdBy,
+        invoice: invoicePath,
+      },
     });
 
     // Audit log
     await createAuditLog({
-      userId: req.user.userId,
+      userId: createdBy,
       action: "created",
-      tableName: "Expense",
+      tableName: "UtilityExpense",
       recordId: expense.expenseId,
       newValue: expense,
     });
 
-    res
-      .status(201)
-      .json({ success: true, message: "Expense recorded", expense });
+    res.status(201).json({
+      success: true,
+      message: "Utility expense recorded",
+      expense,
+    });
   } catch (err) {
-    console.error("createExpense error:", err);
+    console.error("createUtilityExpense error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// Get all expenses (optional filters: category, user, date)
-export const getExpenses = async (req, res) => {
+// Get all utility expenses (filters: type, user, date)
+export const getUtilityExpenses = async (req, res) => {
   try {
-    const { category, userId, startDate, endDate } = req.query;
+    const { type, userId, startDate, endDate } = req.query;
     const where = {};
 
-    if (category) where.category = category;
-    if (userId) where.recordedBy = Number(userId);
+    if (type) where.type = type;
+    if (userId) where.createdBy = Number(userId);
     if (startDate || endDate) where.date = {};
     if (startDate) where.date.gte = new Date(startDate);
     if (endDate) where.date.lte = new Date(endDate);
 
-    const expenses = await prisma.expense.findMany({
+    const expenses = await prisma.utilityExpense.findMany({
       where,
       include: { user: true },
       orderBy: { date: "desc" },
@@ -58,85 +69,103 @@ export const getExpenses = async (req, res) => {
 
     res.json({ success: true, expenses });
   } catch (err) {
-    console.error("getExpenses error:", err);
+    console.error("getUtilityExpenses error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// Get single expense
-export const getExpenseById = async (req, res) => {
+// Get single utility expense by ID
+export const getUtilityExpenseById = async (req, res) => {
   try {
     const { id } = req.params;
-    const expense = await prisma.expense.findUnique({
+    const expense = await prisma.utilityExpense.findUnique({
       where: { expenseId: Number(id) },
       include: { user: true },
     });
 
-    if (!expense) return res.status(404).json({ message: "Expense not found" });
+    if (!expense)
+      return res.status(404).json({ message: "Utility expense not found" });
+
     res.json({ success: true, expense });
   } catch (err) {
-    console.error("getExpenseById error:", err);
+    console.error("getUtilityExpenseById error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// Update expense
-export const updateExpense = async (req, res) => {
+// Update utility expense (with optional file)
+export const updateUtilityExpense = async (req, res) => {
   try {
-    const { error, value } = expenseSchema.update.validate(req.body);
+    const { error, value } = utilityExpenseSchema.update.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
     const { id } = req.params;
-    const existing = await prisma.expense.findUnique({
+    const existing = await prisma.utilityExpense.findUnique({
       where: { expenseId: Number(id) },
     });
     if (!existing)
-      return res.status(404).json({ message: "Expense not found" });
+      return res.status(404).json({ message: "Utility expense not found" });
 
-    const updated = await prisma.expense.update({
+    let invoicePath = existing.invoice;
+    if (req.file) {
+      // delete old file if exists
+      if (invoicePath && fs.existsSync(invoicePath)) fs.unlinkSync(invoicePath);
+      invoicePath = req.file.path;
+    }
+
+    const updated = await prisma.utilityExpense.update({
       where: { expenseId: Number(id) },
-      data: value,
+      data: { ...value, invoice: invoicePath },
     });
 
     await createAuditLog({
       userId: req.user.userId,
       action: "updated",
-      tableName: "Expense",
+      tableName: "UtilityExpense",
       recordId: updated.expenseId,
       oldValue: existing,
       newValue: updated,
     });
 
-    res.json({ success: true, message: "Expense updated", expense: updated });
+    res.json({
+      success: true,
+      message: "Utility expense updated",
+      expense: updated,
+    });
   } catch (err) {
-    console.error("updateExpense error:", err);
+    console.error("updateUtilityExpense error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-export const deleteExpense = async (req, res) => {
+// Delete utility expense
+export const deleteUtilityExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = await prisma.expense.findUnique({
+    const existing = await prisma.utilityExpense.findUnique({
       where: { expenseId: Number(id) },
     });
     if (!existing)
-      return res.status(404).json({ message: "Expense not found" });
+      return res.status(404).json({ message: "Utility expense not found" });
 
-    await prisma.expense.delete({ where: { expenseId: Number(id) } });
+    // delete invoice file if exists
+    if (existing.invoice && fs.existsSync(existing.invoice))
+      fs.unlinkSync(existing.invoice);
+
+    await prisma.utilityExpense.delete({ where: { expenseId: Number(id) } });
 
     await createAuditLog({
       userId: req.user.userId,
       action: "deleted",
-      tableName: "Expense",
+      tableName: "UtilityExpense",
       recordId: existing.expenseId,
       oldValue: existing,
     });
 
-    res.json({ success: true, message: "Expense deleted" });
+    res.json({ success: true, message: "Utility expense deleted" });
   } catch (err) {
-    console.error("deleteExpense error:", err);
+    console.error("deleteUtilityExpense error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

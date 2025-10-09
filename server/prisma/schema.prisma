@@ -41,6 +41,7 @@ enum UtilityType {
   Generator
   Water
   Electricity
+  Service
   Other
 }
 
@@ -89,7 +90,7 @@ model User {
   updatedAt   DateTime   @updatedAt
   auditLogs   AuditLog[]
   notifications Notification[]
-  expenses     Expense[]
+  utilityExpense UtilityExpense[]
   maintenance  Maintenance[]
 }
 
@@ -171,38 +172,45 @@ model Tenant {
   feedbacks     Feedback[]
 }
 
-
-// 4. Agreements
 model Rental {
-  rentId     Int            @id @default(autoincrement())
-  tenantId        Int
-  roomId          Int
-  versionNumber   Int
-  startDate       DateTime
-  endDate         DateTime
-  rentAmount      Float
-  paymentDueDate  Int 
-  paymentInterval String 
-  status          RentalStatus
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  tenant          Tenant         @relation(fields: [tenantId], references: [tenantId])
-  room            Room           @relation(fields: [roomId], references: [roomId])
+  rentId           Int            @id @default(autoincrement())
+  tenantId         Int
+  roomId           Int
+  versionNumber    Int
+  startDate        DateTime
+  endDate          DateTime
+  rentAmount       Float
+  paymentDueDate   Int
+  paymentInterval  String
+  status           RentalStatus
+
+  // ✅ IMPORTANT -> Only for electricity
+  selfManagedElectricity Boolean @default(false) // If true → EXCLUDE from Electric utility billing
+
+  utilityShare     Float? // used only if shared billing
+  includeWater     Boolean @default(true) // water still shared
+  includeGenerator Boolean @default(true) // generator still shared
+  includeService   Boolean  @default(true)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [tenantId])
+  room             Room     @relation(fields: [roomId], references: [roomId])
   invoices        Invoice[]
   agreementDocuments AgreementDocument[]
   maintenanceRequests MaintenanceRequest[]
-  utilityInvoices UtilityInvoice[]
+  utilityInvoices  UtilityInvoice[]
 }
+
 model AgreementDocument {
   documentId   Int       @id @default(autoincrement())
   rentId       Int
   filePath     String
   uploadedAt   DateTime  @default(now())
-  generatedBy  Int?      // userId of admin who generated
+  generatedBy  Int?      
   rental       Rental    @relation(fields: [rentId], references: [rentId])
 }
-
-
 // 5. Payments & Invoicing
 model Invoice {
   invoiceId     Int           @id @default(autoincrement())
@@ -231,17 +239,16 @@ model Feedback {
   tenant       Tenant   @relation(fields: [tenantId], references: [tenantId])
 }
 
-// 6. Expenses & Maintenance
-model Expense {
-  expenseId   Int      @id @default(autoincrement())
-  category    String
-  description String
-  amount      Float
-  date        DateTime
-  recordedBy  Int
-  user        User     @relation(fields: [recordedBy], references: [userId])
+model UtilityExpense {
+  expenseId     Int        @id @default(autoincrement())
+  type          UtilityType   // Generator | Water | Electricity | Other
+  amount        Float
+  description   String?
+  invoice       String?
+  date          DateTime     @default(now())
+  createdBy     Int
+  user          User         @relation(fields: [createdBy], references: [userId])
 }
-
 model Maintenance {
   maintenanceId  Int      @id @default(autoincrement())
   roomId         Int

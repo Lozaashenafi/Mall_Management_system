@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Pencil } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, Eye } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   getExpenses,
@@ -12,26 +12,29 @@ import { useAuth } from "../context/AuthContext";
 export default function Expenses() {
   const { user } = useAuth();
 
+  const utilityTypes = [
+    "Generator",
+    "Water",
+    "Electricity",
+    "Service",
+    "Other",
+  ];
+  const [showDetailPopup, setShowDetailPopup] = useState(false);
+  const [detailExpense, setDetailExpense] = useState(null);
+
   const [expenses, setExpenses] = useState([]);
-  const [categories, setCategories] = useState([
-    { id: 1, name: "Utilities" },
-    { id: 2, name: "Maintenance" },
-    { id: 3, name: "Supplies" },
-  ]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    category: "",
+    type: "",
     description: "",
     amount: "",
     date: "",
+    invoice: null,
   });
-  const [newCategory, setNewCategory] = useState("");
 
-  // Edit popup state
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editExpense, setEditExpense] = useState(null);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const expensesPerPage = 5;
 
@@ -55,34 +58,37 @@ export default function Expenses() {
     setNewExpense((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    setNewExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
+  };
+
   // Add Expense
   const handleAddExpense = async (e) => {
     e.preventDefault();
     try {
-      const expenseToAdd = {
-        ...newExpense,
-        amount: parseFloat(newExpense.amount) || 0,
-        recordedBy: user.userId,
-        date: new Date(newExpense.date).toISOString(),
-      };
-      const res = await createExpense(expenseToAdd);
+      const formData = new FormData();
+      formData.append("type", newExpense.type);
+      formData.append("description", newExpense.description);
+      formData.append("amount", parseFloat(newExpense.amount) || 0);
+      formData.append("date", new Date(newExpense.date).toISOString());
+      formData.append("createdBy", user.userId);
+      if (newExpense.invoice) formData.append("invoice", newExpense.invoice);
+
+      const res = await createExpense(formData);
       setExpenses((prev) => [res.expense, ...prev]);
-      setNewExpense({ category: "", description: "", amount: "", date: "" });
+      setNewExpense({
+        type: "",
+        description: "",
+        amount: "",
+        date: "",
+        invoice: null,
+      });
       setShowAddForm(false);
       toast.success(res.message || "Expense added!");
     } catch (err) {
       toast.error(err.message || "Failed to add expense");
       console.error(err);
     }
-  };
-
-  // Add Category
-  const handleAddCategory = () => {
-    if (!newCategory.trim()) return;
-    const newId = categories.length + 1;
-    setCategories((prev) => [...prev, { id: newId, name: newCategory }]);
-    setNewCategory("");
-    toast.success("Category added!");
   };
 
   // Delete Expense
@@ -105,7 +111,8 @@ export default function Expenses() {
   const handleEditClick = (expense) => {
     setEditExpense({
       ...expense,
-      date: expense.date.split("T")[0], // format for input[type=date]
+      date: expense.date.split("T")[0],
+      invoice: null,
     });
     setShowEditPopup(true);
   };
@@ -115,17 +122,21 @@ export default function Expenses() {
     setEditExpense((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEditFileChange = (e) => {
+    setEditExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
+  };
+
   const handleEditSave = async (e) => {
     e.preventDefault();
     try {
-      const updatedData = {
-        category: editExpense.category,
-        description: editExpense.description,
-        amount: parseFloat(editExpense.amount) || 0,
-        date: new Date(editExpense.date).toISOString(),
-      };
+      const formData = new FormData();
+      formData.append("type", editExpense.type);
+      formData.append("description", editExpense.description);
+      formData.append("amount", parseFloat(editExpense.amount) || 0);
+      formData.append("date", new Date(editExpense.date).toISOString());
+      if (editExpense.invoice) formData.append("invoice", editExpense.invoice);
 
-      const res = await updateExpense(editExpense.expenseId, updatedData);
+      const res = await updateExpense(editExpense.expenseId, formData);
       setExpenses((prev) =>
         prev.map((exp) =>
           exp.expenseId === editExpense.expenseId ? res.expense : exp
@@ -138,8 +149,11 @@ export default function Expenses() {
       console.error(err);
     }
   };
+  const handleViewDetail = (expense) => {
+    setDetailExpense(expense);
+    setShowDetailPopup(true);
+  };
 
-  // Pagination logic
   const indexOfLast = currentPage * expensesPerPage;
   const indexOfFirst = indexOfLast - expensesPerPage;
   const currentExpenses = expenses.slice(indexOfFirst, indexOfLast);
@@ -172,37 +186,20 @@ export default function Expenses() {
             onSubmit={handleAddExpense}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
-            {/* Category Dropdown */}
-            <div className="flex gap-2 col-span-1 md:col-span-2">
-              <select
-                name="category"
-                value={newExpense.category}
-                onChange={handleInputChange}
-                required
-                className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="New Category"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                className="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              />
-              <button
-                type="button"
-                onClick={handleAddCategory}
-                className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-500"
-              >
-                Add
-              </button>
-            </div>
+            <select
+              name="type"
+              value={newExpense.type}
+              onChange={handleInputChange}
+              required
+              className="col-span-1 md:col-span-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+            >
+              <option value="">Select Type</option>
+              {utilityTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
 
             <input
               type="text"
@@ -230,6 +227,29 @@ export default function Expenses() {
               required
               className="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
             />
+            <div>
+              <label className="block text-sm font-medium mb-1">Invoice</label>
+              <label className="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                📎{" "}
+                {newExpense.invoice
+                  ? newExpense.invoice.name
+                  : "Choose Invoice"}
+                <input
+                  type="file"
+                  name="invoice"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => {
+                    handleFileChange(e);
+                    setNewExpense((prev) => ({
+                      ...prev,
+                      invoice: e.target.files[0],
+                    }));
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
             <button
               type="submit"
               className="col-span-1 md:col-span-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
@@ -247,7 +267,7 @@ export default function Expenses() {
           <table className="w-full text-sm text-left border-collapse">
             <thead className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
               <tr>
-                <th className="p-3">Category</th>
+                <th className="p-3">Type</th>
                 <th className="p-3">Description</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Date</th>
@@ -260,12 +280,13 @@ export default function Expenses() {
                   key={exp.expenseId}
                   className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <td className="p-3 font-medium">{exp.category}</td>
+                  <td className="p-3 font-medium">{exp.type}</td>
                   <td className="p-3">{exp.description}</td>
                   <td className="p-3">${exp.amount.toFixed(2)}</td>
                   <td className="p-3">
                     {new Date(exp.date).toLocaleDateString()}
                   </td>
+
                   <td className="p-3 flex gap-2">
                     <button
                       onClick={() => handleEditClick(exp)}
@@ -278,6 +299,12 @@ export default function Expenses() {
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
                     >
                       <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleViewDetail(exp)}
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-green-600"
+                    >
+                      <Eye className="w-4 h-4 text-blue-600" />
                     </button>
                   </td>
                 </tr>
@@ -317,16 +344,16 @@ export default function Expenses() {
             <h2 className="text-lg font-semibold mb-4">Edit Expense</h2>
             <form onSubmit={handleEditSave} className="space-y-4">
               <select
-                name="category"
-                value={editExpense.category}
+                name="type"
+                value={editExpense.type}
                 onChange={handleEditChange}
                 required
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
               >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
+                <option value="">Select Type</option>
+                {utilityTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
                 ))}
               </select>
@@ -356,6 +383,42 @@ export default function Expenses() {
                 required
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
               />
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Invoice
+                </label>
+                <label className="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                  📎{" "}
+                  {newExpense.invoice
+                    ? newExpense.invoice.name
+                    : "Choose Invoice"}
+                  <input
+                    type="file"
+                    name="invoice"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      handleFileChange(e);
+                      setNewExpense((prev) => ({
+                        ...prev,
+                        invoice: e.target.files[0],
+                      }));
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {editExpense.invoice &&
+                typeof editExpense.invoice === "string" && (
+                  <a
+                    href={`/${editExpense.invoice}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    View current invoice
+                  </a>
+                )}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -372,6 +435,58 @@ export default function Expenses() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {showDetailPopup && detailExpense && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
+            <h2 className="text-lg font-semibold mb-4">Expense Details</h2>
+
+            <p>
+              <strong>Type:</strong> {detailExpense.type}
+            </p>
+            <p>
+              <strong>Description:</strong> {detailExpense.description}
+            </p>
+            <p>
+              <strong>Amount:</strong> ${detailExpense.amount.toFixed(2)}
+            </p>
+            <p>
+              <strong>Date:</strong>{" "}
+              {new Date(detailExpense.date).toLocaleDateString()}
+            </p>
+
+            {detailExpense.invoice && (
+              <div className="mt-3">
+                <strong>Invoice:</strong>
+                {detailExpense.invoice.endsWith(".pdf") ? (
+                  <a
+                    href={`/${detailExpense.invoice}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline ml-2"
+                  >
+                    View PDF
+                  </a>
+                ) : (
+                  <img
+                    src={`/${detailExpense.invoice}`}
+                    alt="Invoice"
+                    className="w-full mt-2 rounded border"
+                  />
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setShowDetailPopup(false)}
+                className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
