@@ -19,13 +19,7 @@ const uploadTenantDocs = upload.fields([
 router.post("/", userAuth, isAdmin, uploadTenantDocs, addTenant);
 router.get("/", userAuth, isAdmin, getTenants);
 router.get("/:id", userAuth, isAdmin, getTenantById);
-router.put(
-  "/:id",
-  userAuth,
-  isAdmin,
-  upload.single("identificationDocument"),
-  editTenant
-);
+router.put("/:id", userAuth, isAdmin, uploadTenantDocs, editTenant);
 router.delete("/:id", userAuth, isAdmin, deleteTenant);
 
 export default router;

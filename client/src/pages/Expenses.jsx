@@ -122,10 +122,6 @@ export default function Expenses() {
     setEditExpense((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditFileChange = (e) => {
-    setEditExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
-  };
-
   const handleEditSave = async (e) => {
     e.preventDefault();
     try {
@@ -339,7 +335,7 @@ export default function Expenses() {
 
       {/* Edit Expense Popup */}
       {showEditPopup && editExpense && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 bg-opacity-50 z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
             <h2 className="text-lg font-semibold mb-4">Edit Expense</h2>
             <form onSubmit={handleEditSave} className="space-y-4">
@@ -411,7 +407,7 @@ export default function Expenses() {
               {editExpense.invoice &&
                 typeof editExpense.invoice === "string" && (
                   <a
-                    href={`/${editExpense.invoice}`}
+                    href={`http://localhost:3000/${editExpense.invoice}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 underline"
@@ -439,7 +435,7 @@ export default function Expenses() {
         </div>
       )}
       {showDetailPopup && detailExpense && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center  bg-black/50 dark:bg-black/60 bg-opacity-50 z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
             <h2 className="text-lg font-semibold mb-4">Expense Details</h2>
 
@@ -462,7 +458,7 @@ export default function Expenses() {
                 <strong>Invoice:</strong>
                 {detailExpense.invoice.endsWith(".pdf") ? (
                   <a
-                    href={`/${detailExpense.invoice}`}
+                    href={`http://localhost:3000/${detailExpense.invoice}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 underline ml-2"
@@ -471,7 +467,7 @@ export default function Expenses() {
                   </a>
                 ) : (
                   <img
-                    src={`/${detailExpense.invoice}`}
+                    src={`http://localhost:3000/${detailExpense.invoice}`}
                     alt="Invoice"
                     className="w-full mt-2 rounded border"
                   />

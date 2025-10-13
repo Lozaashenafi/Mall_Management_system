@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  FileText,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { getRooms, deleteRoom, updateRoom } from "../services/roomService";
 import { toast } from "react-hot-toast";
 
@@ -8,6 +16,7 @@ export default function RoomManage() {
   const [rooms, setRooms] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
@@ -86,14 +95,13 @@ export default function RoomManage() {
     }
   };
 
-  // ✅ Pagination
   const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 p-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Room Management
         </h1>
@@ -175,6 +183,12 @@ export default function RoomManage() {
                     className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/room-detail/${room.roomId}`)}
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <FileText className="w-4 h-4 text-blue-600" />
                   </button>
                 </td>
               </tr>

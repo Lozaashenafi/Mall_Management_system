@@ -221,13 +221,11 @@ export default function RoomFeatureManage() {
     }
   };
 
-  // ---------------- Helpers ----------------
   const featureTypeIdOf = (f) =>
     f.featureTypeId ?? f.id ?? f.featureType?.featureTypeId;
   const featureTypeName = (f) => f.name ?? f.featureType?.name ?? "Unknown";
   const roomNameFor = (r) => r.name ?? `Room ${r.unitNumber}`;
 
-  // ---------------- Render ----------------
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100 p-4">
       <div className="flex items-center justify-between">
@@ -398,9 +396,8 @@ export default function RoomFeatureManage() {
         </>
       )}
 
-      {/* ---------- Feature Type Modal ---------- */}
       {showFeatureTypeForm && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-40">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-40">
           <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-lg font-semibold mb-4">
               {editingType ? "Edit Feature Type" : "Add Feature Type"}
@@ -459,9 +456,8 @@ export default function RoomFeatureManage() {
         </div>
       )}
 
-      {/* ---------- Room Feature Modal ---------- */}
       {showFeatureForm && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-40">
+        <div className="fixed inset-0  bg-black/50 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-40">
           <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-lg font-semibold mb-4">
               {editingFeature ? "Edit Room Feature" : "Add Room Feature"}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Pencil, FileText } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, FileText, ListPlus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   getRentals,
@@ -10,6 +10,7 @@ import {
 import { getTenants } from "../services/tenantService";
 import { getAvailableRooms } from "../services/roomService";
 import { generateAgreement } from "../services/agreementService";
+import { useNavigate } from "react-router-dom";
 
 export default function RentManage() {
   const [rentals, setRentals] = useState([]);
@@ -17,6 +18,7 @@ export default function RentManage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const navigate = useNavigate();
   const [newRental, setNewRental] = useState({
     tenantId: "",
     roomId: "",
@@ -26,6 +28,13 @@ export default function RentManage() {
     paymentDueDate: "",
     paymentInterval: "Monthly",
     status: "Active",
+    selfManagedElectricity: false,
+    sharedUtilities: true,
+    utilityShare: "",
+    includeWater: true,
+    includeElectricity: true,
+    includeGenerator: true,
+    includeService: true,
   });
 
   // Edit state
@@ -59,25 +68,74 @@ export default function RentManage() {
     };
     fetchData();
   }, []);
-
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === "checkbox" ? checked : value;
+
+    const updateState = (prev) => {
+      const updated = { ...prev, [name]: val };
+
+      // 🔹 When toggling shared utilities
+      if (name === "sharedUtilities") {
+        if (!val) {
+          // Turn off all utility-related fields
+          updated.includeWater = false;
+          updated.includeElectricity = false;
+          updated.includeGenerator = false;
+          updated.includeService = false;
+          updated.utilityShare = "";
+        } else {
+          // When turned on again → restore defaults
+          updated.includeWater = true;
+          updated.includeElectricity = !prev.selfManagedElectricity;
+          updated.includeGenerator = true;
+          updated.includeService = true;
+        }
+      }
+
+      // 🔹 When selfManagedElectricity is true → disable includeElectricity
+      if (name === "selfManagedElectricity") {
+        if (val) {
+          updated.includeElectricity = false;
+        } else if (prev.sharedUtilities) {
+          updated.includeElectricity = true;
+        }
+      }
+
+      return updated;
+    };
+
     if (editingRental) {
-      setEditingRental((prev) => ({ ...prev, [name]: value }));
+      setEditingRental(updateState);
     } else {
-      setNewRental((prev) => ({ ...prev, [name]: value }));
+      setNewRental(updateState);
     }
   };
+
   const handleAddRental = async (e) => {
     e.preventDefault();
     try {
-      const created = await createRental({
-        ...newRental,
+      // in create
+
+      const rentalData = {
         tenantId: Number(newRental.tenantId),
         roomId: Number(newRental.roomId),
         rentAmount: parseFloat(newRental.rentAmount),
+        startDate: newRental.startDate,
+        endDate: newRental.endDate,
         paymentDueDate: Number(newRental.paymentDueDate),
-      });
+        paymentInterval: newRental.paymentInterval,
+        selfManagedElectricity: newRental.selfManagedElectricity,
+        includeWater: newRental.includeWater,
+        includeElectricity: newRental.includeElectricity,
+        includeGenerator: newRental.includeGenerator,
+        includeService: newRental.includeService,
+      };
+
+      // ❌ Ensure utilityShare is not included
+      delete rentalData.utilityShare;
+
+      const created = await createRental(rentalData);
 
       // Find tenant and room objects from local state
       const tenantObj = tenants.find((t) => t.tenantId === created.tenantId);
@@ -112,7 +170,6 @@ export default function RentManage() {
     try {
       const blob = await generateAgreement(rental.rentId);
 
-      // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -136,6 +193,11 @@ export default function RentManage() {
         rentAmount: parseFloat(editingRental.rentAmount),
         paymentDueDate: Number(editingRental.paymentDueDate),
         paymentInterval: editingRental.paymentInterval,
+        selfManagedElectricity: editingRental.selfManagedElectricity,
+        includeWater: editingRental.includeWater,
+        includeElectricity: editingRental.includeElectricity,
+        includeGenerator: editingRental.includeGenerator,
+        includeService: editingRental.includeService,
       });
 
       // Merge changes locally
@@ -210,81 +272,220 @@ export default function RentManage() {
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             {/* Tenant */}
-            <select
-              name="tenantId"
-              value={newRental.tenantId}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
-            >
-              <option value="">Select Tenant</option>
-              {tenants.map((tenant) => (
-                <option key={tenant.tenantId} value={tenant.tenantId}>
-                  {tenant.contactPerson}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Tenant
+              </label>
+              <select
+                name="tenantId"
+                value={newRental.tenantId}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              >
+                <option value="">Select Tenant</option>
+                {tenants.map((tenant) => (
+                  <option key={tenant.tenantId} value={tenant.tenantId}>
+                    {tenant.contactPerson}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* Room */}
-            <select
-              name="roomId"
-              value={newRental.roomId}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
-            >
-              <option value="">Select Room</option>
-              {rooms.map((room) => (
-                <option key={room.roomId} value={room.roomId}>
-                  {room.unitNumber} (Floor {room.floor})
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Room
+              </label>
+              <select
+                name="roomId"
+                value={newRental.roomId}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              >
+                <option value="">Select Room</option>
+                {rooms.map((room) => (
+                  <option key={room.roomId} value={room.roomId}>
+                    {room.unitNumber} (Floor {room.floor})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <input
-              type="date"
-              name="startDate"
-              value={newRental.startDate}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
-            />
-            <input
-              type="date"
-              name="endDate"
-              value={newRental.endDate}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
-            />
-            <input
-              type="number"
-              name="rentAmount"
-              placeholder="Rent Amount"
-              value={newRental.rentAmount}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
-            />
-            <input
-              type="number"
-              name="paymentDueDate"
-              placeholder="Payment Due Day (e.g. 5)"
-              value={newRental.paymentDueDate}
-              onChange={handleInputChange}
-              required
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800"
-            />
-            <select
-              name="paymentInterval"
-              value={newRental.paymentInterval}
-              onChange={handleInputChange}
-              className="p-2 border rounded-md  text-black bg-white dark:text-white dark:bg-gray-800 col-span-1 md:col-span-2"
-            >
-              <option value="Monthly">Monthly</option>
-              <option value="Quarterly">Quarterly</option>
-              <option value="Yearly">Yearly</option>
-            </select>
+            {/* Start Date */}
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                value={newRental.startDate}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              />
+            </div>
+
+            {/* End Date */}
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                name="endDate"
+                value={newRental.endDate}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              />
+            </div>
+
+            {/* Rent Amount */}
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Rent Amount
+              </label>
+              <input
+                type="number"
+                name="rentAmount"
+                placeholder="Enter Rent Amount"
+                value={newRental.rentAmount}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              />
+            </div>
+
+            {/* Payment Due Day */}
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Payment Due Day (e.g. 5)
+              </label>
+              <input
+                type="number"
+                name="paymentDueDate"
+                placeholder="Payment Due Day"
+                value={newRental.paymentDueDate}
+                onChange={handleInputChange}
+                required
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              />
+            </div>
+
+            {/* Payment Interval */}
+            <div className="flex flex-col md:col-span-2">
+              <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Payment Interval
+              </label>
+              <select
+                name="paymentInterval"
+                value={newRental.paymentInterval}
+                onChange={handleInputChange}
+                className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+              >
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly">Quarterly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            </div>
+
+            {/* Shared Utilities Section */}
+            <div className="col-span-1 md:col-span-2 border-t pt-4 mt-4">
+              <label className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  name="sharedUtilities"
+                  checked={newRental.sharedUtilities}
+                  onChange={handleInputChange}
+                  className="w-4 h-4"
+                />
+                Shared Utilities
+              </label>
+
+              {newRental.sharedUtilities && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pl-4 border-l border-gray-300 dark:border-gray-600">
+                  {/* Self Managed Electricity */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="selfManagedElectricity"
+                      checked={newRental.selfManagedElectricity}
+                      onChange={handleInputChange}
+                      className="w-4 h-4"
+                    />
+                    Self-Managed Electricity
+                  </label>
+
+                  {/* Utility Share */}
+                  <div className="flex flex-col">
+                    <label className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Utility Share (optional)
+                    </label>
+                    <input
+                      type="number"
+                      name="utilityShare"
+                      placeholder="Enter Utility Share"
+                      value={newRental.utilityShare}
+                      onChange={handleInputChange}
+                      className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+                    />
+                  </div>
+
+                  {/* Include Water */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="includeWater"
+                      checked={newRental.includeWater}
+                      onChange={handleInputChange}
+                      className="w-4 h-4"
+                    />
+                    Include Water
+                  </label>
+
+                  {/* Include Electricity */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="includeElectricity"
+                      checked={newRental.includeElectricity}
+                      onChange={handleInputChange}
+                      disabled={newRental.selfManagedElectricity}
+                      className="w-4 h-4"
+                    />
+                    Include Electricity
+                  </label>
+
+                  {/* Include Generator */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="includeGenerator"
+                      checked={newRental.includeGenerator}
+                      onChange={handleInputChange}
+                      className="w-4 h-4"
+                    />
+                    Include Generator
+                  </label>
+
+                  {/* Include Service */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="includeService"
+                      checked={newRental.includeService}
+                      onChange={handleInputChange}
+                      className="w-4 h-4"
+                    />
+                    Include Service
+                  </label>
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               className="col-span-1 md:col-span-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
@@ -365,6 +566,15 @@ export default function RentManage() {
                     >
                       <FileText className="w-4 h-4" />
                     </button>
+                    <button
+                      title="Generate Agreement"
+                      onClick={() =>
+                        navigate(`/rent-detail/${rental.rentalId}`)
+                      }
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600"
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -398,10 +608,13 @@ export default function RentManage() {
 
       {/* Edit Modal */}
       {editingRental && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0  bg-black/50 dark:bg-black/60 bg-opacity-50 flex items-center justify-center z-40">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-lvh">
             <h2 className="text-lg font-semibold mb-4">Edit Rental</h2>
-            <form onSubmit={handleUpdateRental} className="space-y-4">
+            <form
+              onSubmit={handleUpdateRental}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
               {/* Start Date */}
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -479,8 +692,97 @@ export default function RentManage() {
                 </select>
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-2">
+              {/* Shared Utilities Section (full width) */}
+              <div className="md:col-span-2 border-t pt-4 mt-2">
+                <label className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="sharedUtilities"
+                    checked={editingRental.sharedUtilities}
+                    onChange={handleInputChange}
+                    className="w-4 h-4"
+                  />
+                  Shared Utilities
+                </label>
+
+                {editingRental.sharedUtilities && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pl-4 border-l border-gray-300 dark:border-gray-600">
+                    {/* Self Managed Electricity */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="selfManagedElectricity"
+                        checked={editingRental.selfManagedElectricity}
+                        onChange={handleInputChange}
+                        className="w-4 h-4"
+                      />
+                      Self-Managed Electricity
+                    </label>
+
+                    {/* Utility Share */}
+                    <input
+                      type="number"
+                      name="utilityShare"
+                      placeholder="Utility Share (optional)"
+                      value={editingRental.utilityShare || ""}
+                      onChange={handleInputChange}
+                      className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
+                    />
+
+                    {/* Include Water */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="includeWater"
+                        checked={editingRental.includeWater}
+                        onChange={handleInputChange}
+                        className="w-4 h-4"
+                      />
+                      Include Water
+                    </label>
+
+                    {/* Include Electricity */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="includeElectricity"
+                        checked={editingRental.includeElectricity}
+                        onChange={handleInputChange}
+                        disabled={editingRental.selfManagedElectricity}
+                        className="w-4 h-4"
+                      />
+                      Include Electricity
+                    </label>
+
+                    {/* Include Generator */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="includeGenerator"
+                        checked={editingRental.includeGenerator}
+                        onChange={handleInputChange}
+                        className="w-4 h-4"
+                      />
+                      Include Generator
+                    </label>
+
+                    {/* Include Service */}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="includeService"
+                        checked={editingRental.includeService}
+                        onChange={handleInputChange}
+                        className="w-4 h-4"
+                      />
+                      Include Service
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions (full width) */}
+              <div className="md:col-span-2 flex justify-end gap-2 mt-4">
                 <button
                   type="button"
                   onClick={() => setEditingRental(null)}

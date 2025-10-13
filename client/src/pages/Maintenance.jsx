@@ -395,7 +395,7 @@ export default function AdminMaintenance() {
 
       {/* 🔥 Edit Popup */}
       {editItem && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 bg-opacity-50">
           <form
             onSubmit={handleEditSubmit}
             className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg space-y-4 w-96"

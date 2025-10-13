@@ -16,6 +16,12 @@ export default {
     status: Joi.string()
       .valid("Active", "Expired", "Terminated")
       .default("Active"),
+
+    selfManagedElectricity: Joi.boolean().default(false),
+    includeElectricity: Joi.boolean().default(true),
+    includeService: Joi.boolean().default(true),
+    includeWater: Joi.boolean().default(true),
+    includeGenerator: Joi.boolean().default(true),
   }),
 
   update: Joi.object({
@@ -26,5 +32,11 @@ export default {
     paymentInterval: Joi.string()
       .valid("Monthly", "Quarterly", "Yearly")
       .optional(),
+
+    selfManagedElectricity: Joi.boolean().optional(),
+    includeElectricity: Joi.boolean().optional(),
+    includeService: Joi.boolean().optional(),
+    includeWater: Joi.boolean().optional(),
+    includeGenerator: Joi.boolean().optional(),
   }),
 };

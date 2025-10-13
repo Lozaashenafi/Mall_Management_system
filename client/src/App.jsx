@@ -17,6 +17,7 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AddTenant from "./pages/AddTenant";
+import EditTenant from "./pages/EditTenant";
 import AddRoom from "./pages/AddRoom";
 import AddInvoice from "./pages/AddInvoice";
 import AddPayment from "./pages/AddPayment";
@@ -35,6 +36,8 @@ import TenantMaintenance from "./pages/TenantMaintenance";
 import TenantNotifications from "./pages/TenantNotifications";
 import TenantTerminateRequest from "./pages/TenantTerminateRequest";
 import RoomFeatureTypeManage from "./pages/RoomFeatureTypeManage";
+import RoomDetails from "./pages/RoomDetails";
+import RentDetail from "./pages/RentDetail";
 
 function App() {
   return (
@@ -56,8 +59,12 @@ function App() {
             <Route path="/manage-tenants" element={<TenantManage />} />
 
             <Route path="/add-tenant" element={<AddTenant />} />
+            <Route path="/edit-tenant/:id" element={<EditTenant />} />
             <Route path="/manage-rooms" element={<RoomManage />} />
             <Route path="/manage-rooms/add" element={<AddRoom />} />
+
+            <Route path="/room-detail/:id" element={<RoomDetails />} />
+            <Route path="/rent-detail/:id" element={<RentDetail />} />
             <Route
               path="/manage-roomfeature"
               element={<RoomFeatureTypeManage />}

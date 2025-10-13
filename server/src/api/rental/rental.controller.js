@@ -18,13 +18,17 @@ export const createRental = async (req, res) => {
       paymentDueDate,
       paymentInterval,
       status,
+      selfManagedElectricity,
+      utilityShare,
+      includeWater,
+      includeGenerator,
+      includeElectricity,
+      includeService,
     } = value;
 
-    // Check tenant
     const tenant = await prisma.tenant.findUnique({ where: { tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    // Check room
     const room = await prisma.room.findUnique({ where: { roomId } });
     if (!room) return res.status(404).json({ message: "Room not found" });
 
@@ -40,14 +44,15 @@ export const createRental = async (req, res) => {
         .json({ message: "Room is under maintenance. Choose another room." });
     }
 
-    // Get latest version number for this room
     const lastRental = await prisma.rental.findFirst({
       where: { roomId, tenantId },
       orderBy: { versionNumber: "desc" },
     });
     const versionNumber = lastRental ? lastRental.versionNumber + 1 : 1;
+    // Apply force rule before create
+    const includeElectricityFinal =
+      selfManagedElectricity === true ? false : includeElectricity ?? true;
 
-    // Transaction: create rental and mark room occupied
     const result = await prisma.$transaction(async (tx) => {
       const rental = await tx.rental.create({
         data: {
@@ -60,6 +65,12 @@ export const createRental = async (req, res) => {
           paymentDueDate,
           paymentInterval,
           status,
+          selfManagedElectricity: selfManagedElectricity ?? false,
+          utilityShare: utilityShare ?? null,
+          includeWater: includeWater ?? true,
+          includeElectricity: includeElectricityFinal,
+          includeGenerator: includeGenerator ?? true,
+          includeService: includeService ?? true,
         },
       });
 
@@ -68,7 +79,6 @@ export const createRental = async (req, res) => {
         data: { status: "Occupied" },
       });
 
-      // ✅ Audit log
       await createAuditLog({
         userId: req.user.userId,
         action: "created",
@@ -88,6 +98,7 @@ export const createRental = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 /**
  * Get all rentals (with optional filters: tenantId, roomId, status)
  */
@@ -118,28 +129,48 @@ export const getRentals = async (req, res) => {
 
 /**
  * Get rental by id
- */
+ */ // GET /rentals/:id
 export const getRentalById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Ensure rentId is a number
+    const rentalId = Number(id);
+    if (isNaN(rentalId)) {
+      return res.status(400).json({ message: "Invalid rental ID" });
+    }
+
     const rental = await prisma.rental.findUnique({
-      where: { rentId: Number(id) },
+      where: { rentId: rentalId },
       include: {
         tenant: true,
-        room: { include: { roomType: true } },
-        invoices: true,
+        room: {
+          include: {
+            roomType: true, // includes typeName and typeDescription
+            roomFeatures: {
+              include: { featureType: true }, // includes name, description
+            },
+          },
+        },
+        invoices: {
+          include: { payments: true }, // nested payments for each invoice
+        },
         agreementDocuments: true,
         maintenanceRequests: true,
       },
     });
 
-    if (!rental) return res.status(404).json({ message: "Rental not found" });
+    if (!rental) {
+      return res.status(404).json({ message: "Rental not found" });
+    }
+
     res.json({ success: true, rental });
   } catch (err) {
     console.error("getRentalById error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const updateRental = async (req, res) => {
   try {
     const { error, value } = rentalSchema.update.validate(req.body);
@@ -148,7 +179,6 @@ export const updateRental = async (req, res) => {
 
     const { id } = req.params;
 
-    // Fetch existing rental
     const existing = await prisma.rental.findUnique({
       where: { rentId: Number(id) },
     });
@@ -164,13 +194,29 @@ export const updateRental = async (req, res) => {
     if (value.paymentInterval)
       updateData.paymentInterval = value.paymentInterval;
 
-    // Update rental
+    // ✅ NEW FIELDS
+    if (value.selfManagedElectricity !== undefined)
+      updateData.selfManagedElectricity = value.selfManagedElectricity;
+    if (value.utilityShare !== undefined)
+      updateData.utilityShare = value.utilityShare;
+    if (value.includeWater !== undefined)
+      updateData.includeWater = value.includeWater;
+    if (value.includeGenerator !== undefined)
+      updateData.includeGenerator = value.includeGenerator;
+    if (value.includeService !== undefined)
+      updateData.includeService = value.includeService;
+    if (value.includeElectricity !== undefined)
+      updateData.includeElectricity = value.includeElectricity;
+
+    if (value.selfManagedElectricity === true) {
+      updateData.includeElectricity = false;
+    }
+
     const updated = await prisma.rental.update({
       where: { rentId: Number(id) },
       data: updateData,
     });
 
-    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "updated",
@@ -186,6 +232,7 @@ export const updateRental = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const terminateRental = async (req, res) => {
   try {
     const { id } = req.params;

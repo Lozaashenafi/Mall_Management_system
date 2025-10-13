@@ -184,11 +184,11 @@ model Rental {
   paymentInterval  String
   status           RentalStatus
 
-  // ✅ IMPORTANT -> Only for electricity
-  selfManagedElectricity Boolean @default(false) // If true → EXCLUDE from Electric utility billing
+  selfManagedElectricity Boolean @default(false) 
 
-  utilityShare     Float? // used only if shared billing
+  utilityShare     Float? 
   includeWater     Boolean @default(true) // water still shared
+  includeElectricity Boolean @default(true)
   includeGenerator Boolean @default(true) // generator still shared
   includeService   Boolean  @default(true)
 

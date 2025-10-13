@@ -14,7 +14,8 @@ export const getTenants = async () => {
 export const getTenantById = async (id) => {
   try {
     const res = await api.get(`/tenants/${id}`);
-    return res.data;
+    console.log(res.data.tenant);
+    return res.data.tenant;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch tenant" };
   }
@@ -33,21 +34,11 @@ export const addTenant = async (formData) => {
   }
 };
 
-export const updateTenant = async (id, tenantData) => {
+export const updateTenant = async (id, formData) => {
   try {
-    const formData = new FormData();
-
-    Object.keys(tenantData).forEach((key) => {
-      if (key === "tenantId") return; // 🚫 skip tenantId
-      if (tenantData[key] !== null && tenantData[key] !== undefined) {
-        formData.append(key, tenantData[key]);
-      }
-    });
-
     const res = await api.put(`/tenants/${id}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-
     return res.data;
   } catch (err) {
     throw err.response?.data || { message: "Failed to update tenant" };

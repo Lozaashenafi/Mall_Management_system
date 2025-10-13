@@ -81,13 +81,22 @@ export const getRoomType = async (req, res) => {
 export const getRoomById = async (req, res) => {
   try {
     const { id } = req.params;
+
     const room = await prisma.room.findUnique({
       where: { roomId: Number(id) },
       include: {
         roomType: true,
-        rental: true,
+        rental: {
+          include: {
+            tenant: true,
+          },
+        },
         maintenance: true,
-        roomFeatures: true,
+        roomFeatures: {
+          include: {
+            featureType: true,
+          },
+        },
       },
     });
 
