@@ -1,0 +1,20 @@
+import Joi from "joi";
+
+export default {
+  create: Joi.object({
+    rentId: Joi.number().integer().required(),
+    paperInvoiceNumber: Joi.string().required(), // Manual entry
+    invoiceDate: Joi.date().required(),
+    dueDate: Joi.date().required(),
+    baseRent: Joi.number().optional(),
+    taxPercentage: Joi.number().optional(),
+    taxAmount: Joi.number().optional(),
+    totalAmount: Joi.number().required(),
+  }),
+
+  update: Joi.object({
+    paperInvoiceNumber: Joi.string().optional(),
+    dueDate: Joi.date().optional(),
+    status: Joi.string().valid("Paid", "Unpaid", "Overdue").optional(),
+  }),
+};

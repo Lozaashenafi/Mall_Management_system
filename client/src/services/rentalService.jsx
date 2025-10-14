@@ -16,6 +16,16 @@ export const getRentals = async (filters) => {
     throw error.response?.data || { message: "Failed to fetch rentals" };
   }
 };
+export const getRentalById = async (rentalId) => {
+  try {
+    const res = await api.get(`/rentals/${rentalId}`);
+    // console.log(res.data);
+    return res.data.rental;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch rental" };
+  }
+};
+
 export const updateRental = async (rentalId, data) => {
   try {
     const res = await api.put(`/rentals/${rentalId}`, data);

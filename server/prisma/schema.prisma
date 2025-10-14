@@ -214,9 +214,10 @@ model AgreementDocument {
 // 5. Payments & Invoicing
 model Invoice {
   invoiceId     Int           @id @default(autoincrement())
-  rentId   Int
+  rentId        Int
   invoiceDate   DateTime
   dueDate       DateTime
+  paperInvoiceNumber String? // ← Add this (manual invoice no. from paper book)
   baseRent      Float?
   taxPercentage Float?
   taxAmount     Float?
@@ -224,10 +225,9 @@ model Invoice {
   status        InvoiceStatus
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  rental     Rental     @relation(fields: [rentId], references: [rentId])
+  rental        Rental        @relation(fields: [rentId], references: [rentId])
   payments      Payment[]
 }
-
 
 model Feedback {
   feedbackId   Int      @id @default(autoincrement())
@@ -298,7 +298,8 @@ model UtilityInvoice {
   utilityChargeId Int
   rentId          Int
   amount          Float
-  status          String        @default("UNPAID")  // UNPAID | PAID
+  paperInvoiceNumber String? 
+  status          String        @default("UNPAID")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

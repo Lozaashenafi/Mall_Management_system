@@ -9,6 +9,7 @@ import agreementRoutes from "../api/agreements/Agreement.route.js";
 import expenseRoutes from "../api/expenses/Expenses.route.js";
 import maintenanceRoutes from "../api/maintenance/Maintenance.route.js";
 import roomFeatureSchema from "../api/roomFeature/roomFeature.routes.js";
+import InvoiceRoutes from "../api/invoices/Invoice.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -19,4 +20,5 @@ router.use("/agreements", agreementRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/maintenance", maintenanceRoutes);
 router.use("/roomfeature", roomFeatureSchema);
+router.use("/invoice", InvoiceRoutes);
 export default router;

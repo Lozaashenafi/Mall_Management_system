@@ -495,8 +495,6 @@ export default function RentManage() {
           </form>
         </div>
       )}
-
-      {/* Rental List */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <h2 className="text-lg font-semibold mb-4">Rental List</h2>
         <div className="overflow-x-auto">
@@ -568,9 +566,7 @@ export default function RentManage() {
                     </button>
                     <button
                       title="Generate Agreement"
-                      onClick={() =>
-                        navigate(`/rent-detail/${rental.rentalId}`)
-                      }
+                      onClick={() => navigate(`/rent-detail/${rental.rentId}`)}
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600"
                     >
                       <ListPlus className="w-4 h-4" />
