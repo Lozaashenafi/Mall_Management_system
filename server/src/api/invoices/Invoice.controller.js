@@ -87,7 +87,6 @@ export const getInvoiceById = async (req, res) => {
   }
 };
 
-// ✅ Update Invoice (Mark Paid / Update Due Date)
 export const updateInvoice = async (req, res) => {
   try {
     const { error, value } = invoiceSchema.update.validate(req.body);

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+
+import { createPayment } from "../services/paymentService";
 
 export default function AddPayment() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // <-- Ensure correct path
 
   const [formData, setFormData] = useState({
     invoiceId: "",
@@ -19,14 +22,24 @@ export default function AddPayment() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Payment Added:", formData);
 
-    // 🚀 Replace with API call
-    // await axios.post("/api/payments", formData);
+    const payload = {
+      invoiceId: Number(formData.invoiceId),
+      amount: Number(formData.amountPaid),
+      method: formData.method,
+      reference: formData.reference || null, // if you have one later
+      status: formData.status, // Optional, backend defaults to Pending
+    };
 
-    navigate("/manage-payments");
+    try {
+      await createPayment(payload);
+      toast.success("Payment added successfully!");
+      navigate("/manage-payments");
+    } catch (err) {
+      toast.error(err.message || "Failed to add payment");
+    }
   };
 
   return (
@@ -37,7 +50,6 @@ export default function AddPayment() {
           Fill in payment details for the invoice
         </p>
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Invoice ID</label>

@@ -1,38 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { createInvoice } from "../services/paymentService";
+import { getRentals } from "../services/rentalService";
+import { toast } from "react-hot-toast";
 
 export default function AddInvoice() {
   const navigate = useNavigate();
+  const [rentals, setRentals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
-    agreementId: "",
+    rentId: "",
+    paperInvoiceNumber: "",
     invoiceDate: new Date().toISOString().split("T")[0],
     dueDate: new Date().toISOString().split("T")[0],
     baseRent: "",
     taxPercentage: "",
-    status: "Pending",
   });
+
+  useEffect(() => {
+    const fetchRentals = async () => {
+      try {
+        const res = await getRentals();
+        setRentals(res.rentals || []);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch rentals");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRentals();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.rentId) return toast.error("Please select a rental");
+    if (!formData.paperInvoiceNumber)
+      return toast.error("Please enter invoice number");
+
     const taxAmount = (formData.baseRent * formData.taxPercentage) / 100;
     const totalAmount = parseFloat(formData.baseRent) + taxAmount;
-    console.log("Invoice Added:", { ...formData, taxAmount, totalAmount });
 
-    // 🚀 Replace with API call
-    // await axios.post("/api/invoices", { ...formData, taxAmount, totalAmount });
+    try {
+      await createInvoice({
+        rentId: formData.rentId,
+        paperInvoiceNumber: formData.paperInvoiceNumber,
+        invoiceDate: formData.invoiceDate,
+        dueDate: formData.dueDate,
+        baseRent: parseFloat(formData.baseRent),
+        taxPercentage: parseFloat(formData.taxPercentage),
+        taxAmount,
+        totalAmount,
+      });
 
-    navigate("/manage-invoices");
+      toast.success("Invoice created successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to create invoice");
+    }
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-gray-900 dark:text-gray-100">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 border  rounded-lg p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create Invoice</h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -42,13 +78,40 @@ export default function AddInvoice() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Agreement ID</label>
+          <label className="block text-sm font-medium mb-1">
+            Select Rental
+          </label>
+          {loading ? (
+            <p>Loading rentals...</p>
+          ) : (
+            <select
+              name="rentId"
+              value={formData.rentId}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+            >
+              <option value="">-- Select Tenant & Room --</option>
+              {rentals.map((r) => (
+                <option key={r.rentId} value={r.rentId}>
+                  {r.tenant.contactPerson} - {r.room.unitNumber}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Invoice Number
+          </label>
           <input
-            type="number"
-            name="agreementId"
-            value={formData.agreementId}
+            type="text"
+            name="paperInvoiceNumber"
+            value={formData.paperInvoiceNumber}
             onChange={handleChange}
             required
+            placeholder="INV-2025-001"
             className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
           />
         </div>
@@ -110,20 +173,6 @@ export default function AddInvoice() {
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Status</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-          >
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-          </select>
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
