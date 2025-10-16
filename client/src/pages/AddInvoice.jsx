@@ -68,7 +68,7 @@ export default function AddInvoice() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 border  rounded-lg p-6 text-gray-900 dark:text-gray-100">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900    p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create Invoice</h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -100,7 +100,6 @@ export default function AddInvoice() {
             </select>
           )}
         </div>
-
         <div>
           <label className="block text-sm font-medium mb-1">
             Invoice Number

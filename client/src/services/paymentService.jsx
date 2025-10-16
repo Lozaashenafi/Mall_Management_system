@@ -2,10 +2,24 @@ import api from "../util/axios";
 
 export const createPayment = async (paymentData) => {
   try {
-    const res = await api.post("/payments", paymentData);
+    const res = await api.post("/payments", paymentData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to create payment" };
+  }
+};
+
+export const updatePayment = async (id, data) => {
+  try {
+    const res = await api.put(`/payments/${id}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log("Update Payment Response:", res.data);
+    return res.data; // backend returns { success, payment }
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to update payment" };
   }
 };
 
@@ -26,15 +40,6 @@ export const getPayments = async () => {
     return res.data.payments;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch payments" };
-  }
-};
-
-export const updatePayment = async (paymentId, paymentData) => {
-  try {
-    const res = await api.put(`/payments/${paymentId}`, paymentData);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data || { message: "Failed to update payment" };
   }
 };
 

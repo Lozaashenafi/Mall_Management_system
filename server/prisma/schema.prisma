@@ -307,15 +307,17 @@ model UtilityInvoice {
   rental          Rental        @relation(fields: [rentId], references: [rentId])
   payments        Payment[]
 }
+
 model Payment {
-  id               Int            @id @default(autoincrement())
-  invoiceId        Int?           // for rent payment
+  paymentId               Int            @id @default(autoincrement())
+  invoiceId        Int?           
   utilityInvoiceId Int?           // for utility payment
   amount           Float
   paymentDate      DateTime       @default(now())
   method           String?        // Cash, Bank, Mobile, etc.
   reference        String?        // Transaction ID or ref number
-  status           PaymentStatus  @default(Pending)
+  receiptFilePath String?        // Path to uploaded receipt
+  status           PaymentStatus  @default(Confirmed)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 

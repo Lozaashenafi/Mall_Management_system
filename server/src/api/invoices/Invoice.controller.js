@@ -103,6 +103,7 @@ export const updateInvoice = async (req, res) => {
     const updated = await prisma.invoice.update({
       where: { invoiceId: Number(id) },
       data: value,
+      include: { rental: { include: { tenant: true, room: true } } },
     });
 
     await createAuditLog({

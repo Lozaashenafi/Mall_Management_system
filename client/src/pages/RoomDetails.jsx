@@ -127,7 +127,7 @@ export default function RoomDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900  sm:p-8">
-      <div className="max-w-6xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl ">
+      <div className="max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900  ">
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-6 mb-6 dark:border-gray-700">
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100">

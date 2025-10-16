@@ -1,5 +1,6 @@
 import prisma from "../../config/prismaClient.js";
 import paymentSchema from "./Pyement.schema.js";
+import fs from "fs";
 import { createAuditLog } from "../../utils/audit.js";
 
 // ✅ Create Payment
@@ -9,9 +10,18 @@ export const createPayment = async (req, res) => {
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { invoiceId, utilityInvoiceId, amount, method, reference } = value;
-
-    // Validate related invoice if provided
+    const {
+      invoiceId,
+      utilityInvoiceId,
+      amount,
+      method,
+      reference,
+      paymentDate,
+    } = value;
+    let receiptFilePath = null;
+    if (req.file) {
+      receiptFilePath = `/uploads/${req.file.filename}`;
+    }
     if (invoiceId) {
       const invoice = await prisma.invoice.findUnique({ where: { invoiceId } });
       if (!invoice)
@@ -33,9 +43,18 @@ export const createPayment = async (req, res) => {
         amount,
         method,
         reference,
+        receiptFilePath,
+        paymentDate,
+        status: "Confirmed",
       },
     });
 
+    if (invoiceId) {
+      await prisma.invoice.update({
+        where: { invoiceId },
+        data: { status: "Paid" },
+      });
+    }
     await createAuditLog({
       userId: req.user.userId,
       action: "created",
@@ -55,7 +74,16 @@ export const createPayment = async (req, res) => {
 export const getPayments = async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
-      include: { invoice: true, utilityInvoice: true },
+      include: {
+        invoice: {
+          include: {
+            rental: {
+              include: { tenant: true, room: true },
+            },
+          },
+        },
+        utilityInvoice: true,
+      },
       orderBy: { createdAt: "desc" },
     });
     res.json({ success: true, payments });
@@ -70,7 +98,7 @@ export const getPaymentById = async (req, res) => {
   try {
     const { id } = req.params;
     const payment = await prisma.payment.findUnique({
-      where: { id: Number(id) },
+      where: { paymentId: Number(id) },
       include: { invoice: true, utilityInvoice: true },
     });
     if (!payment) return res.status(404).json({ message: "Payment not found" });
@@ -91,16 +119,36 @@ export const updatePayment = async (req, res) => {
 
     const { id } = req.params;
     const existing = await prisma.payment.findUnique({
-      where: { id: Number(id) },
+      where: { paymentId: Number(id) },
     });
     if (!existing)
       return res.status(404).json({ message: "Payment not found" });
 
-    const updated = await prisma.payment.update({
-      where: { id: Number(id) },
-      data: value,
-    });
+    let receiptFilePath = existing.receiptFilePath;
+    if (req.file) {
+      // delete old file if new one uploaded
+      if (receiptFilePath && fs.existsSync(`.${receiptFilePath}`)) {
+        fs.unlinkSync(`.${receiptFilePath}`);
+      }
+      receiptFilePath = `/uploads/${req.file.filename}`;
+    }
 
+    const updated = await prisma.payment.update({
+      where: { paymentId: Number(req.params.id) },
+      data: { ...value, receiptFilePath },
+      include: {
+        invoice: {
+          include: {
+            rental: {
+              include: {
+                tenant: true,
+                room: true,
+              },
+            },
+          },
+        },
+      },
+    });
     await createAuditLog({
       userId: req.user.userId,
       action: "updated",

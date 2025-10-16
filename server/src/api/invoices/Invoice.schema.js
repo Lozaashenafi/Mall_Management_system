@@ -14,7 +14,11 @@ export default {
 
   update: Joi.object({
     paperInvoiceNumber: Joi.string().optional(),
+    invoiceDate: Joi.date().optional(),
     dueDate: Joi.date().optional(),
-    status: Joi.string().valid("Paid", "Unpaid", "Overdue").optional(),
+    baseRent: Joi.number().optional(),
+    taxPercentage: Joi.number().optional(),
+    taxAmount: Joi.number().optional(),
+    totalAmount: Joi.number().optional(),
   }),
 };

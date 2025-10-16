@@ -71,7 +71,7 @@ function App() {
             />
             <Route path="/manage-rentals" element={<RentManage />} />
             <Route path="/payments" element={<Payments />} />
-            <Route path="/payments/add" element={<AddPayment />} />
+            <Route path="/payments/add/:id" element={<AddPayment />} />
             <Route path="/payments/invoice" element={<AddInvoice />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/expenses" element={<Expenses />} />
@@ -107,7 +107,6 @@ function App() {
             <Route path="payments" element={<TenantPayment />} />
             <Route path="maintenance" element={<TenantMaintenance />} />
             <Route path="notifications" element={<TenantNotifications />} />
-
             <Route
               path="terminate-request"
               element={<TenantTerminateRequest />}
