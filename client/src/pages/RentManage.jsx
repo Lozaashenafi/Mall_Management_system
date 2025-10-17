@@ -215,6 +215,26 @@ export default function RentManage() {
       toast.error(error.message || "Failed to update rental");
     }
   };
+  const getAllowedIntervals = (startDate, endDate, useToday = false) => {
+    if (!endDate) return ["Monthly", "Quarterly", "Yearly"];
+
+    const today = new Date();
+    const start = useToday ? today : new Date(startDate);
+    const end = new Date(endDate);
+
+    // Calculate month difference
+    const months =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth()) +
+      1;
+
+    const allowed = [];
+    if (months >= 1) allowed.push("Monthly");
+    if (months >= 4) allowed.push("Quarterly");
+    if (months >= 12) allowed.push("Yearly");
+
+    return allowed;
+  };
   const handleTerminateRental = async (rentalId) => {
     const confirm = window.confirm(
       "Are you sure you want to terminate this rental?"
@@ -286,7 +306,7 @@ export default function RentManage() {
                 <option value="">Select Tenant</option>
                 {tenants.map((tenant) => (
                   <option key={tenant.tenantId} value={tenant.tenantId}>
-                    {tenant.contactPerson}
+                    {tenant.contactPerson} - {tenant.companyName}
                   </option>
                 ))}
               </select>
@@ -386,9 +406,14 @@ export default function RentManage() {
                 onChange={handleInputChange}
                 className="p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
               >
-                <option value="Monthly">Monthly</option>
-                <option value="Quarterly">Quarterly</option>
-                <option value="Yearly">Yearly</option>
+                {getAllowedIntervals(
+                  newRental.startDate,
+                  newRental.endDate
+                ).map((interval) => (
+                  <option key={interval} value={interval}>
+                    {interval}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -682,9 +707,15 @@ export default function RentManage() {
                   onChange={handleInputChange}
                   className="w-full p-2 border rounded-md text-black bg-white dark:text-white dark:bg-gray-800"
                 >
-                  <option value="Monthly">Monthly</option>
-                  <option value="Quarterly">Quarterly</option>
-                  <option value="Yearly">Yearly</option>
+                  {getAllowedIntervals(
+                    editingRental.startDate,
+                    editingRental.endDate,
+                    true
+                  ).map((interval) => (
+                    <option key={interval} value={interval}>
+                      {interval}
+                    </option>
+                  ))}
                 </select>
               </div>
 

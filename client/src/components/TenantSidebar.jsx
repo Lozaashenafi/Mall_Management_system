@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
+  House,
   LayoutDashboard,
   DollarSign,
   Wrench,
@@ -15,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 
 const tenantSidebarItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/tenant" },
+  { title: "My Rentals", icon: House, url: "/tenant/myrentals" },
   { title: "Payments", icon: DollarSign, url: "/tenant/payments" },
   { title: "Maintenance", icon: Wrench, url: "/tenant/maintenance" },
   { title: "Notifications", icon: Bell, url: "/tenant/notifications" },

@@ -24,7 +24,7 @@ export const addRoom = async (req, res) => {
         floor: req.body.floor,
         size: req.body.size,
         roomTypeId: req.body.roomTypeId,
-        status: req.body.status || "Vacant",
+        status: "Vacant",
         hasParking: req.body.hasParking ?? false,
         parkingType: req.body.parkingType || null,
         parkingSpaces:

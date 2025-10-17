@@ -36,7 +36,18 @@ export default function AddInvoice() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "rentId") {
+      // find the selected rental
+      const selectedRental = rentals.find((r) => r.rentId === parseInt(value));
+      setFormData((prev) => ({
+        ...prev,
+        rentId: value,
+        baseRent: selectedRental ? selectedRental.rentAmount : "",
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -61,6 +72,7 @@ export default function AddInvoice() {
       });
 
       toast.success("Invoice created successfully");
+      navigate("/payments");
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Failed to create invoice");
@@ -154,6 +166,7 @@ export default function AddInvoice() {
               required
               min="0"
               step="0.01"
+              readOnly
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>

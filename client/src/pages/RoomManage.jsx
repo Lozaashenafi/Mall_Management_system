@@ -71,7 +71,6 @@ export default function RoomManage() {
         unitNumber: editingRoom.unitNumber,
         floor: editingRoom.floor,
         size: editingRoom.size,
-        status: editingRoom.status,
         hasParking: editingRoom.hasParking,
         parkingType: editingRoom.hasParking ? editingRoom.parkingType : null,
         parkingSpaces:
@@ -273,17 +272,6 @@ export default function RoomManage() {
                 className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 placeholder="Size"
               />
-              <select
-                value={editingRoom.status}
-                onChange={(e) =>
-                  setEditingRoom({ ...editingRoom, status: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                <option value="Vacant">Vacant</option>
-                <option value="Occupied">Occupied</option>
-                <option value="Maintenance">Maintenance</option>
-              </select>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"

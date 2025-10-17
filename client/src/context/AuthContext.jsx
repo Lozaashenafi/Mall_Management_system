@@ -47,6 +47,12 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("token", data.token);
+      if (data.user.role === "Tenant" && data.user.rentals) {
+        localStorage.setItem("rentals", JSON.stringify(data.user.rentals));
+      } else {
+        // Optional: Clear old rental data if another user logs in
+        localStorage.removeItem("rentals");
+      }
       return data;
     } catch (err) {
       setError(err.message || "Login failed");

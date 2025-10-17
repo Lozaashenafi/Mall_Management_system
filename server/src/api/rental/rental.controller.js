@@ -43,6 +43,20 @@ export const createRental = async (req, res) => {
         .status(400)
         .json({ message: "Room is under maintenance. Choose another room." });
     }
+    if (new Date(startDate) >= new Date(endDate)) {
+      return res
+        .status(400)
+        .json({ message: "End date must be after start date." });
+    }
+
+    const diffInDays =
+      (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+
+    if (diffInDays < 30) {
+      return res.status(400).json({
+        message: "Rental period must be at least 30 days.",
+      });
+    }
 
     const lastRental = await prisma.rental.findFirst({
       where: { roomId, tenantId },
@@ -99,9 +113,6 @@ export const createRental = async (req, res) => {
   }
 };
 
-/**
- * Get all rentals (with optional filters: tenantId, roomId, status)
- */
 export const getRentals = async (req, res) => {
   try {
     const { tenantId, roomId, status } = req.query;
@@ -127,9 +138,6 @@ export const getRentals = async (req, res) => {
   }
 };
 
-/**
- * Get rental by id
- */ // GET /rentals/:id
 export const getRentalById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -183,6 +191,21 @@ export const updateRental = async (req, res) => {
       where: { rentId: Number(id) },
     });
     if (!existing) return res.status(404).json({ message: "Rental not found" });
+    if (new Date(value.startDate) >= new Date(value.endDate)) {
+      return res
+        .status(400)
+        .json({ message: "End date must be after start date." });
+    }
+
+    const diffInDays =
+      (new Date(value.endDate) - new Date(value.startDate)) /
+      (1000 * 60 * 60 * 24);
+
+    if (diffInDays < 30) {
+      return res.status(400).json({
+        message: "Rental period must be at least 30 days.",
+      });
+    }
 
     const updateData = {};
     if (value.startDate) updateData.startDate = new Date(value.startDate);

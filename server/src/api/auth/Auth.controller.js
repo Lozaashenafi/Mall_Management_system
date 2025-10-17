@@ -100,7 +100,7 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-// Login Admin / Mall Owner
+// Login Admin / Mall Owner / Tenant
 export const login = async (req, res) => {
   try {
     const { error } = authSchema.login.validate(req.body);
@@ -134,6 +134,35 @@ export const login = async (req, res) => {
       expiresIn: "12h",
     });
 
+    let tenantRentals = [];
+
+    // 🔥 If user is a Tenant, fetch rental info based on linked Tenant entity
+    if (user.role === "Tenant") {
+      // Find tenant record that has same email OR linked via Tenant.email == User.email
+      const tenant = await prisma.tenant.findFirst({
+        where: { email: user.email },
+      });
+
+      if (tenant) {
+        tenantRentals = await prisma.rental.findMany({
+          where: { tenantId: tenant.tenantId },
+          include: {
+            room: true,
+            invoices: {
+              include: {
+                payments: true,
+              },
+            },
+            utilityInvoices: {
+              include: {
+                payments: true,
+              },
+            },
+          },
+        });
+      }
+    }
+
     res.json({
       message: "Login successful",
       success: true,
@@ -146,6 +175,7 @@ export const login = async (req, res) => {
         role: user.role,
         status: user.status,
         phone: user.phone,
+        rentals: tenantRentals, // 👈 Added here
       },
     });
   } catch (error) {
@@ -156,6 +186,7 @@ export const login = async (req, res) => {
     });
   }
 };
+
 export const editProfile = async (req, res) => {
   try {
     const { fullName, phone } = req.body;

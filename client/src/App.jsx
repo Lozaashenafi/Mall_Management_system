@@ -30,14 +30,15 @@ import EditProfile from "./components/EditProfile";
 import ChangePassword from "./components/ChangePassword";
 import RentManage from "./pages/RentManage";
 import TenantLayout from "./layout/TenantLayout";
-import TenantDashboard from "./pages/TenantDashboard";
-import TenantPayment from "./pages/TenantPayment";
-import TenantMaintenance from "./pages/TenantMaintenance";
-import TenantNotifications from "./pages/TenantNotifications";
-import TenantTerminateRequest from "./pages/TenantTerminateRequest";
+import TenantDashboard from "./pages/tenant/TenantDashboard";
+import TenantPayment from "./pages/tenant/TenantPayment";
+import TenantMaintenance from "./pages/tenant/TenantMaintenance";
+import TenantNotifications from "./pages/tenant/TenantNotifications";
+import TenantTerminateRequest from "./pages/tenant/TenantTerminateRequest";
 import RoomFeatureTypeManage from "./pages/RoomFeatureTypeManage";
 import RoomDetails from "./pages/RoomDetails";
 import RentDetail from "./pages/RentDetail";
+import TenantRentals from "./pages/tenant/TenantRentals";
 
 function App() {
   return (
@@ -102,6 +103,7 @@ function App() {
             <Route path="change-password" element={<ChangePassword />} />
             <Route path="settings" element={<Settings />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route path="myrentals" element={<TenantRentals />} />
 
             {/* Tenant-specific pages */}
             <Route path="payments" element={<TenantPayment />} />

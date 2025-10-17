@@ -4,9 +4,9 @@ import {
   createMaintenanceRequest,
   getTenantRequests,
   deleteRequest,
-} from "../services/maintenanceService"; // 👈 adjust path
-import { getActiveRentalForTenant } from "../services/tenantService"; // 👈 new import
-import { useAuth } from "../context/AuthContext";
+} from "../../services/maintenanceService"; // 👈 adjust path
+import { getActiveRentalForTenant } from "../../services/tenantService"; // 👈 new import
+import { useAuth } from "../../context/AuthContext";
 
 const StatsCard = ({ title, value, icon: Icon, color }) => (
   <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 flex flex-col space-y-2">

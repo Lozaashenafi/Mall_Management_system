@@ -76,7 +76,6 @@ enum NotificationSentVia {
   System
 }
 
-// 1. Users & Roles
 model User {
   userId      Int        @id @default(autoincrement())
   fullName    String
@@ -183,13 +182,11 @@ model Rental {
   paymentDueDate   Int
   paymentInterval  String
   status           RentalStatus
-
   selfManagedElectricity Boolean @default(false) 
-
   utilityShare     Float? 
-  includeWater     Boolean @default(true) // water still shared
+  includeWater     Boolean @default(true) 
   includeElectricity Boolean @default(true)
-  includeGenerator Boolean @default(true) // generator still shared
+  includeGenerator Boolean @default(true) 
   includeService   Boolean  @default(true)
 
   createdAt        DateTime @default(now())
@@ -201,6 +198,7 @@ model Rental {
   agreementDocuments AgreementDocument[]
   maintenanceRequests MaintenanceRequest[]
   utilityInvoices  UtilityInvoice[]
+  terminateRequests TerminateRequest[]
 }
 
 model AgreementDocument {
@@ -323,4 +321,15 @@ model Payment {
 
   invoice          Invoice?        @relation(fields: [invoiceId], references: [invoiceId])
   utilityInvoice   UtilityInvoice? @relation(fields: [utilityInvoiceId], references: [id])
+}
+
+model TerminateRequest {
+  terminateRequestId Int       @id @default(autoincrement())
+  rentId             Int
+  reason             String
+  requestDate        DateTime  @default(now())
+  status             String    @default("Pending") // Pending, Approved, Declined
+  effectiveDate      DateTime?
+  adminNote          String?
+  rental             Rental    @relation(fields: [rentId], references: [rentId])
 }

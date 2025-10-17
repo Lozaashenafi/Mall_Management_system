@@ -4,9 +4,15 @@ import api from "../util/axios";
 export const getRooms = async () => {
   try {
     const res = await api.get("/rooms");
+    console.log("Fetched rooms:", res.data);
     return res.data;
   } catch (error) {
-    throw error.response?.data || { message: "Failed to fetch rooms" };
+    throw (
+      error.response?.data || {
+        message:
+          "Failed to fetch rooms" || console.log("Fetched rooms:", res.data),
+      }
+    );
   }
 };
 

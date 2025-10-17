@@ -12,7 +12,6 @@ export default function AddRoom() {
     floor: "",
     size: "",
     roomTypeId: "",
-    status: "Vacant",
     hasParking: false,
     parkingType: "",
     parkingSpaces: "",
@@ -157,22 +156,6 @@ export default function AddRoom() {
               ))}
             </select>
           </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-            >
-              <option value="Vacant">Vacant</option>
-              <option value="Occupied">Occupied</option>
-              <option value="Maintenance">Maintenance</option>
-            </select>
-          </div>
-
           {/* Parking */}
           <div className="flex items-center gap-2 mt-2">
             <input

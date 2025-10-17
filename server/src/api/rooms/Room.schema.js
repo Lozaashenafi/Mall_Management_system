@@ -9,7 +9,6 @@ const roomSchema = {
     hasParking: Joi.boolean().default(false),
     parkingType: Joi.string().valid("Unlimited", "Limited").allow(null),
     parkingSpaces: Joi.number().integer().min(0).allow(null),
-    status: Joi.string().valid("Vacant", "Occupied", "Maintenance"),
   }),
   update: Joi.object({
     unitNumber: Joi.string(),
@@ -19,7 +18,6 @@ const roomSchema = {
     hasParking: Joi.boolean().default(false),
     parkingType: Joi.string().valid("Unlimited", "Limited").allow(null),
     parkingSpaces: Joi.number().integer().min(0).allow(null),
-    status: Joi.string().valid("Vacant", "Occupied", "Maintenance"),
   }),
 };
 
