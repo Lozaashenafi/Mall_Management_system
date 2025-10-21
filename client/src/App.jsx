@@ -39,6 +39,7 @@ import RoomFeatureTypeManage from "./pages/RoomFeatureTypeManage";
 import RoomDetails from "./pages/RoomDetails";
 import RentDetail from "./pages/RentDetail";
 import TenantRentals from "./pages/tenant/TenantRentals";
+import AdminTerminateRequests from "./pages/AdminTerminateRequests ";
 
 function App() {
   return (
@@ -84,6 +85,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/terminate" element={<AdminTerminateRequests />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>

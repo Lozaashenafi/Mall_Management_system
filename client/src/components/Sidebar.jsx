@@ -29,6 +29,7 @@ const baseSidebarItems = [
   { title: "Expenses", icon: Receipt, url: "/expenses" },
   { title: "Statistics", icon: BarChart3, url: "/statistics" },
   { title: "Logs", icon: History, url: "/logs" },
+  { title: "Terminate Requests ", icon: Receipt, url: "/terminate" },
   { title: "Reports", icon: FileText, url: "/reports" },
   { title: "Notifications", icon: Bell, url: "/notifications" },
   { title: "Settings", icon: Settings, url: "/settings" },

@@ -24,5 +24,6 @@ router.use("/maintenance", maintenanceRoutes);
 router.use("/roomfeature", roomFeatureRoutes);
 router.use("/invoice", InvoiceRoutes);
 router.use("/payments", paymentRoutes);
-router.get("/terminate", terminateRental);
+router.use("/terminate", terminateRental);
+
 export default router;

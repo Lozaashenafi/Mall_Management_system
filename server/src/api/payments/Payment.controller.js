@@ -3,7 +3,6 @@ import paymentSchema from "./Pyement.schema.js";
 import fs from "fs";
 import { createAuditLog } from "../../utils/audit.js";
 
-// ✅ Create Payment
 export const createPayment = async (req, res) => {
   try {
     const { error, value } = paymentSchema.create.validate(req.body);
@@ -22,10 +21,16 @@ export const createPayment = async (req, res) => {
     if (req.file) {
       receiptFilePath = `/uploads/${req.file.filename}`;
     }
+
+    let rentalId = null;
     if (invoiceId) {
-      const invoice = await prisma.invoice.findUnique({ where: { invoiceId } });
+      const invoice = await prisma.invoice.findUnique({
+        where: { invoiceId },
+        include: { rental: true },
+      });
       if (!invoice)
         return res.status(404).json({ message: "Invoice not found" });
+      rentalId = invoice.rentId;
     }
 
     if (utilityInvoiceId) {
@@ -36,6 +41,41 @@ export const createPayment = async (req, res) => {
         return res.status(404).json({ message: "Utility Invoice not found" });
     }
 
+    let baseDate;
+    let paymentInterval = "Monthly";
+
+    if (rentalId) {
+      const rental = await prisma.rental.findUnique({
+        where: { id: rentalId },
+      });
+
+      if (rental) {
+        paymentInterval = rental.paymentInterval || "Monthly";
+
+        // Find last payment for this rental
+        const lastPayment = await prisma.payment.findFirst({
+          where: { rentalId },
+          orderBy: { endDate: "desc" },
+        });
+
+        baseDate = lastPayment
+          ? new Date(lastPayment.endDate)
+          : new Date(rental.startDate);
+      }
+    } else {
+      baseDate = new Date(paymentDate); // fallback if no rental found
+    }
+
+    // --- Calculate new endDate based on interval
+    const endDate = new Date(baseDate);
+    if (paymentInterval === "Monthly") endDate.setMonth(endDate.getMonth() + 1);
+    else if (paymentInterval === "Quarterly")
+      endDate.setMonth(endDate.getMonth() + 3);
+    else if (paymentInterval === "Yearly")
+      endDate.setMonth(endDate.getMonth() + 12);
+    else endDate.setMonth(endDate.getMonth() + 1);
+
+    // --- Create payment
     const payment = await prisma.payment.create({
       data: {
         invoiceId,
@@ -45,16 +85,21 @@ export const createPayment = async (req, res) => {
         reference,
         receiptFilePath,
         paymentDate,
+        endDate,
         status: "Confirmed",
+        rentalId,
       },
     });
 
+    // --- Mark invoice as paid
     if (invoiceId) {
       await prisma.invoice.update({
         where: { invoiceId },
         data: { status: "Paid" },
       });
     }
+
+    // --- Log audit
     await createAuditLog({
       userId: req.user.userId,
       action: "created",

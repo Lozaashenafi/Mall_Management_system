@@ -91,6 +91,7 @@ model User {
   notifications Notification[]
   utilityExpense UtilityExpense[]
   maintenance  Maintenance[]
+  tenants     Tenant[]
 }
 
 model AuditLog {
@@ -155,6 +156,7 @@ model RoomFeature {
 
 model Tenant {
   tenantId      Int        @id @default(autoincrement())
+  userId        Int?
   companyName   String
   contactPerson String
   phone         String
@@ -166,6 +168,7 @@ model Tenant {
   status        UserStatus @default(Active)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  user          User?       @relation(fields: [userId], references: [userId])
   rental        Rental[]
   notifications Notification[]
   feedbacks     Feedback[]
@@ -315,6 +318,7 @@ model Payment {
   method           String?        // Cash, Bank, Mobile, etc.
   reference        String?        // Transaction ID or ref number
   receiptFilePath String?        // Path to uploaded receipt
+  endDate         DateTime      // For rent payments, indicates coverage end date
   status           PaymentStatus  @default(Confirmed)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

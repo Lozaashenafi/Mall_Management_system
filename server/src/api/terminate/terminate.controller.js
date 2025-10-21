@@ -7,21 +7,20 @@ export const addTerminateRequest = async (req, res) => {
     const { error } = terminateSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
-
+    // console.log(req);
     const { rentId, reason, effectiveDate } = req.body;
 
     const rental = await prisma.rental.findUnique({
       where: { rentId: Number(rentId) },
     });
+    console.log(rental);
     if (!rental) return res.status(404).json({ message: "Rental not found" });
 
     const terminateRequest = await prisma.terminateRequest.create({
       data: {
         rentId: Number(rentId),
         reason,
-        preferredTerminationDate: effectiveDate
-          ? new Date(effectiveDate)
-          : null,
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
       },
       include: { rental: true },
     });
@@ -68,9 +67,9 @@ export const editTerminateRequest = async (req, res) => {
       where: { terminateRequestId: Number(id) },
       data: {
         reason: reason || oldRequest.reason,
-        preferredTerminationDate: effectiveDate
+        effectiveDate: effectiveDate
           ? new Date(effectiveDate)
-          : oldRequest.preferredTerminationDate,
+          : oldRequest.effectiveDate,
       },
     });
 
@@ -93,7 +92,6 @@ export const editTerminateRequest = async (req, res) => {
   }
 };
 
-// ✅ Delete Termination Request (Tenant)
 export const deleteTerminateRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,66 +141,45 @@ export const getTerminateRequest = async (req, res) => {
   }
 };
 
-// ✅ Get Termination Request By ID (Tenant/Admin)
-export const getTerminateRequestById = async (req, res) => {
+export const getTerminateRequestsByUserId = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { userId } = req.params; // or use req.user.userId if authenticated
 
-    const terminateRequest = await prisma.terminateRequest.findUnique({
-      where: { terminateRequestId: Number(id) },
-      include: { rental: { include: { tenant: true, room: true } } },
-    });
-
-    if (!terminateRequest)
-      return res.status(404).json({ message: "Termination request not found" });
-
-    res.json({ success: true, terminateRequest });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-export const addTerminateRequestByAdmin = async (req, res) => {
-  try {
-    const { error } = terminateSchema.create.validate(req.body);
-    if (error)
-      return res.status(400).json({ message: error.details[0].message });
-
-    const { rentId, reason, effectiveDate, adminNote } = req.body;
-
-    const rental = await prisma.rental.findUnique({
-      where: { rentId: Number(rentId) },
-    });
-    if (!rental) return res.status(404).json({ message: "Rental not found" });
-
-    const terminateRequest = await prisma.terminateRequest.create({
-      data: {
-        rentId: Number(rentId),
-        reason,
-        preferredTerminationDate: effectiveDate
-          ? new Date(effectiveDate)
-          : null,
-        adminNote,
-        status: "Approved",
+    const terminateRequests = await prisma.terminateRequest.findMany({
+      where: {
+        rental: {
+          tenant: {
+            userId: Number(userId), // ✅ Filter via relation
+          },
+        },
       },
-      include: { rental: true },
+      include: {
+        rental: {
+          include: {
+            tenant: true,
+            room: true,
+          },
+        },
+      },
+      orderBy: { requestDate: "desc" },
     });
 
-    await createAuditLog({
-      userId: req.user.userId,
-      action: "created",
-      tableName: "TerminateRequest",
-      recordId: terminateRequest.terminateRequestId,
-      newValue: terminateRequest,
-    });
+    if (!terminateRequests.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No termination requests found for this user",
+      });
+    }
 
-    res.status(201).json({
+    res.json({
       success: true,
-      message: "Termination request created by admin",
-      terminateRequest,
+      terminateRequests,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -227,9 +204,9 @@ export const adminUpdateTerminateRequestStatus = async (req, res) => {
       data: {
         status,
         adminNote: adminNote ?? oldRequest.adminNote,
-        preferredTerminationDate: effectiveDate
+        effectiveDate: effectiveDate
           ? new Date(effectiveDate)
-          : oldRequest.preferredTerminationDate,
+          : oldRequest.effectiveDate,
       },
     });
 
@@ -251,3 +228,47 @@ export const adminUpdateTerminateRequestStatus = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+/*
+export const addTerminateRequestByAdmin = async (req, res) => {
+  try {
+    const { error } = terminateSchema.create.validate(req.body);
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
+
+    const { rentId, reason, effectiveDate, adminNote } = req.body;
+
+    const rental = await prisma.rental.findUnique({
+      where: { rentId: Number(rentId) },
+    });
+    if (!rental) return res.status(404).json({ message: "Rental not found" });
+
+    const terminateRequest = await prisma.terminateRequest.create({
+      data: {
+        rentId: Number(rentId),
+        reason,
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
+        adminNote,
+        status: "Approved",
+      },
+      include: { rental: true },
+    });
+
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "created",
+      tableName: "TerminateRequest",
+      recordId: terminateRequest.terminateRequestId,
+      newValue: terminateRequest,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Termination request created by admin",
+      terminateRequest,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+*/
