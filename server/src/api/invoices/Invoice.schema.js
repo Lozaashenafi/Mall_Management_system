@@ -10,6 +10,9 @@ export default {
     taxPercentage: Joi.number().optional(),
     taxAmount: Joi.number().optional(),
     totalAmount: Joi.number().required(),
+    paymentInterval: Joi.string()
+      .valid("Monthly", "Quarterly", "Yearly")
+      .optional(),
   }),
 
   update: Joi.object({

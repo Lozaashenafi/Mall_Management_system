@@ -2,6 +2,7 @@ import prisma from "../../config/prismaClient.js";
 import paymentSchema from "./Pyement.schema.js";
 import fs from "fs";
 import { createAuditLog } from "../../utils/audit.js";
+import { createNotification } from "../notification/notification.service.js";
 
 export const createPayment = async (req, res) => {
   try {
@@ -23,22 +24,36 @@ export const createPayment = async (req, res) => {
     }
 
     let rentalId = null;
+    // --- If invoice payment
     if (invoiceId) {
       const invoice = await prisma.invoice.findUnique({
         where: { invoiceId },
-        include: { rental: true },
+        include: {
+          rental: {
+            include: { tenant: true },
+          },
+        },
       });
       if (!invoice)
         return res.status(404).json({ message: "Invoice not found" });
       rentalId = invoice.rentId;
+      tenantId = invoice.rental.tenantId;
     }
 
+    // --- If utility invoice payment
     if (utilityInvoiceId) {
       const utilInvoice = await prisma.utilityInvoice.findUnique({
         where: { id: utilityInvoiceId },
+        include: {
+          rental: {
+            include: { tenant: true },
+          },
+        },
       });
       if (!utilInvoice)
         return res.status(404).json({ message: "Utility Invoice not found" });
+      rentalId = utilInvoice.rentId;
+      tenantId = utilInvoice.rental.tenantId;
     }
 
     let baseDate;
@@ -46,18 +61,18 @@ export const createPayment = async (req, res) => {
 
     if (rentalId) {
       const rental = await prisma.rental.findUnique({
-        where: { id: rentalId },
+        where: { rentId: rentalId },
       });
 
       if (rental) {
         paymentInterval = rental.paymentInterval || "Monthly";
 
-        // Find last payment for this rental
         const lastPayment = await prisma.payment.findFirst({
-          where: { rentalId },
+          where: {
+            invoice: { rentId: rentalId }, // filter via invoice relation
+          },
           orderBy: { endDate: "desc" },
         });
-
         baseDate = lastPayment
           ? new Date(lastPayment.endDate)
           : new Date(rental.startDate);
@@ -87,7 +102,6 @@ export const createPayment = async (req, res) => {
         paymentDate,
         endDate,
         status: "Confirmed",
-        rentalId,
       },
     });
 
@@ -98,16 +112,31 @@ export const createPayment = async (req, res) => {
         data: { status: "Paid" },
       });
     }
-
     // --- Log audit
     await createAuditLog({
       userId: req.user.userId,
       action: "created",
       tableName: "Payment",
-      recordId: payment.id,
+      recordId: payment.paymentId,
       newValue: payment,
     });
+    if (tenantId) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { tenantId },
+        include: { user: true },
+      });
+      const message = `A payment of ${amount} has been recorded for your ${
+        invoiceId ? "rent invoice" : "utility invoice"
+      }.`;
 
+      const notification = await createNotification({
+        tenantId,
+        userId: tenant.user ? tenant.user.userId : null,
+        type: "PaymentReminder",
+        message,
+        sentVia: "System",
+      });
+    }
     res.status(201).json({ success: true, payment });
   } catch (err) {
     console.error("createPayment error:", err);

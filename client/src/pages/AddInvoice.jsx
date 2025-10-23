@@ -9,6 +9,7 @@ export default function AddInvoice() {
   const navigate = useNavigate();
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [originalRent, setOriginalRent] = useState(0); // total rent from rental table
 
   const [formData, setFormData] = useState({
     rentId: "",
@@ -16,7 +17,8 @@ export default function AddInvoice() {
     invoiceDate: new Date().toISOString().split("T")[0],
     dueDate: new Date().toISOString().split("T")[0],
     baseRent: "",
-    taxPercentage: "",
+    taxPercentage: 0,
+    paymentInterval: "Monthly", // default
   });
 
   useEffect(() => {
@@ -34,16 +36,60 @@ export default function AddInvoice() {
     fetchRentals();
   }, []);
 
+  // Helper function to calculate base rent from total rent and tax
+  const calculateBaseRent = (totalAmount, interval, taxPercentage) => {
+    if (!totalAmount) return 0;
+    let multiplier = 1;
+    if (interval === "Quarterly") multiplier = 3;
+    if (interval === "Yearly") multiplier = 12;
+
+    // Divide totalAmount by multiplier to get per-month equivalent
+    const perMonthAmount = totalAmount / multiplier;
+
+    // Remove tax to get base rent
+    const base = perMonthAmount / (1 + taxPercentage / 100);
+    return base.toFixed(2);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === "rentId") {
-      // find the selected rental
       const selectedRental = rentals.find((r) => r.rentId === parseInt(value));
+      if (selectedRental) {
+        const interval = selectedRental.paymentInterval || "Monthly";
+        setOriginalRent(selectedRental.rentAmount); // store total rent
+
+        setFormData((prev) => ({
+          ...prev,
+          rentId: value,
+          paymentInterval: interval,
+          baseRent: calculateBaseRent(
+            selectedRental.rentAmount,
+            interval,
+            prev.taxPercentage || 0
+          ),
+        }));
+      }
+    } else if (name === "paymentInterval") {
       setFormData((prev) => ({
         ...prev,
-        rentId: value,
-        baseRent: selectedRental ? selectedRental.rentAmount : "",
+        paymentInterval: value,
+        baseRent: calculateBaseRent(
+          originalRent,
+          value,
+          prev.taxPercentage || 0
+        ),
+      }));
+    } else if (name === "taxPercentage") {
+      setFormData((prev) => ({
+        ...prev,
+        taxPercentage: value,
+        baseRent: calculateBaseRent(
+          originalRent,
+          prev.paymentInterval,
+          value || 0
+        ),
       }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -56,8 +102,9 @@ export default function AddInvoice() {
     if (!formData.paperInvoiceNumber)
       return toast.error("Please enter invoice number");
 
-    const taxAmount = (formData.baseRent * formData.taxPercentage) / 100;
-    const totalAmount = parseFloat(formData.baseRent) + taxAmount;
+    const base = parseFloat(formData.baseRent);
+    const taxAmount = base * (formData.taxPercentage / 100);
+    const totalAmount = base + taxAmount;
 
     try {
       await createInvoice({
@@ -65,10 +112,11 @@ export default function AddInvoice() {
         paperInvoiceNumber: formData.paperInvoiceNumber,
         invoiceDate: formData.invoiceDate,
         dueDate: formData.dueDate,
-        baseRent: parseFloat(formData.baseRent),
+        baseRent: base,
         taxPercentage: parseFloat(formData.taxPercentage),
         taxAmount,
         totalAmount,
+        paymentInterval: formData.paymentInterval, // send to backend
       });
 
       toast.success("Invoice created successfully");
@@ -80,7 +128,7 @@ export default function AddInvoice() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900    p-6 text-gray-900 dark:text-gray-100">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create Invoice</h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -89,6 +137,7 @@ export default function AddInvoice() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Rental selection */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Select Rental
@@ -112,6 +161,8 @@ export default function AddInvoice() {
             </select>
           )}
         </div>
+
+        {/* Invoice Number */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Invoice Number
@@ -127,6 +178,7 @@ export default function AddInvoice() {
           />
         </div>
 
+        {/* Dates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -155,6 +207,7 @@ export default function AddInvoice() {
           </div>
         </div>
 
+        {/* Base Rent + Tax */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Base Rent</label>
@@ -162,10 +215,6 @@ export default function AddInvoice() {
               type="number"
               name="baseRent"
               value={formData.baseRent}
-              onChange={handleChange}
-              required
-              min="0"
-              step="0.01"
               readOnly
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
@@ -187,6 +236,24 @@ export default function AddInvoice() {
           </div>
         </div>
 
+        {/* Payment Interval */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Payment Interval
+          </label>
+          <select
+            name="paymentInterval"
+            value={formData.paymentInterval}
+            onChange={handleChange}
+            className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+          >
+            <option value="Monthly">Monthly</option>
+            <option value="Quarterly">Quarterly</option>
+            <option value="Yearly">Yearly</option>
+          </select>
+        </div>
+
+        {/* Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"

@@ -1,5 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
 import { Bell, CheckCircle, AlertTriangle, Info, Mail } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import {
+  getNotifications,
+  markNotificationAsRead,
+} from "../../services/notificationService";
 
 // Reusable StatsCard
 const StatsCard = ({ title, value, icon: Icon, color }) => (
@@ -19,51 +25,82 @@ const StatsCard = ({ title, value, icon: Icon, color }) => (
 );
 
 const TenantNotifications = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Rent Due Reminder",
-      message: "Your rent is due on Oct 5.",
-      type: "warning",
-      date: "2025-09-28",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Payment Received",
-      message: "We have received your payment for September.",
-      type: "success",
-      date: "2025-09-05",
-      read: true,
-    },
-    {
-      id: 3,
-      title: "Maintenance Update",
-      message: "Your AC repair request is now in progress.",
-      type: "info",
-      date: "2025-09-20",
-      read: false,
-    },
-    {
-      id: 4,
-      title: "New Announcement",
-      message: "Fire drill scheduled for next week.",
-      type: "info",
-      date: "2025-09-25",
-      read: false,
-    },
-  ]);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState([]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const SOCKET_URL = "http://localhost:3300";
 
-  const markAsRead = (id) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  // Fetch notifications from backend
+  const fetchNotifications = async () => {
+    if (!user?.userId) return;
+    try {
+      const data = await getNotifications(user.userId);
+      setNotifications(data || []);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  // Connect to Socket.IO for real-time updates
+  useEffect(() => {
+    if (!user?.userId) return;
+
+    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    socket.emit("register", user.userId); // register tenant user on socket
+
+    // Listen for incoming notifications
+    socket.on("notification", (newNotification) => {
+      setNotifications((prev) => [newNotification, ...prev]);
+    });
+
+    // Optional: Listen for another type if your backend emits different events
+    socket.on("newNotification", (data) => {
+      const newNotif = {
+        id: Date.now().toString(),
+        type: data.type || "info",
+        title: data.title || "New Notification",
+        message: data.message,
+        status: "UNREAD",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+    });
+
+    fetchNotifications();
+
+    return () => socket.disconnect();
+  }, [user]);
+
+  const unreadCount = notifications.filter((n) => n.status === "UNREAD").length;
+
+  // Mark single notification as read
+  const markAsRead = async (id) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.notificationId === id || n.id === id ? { ...n, status: "READ" } : n
+        )
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  // Mark all as read
+  const markAllAsRead = async () => {
+    try {
+      await Promise.all(
+        notifications.map((n) =>
+          n.status === "UNREAD"
+            ? markNotificationAsRead(n.notificationId || n.id)
+            : null
+        )
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, status: "READ" })));
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
   };
 
   const getIcon = (type) => {
@@ -123,9 +160,9 @@ const TenantNotifications = () => {
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {notifications.map((n) => (
             <li
-              key={n.id}
+              key={n.notificationId || n.id}
               className={`flex items-start justify-between p-4 transition ${
-                n.read
+                n.status === "READ"
                   ? "bg-gray-50 dark:bg-gray-800/50"
                   : "bg-purple-50 dark:bg-purple-900/30"
               }`}
@@ -134,19 +171,19 @@ const TenantNotifications = () => {
                 {getIcon(n.type)}
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                    {n.title}
+                    {n.title || n.type || "Notification"}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {n.message}
                   </p>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {n.date}
+                    {new Date(n.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </div>
-              {!n.read && (
+              {n.status !== "READ" && (
                 <button
-                  onClick={() => markAsRead(n.id)}
+                  onClick={() => markAsRead(n.notificationId || n.id)}
                   className="ml-4 px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
                 >
                   Mark Read

@@ -40,6 +40,7 @@ import RoomDetails from "./pages/RoomDetails";
 import RentDetail from "./pages/RentDetail";
 import TenantRentals from "./pages/tenant/TenantRentals";
 import AdminTerminateRequests from "./pages/AdminTerminateRequests ";
+import SocketTest from "./SocketTest";
 
 function App() {
   return (
@@ -86,7 +87,7 @@ function App() {
             <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/terminate" element={<AdminTerminateRequests />} />
-
+            <Route path="/test" element={<SocketTest />} />
             <Route path="*" element={<NotFound />} />
           </Route>
           <Route
@@ -104,7 +105,6 @@ function App() {
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="change-password" element={<ChangePassword />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="notifications" element={<Notifications />} />
             <Route path="myrentals" element={<TenantRentals />} />
 
             {/* Tenant-specific pages */}

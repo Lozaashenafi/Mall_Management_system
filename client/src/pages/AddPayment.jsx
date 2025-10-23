@@ -27,7 +27,7 @@ export default function AddPayment() {
         setInvoice(data);
         setFormData((prev) => ({
           ...prev,
-          amountPaid: data.totalAmount || "",
+          amountPaid: Math.round(data.totalAmount || 0), // round here
         }));
       } catch (error) {
         toast.error(error.message || "Failed to load invoice");

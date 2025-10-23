@@ -1,6 +1,7 @@
 import prisma from "../../config/prismaClient.js";
 import invoiceSchema from "./Invoice.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
+import { createNotification } from "../notification/notification.service.js";
 
 // ✅ Create Manual Invoice
 export const createInvoice = async (req, res) => {
@@ -18,12 +19,25 @@ export const createInvoice = async (req, res) => {
       taxPercentage,
       taxAmount,
       totalAmount,
+      paymentInterval,
     } = value;
 
-    // Check rental existence
-    const rental = await prisma.rental.findUnique({ where: { rentId } });
+    // Check rental existence with tenant and associated user
+    const rental = await prisma.rental.findUnique({
+      where: { rentId },
+      include: {
+        tenant: { include: { user: true } },
+      },
+    });
     if (!rental) return res.status(404).json({ message: "Rental not found" });
 
+    // --- Update rental with the new paymentInterval
+    if (paymentInterval) {
+      await prisma.rental.update({
+        where: { rentId },
+        data: { paymentInterval },
+      });
+    }
     // Insert invoice
     const invoice = await prisma.invoice.create({
       data: {
@@ -46,7 +60,16 @@ export const createInvoice = async (req, res) => {
       recordId: invoice.invoiceId,
       newValue: invoice,
     });
-
+    // --- Notification to tenant + user
+    if (rental.tenant) {
+      await createNotification({
+        tenantId: rental.tenant.tenantId,
+        userId: rental.tenant.user ? rental.tenant.user.userId : null,
+        type: "Invoice",
+        message: `A new invoice  of ${totalAmount} ETB has been generated. Please note that it is due by ${dueDate.toDateString()}`,
+        sentVia: "System",
+      });
+    }
     res.status(201).json({ success: true, invoice });
   } catch (err) {
     console.error("createInvoice error:", err);

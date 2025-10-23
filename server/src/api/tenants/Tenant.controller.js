@@ -30,21 +30,6 @@ export const addTenant = async (req, res) => {
       ? `/uploads/${files.businessLicense[0].filename}`
       : null;
 
-    // ✅ Create tenant record
-    const tenant = await prisma.tenant.create({
-      data: {
-        companyName,
-        contactPerson,
-        phone,
-        email,
-        tinNumber,
-        vatNumber,
-        identificationDocument,
-        businessLicense,
-        status: "Active",
-      },
-    });
-
     // Generate password & create linked user
     const plainPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
@@ -57,6 +42,22 @@ export const addTenant = async (req, res) => {
         passwordHash: hashedPassword,
         role: UserRole.Tenant,
         status: UserStatus.Active,
+      },
+    });
+
+    // ✅ Create tenant record
+    const tenant = await prisma.tenant.create({
+      data: {
+        companyName,
+        userId: user.userId,
+        contactPerson,
+        phone,
+        email,
+        tinNumber,
+        vatNumber,
+        identificationDocument,
+        businessLicense,
+        status: "Active",
       },
     });
 

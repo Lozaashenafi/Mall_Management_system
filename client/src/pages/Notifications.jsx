@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   FileText,
@@ -6,64 +6,67 @@ import {
   RefreshCw,
   AlertTriangle,
   Users,
-  Settings,
-  Trash2,
   Send,
-} from "lucide-react";
-
-// Mock notifications for mall management system
-const mockNotifications = [
-  {
-    id: "1",
-    type: "Invoice",
-    message: "Invoice #INV-1001 has been generated for Tenant ABC Corp.",
-    sentVia: "System",
-    status: "sent",
-    tenant: "ABC Corp",
-    createdAt: "2025-08-12T10:00:00Z",
-  },
-  {
-    id: "2",
-    type: "PaymentReminder",
-    message: "Payment for Invoice #INV-1002 is due tomorrow.",
-    sentVia: "Email",
-    status: "pending",
-    tenant: "XYZ Ltd",
-    createdAt: "2025-08-14T09:30:00Z",
-  },
-  {
-    id: "3",
-    type: "RenewalReminder",
-    message: "Lease Agreement #AG-2005 will expire in 30 days.",
-    sentVia: "SMS",
-    status: "draft",
-    tenant: "Delta Holdings",
-    createdAt: "2025-08-20T12:15:00Z",
-  },
-  {
-    id: "4",
-    type: "SystemAlert",
-    message: "Server maintenance scheduled for 16th Sept, 10:00 PM.",
-    sentVia: "System",
-    status: "sent",
-    tenant: null,
-    createdAt: "2025-08-25T08:00:00Z",
-  },
-];
+  Trash2,
+  Check,
+} from "lucide-react"; // Added Check icon
+import io from "socket.io-client";
+import {
+  deleteNotification,
+  getNotifications,
+  markNotificationAsRead,
+} from "../services/notificationService.jsx";
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const SOCKET_URL = "http://localhost:3300";
+  const API_URL = `${SOCKET_URL}/api/notifications`;
+
+  const fetchNotifications = async (id) => {
+    try {
+      const notification = await getNotifications(id);
+      setNotifications(notification);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  // Socket connection
+  useEffect(() => {
+    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser?.userId) {
+      socket.emit("register", storedUser.userId);
+    }
+
+    socket.on("notification", (newNotification) => {
+      setNotifications((prev) => [newNotification, ...prev]);
+    });
+
+    socket.on("newNotification", (data) => {
+      const newNotif = {
+        id: Date.now().toString(),
+        type: data.type,
+        message: data.message,
+        sentVia: data.sentVia,
+        status: "UNREAD",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+    });
+
+    fetchNotifications(storedUser?.userId);
+    return () => socket.disconnect();
+  }, []);
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "sent":
-        return "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100";
-      case "pending":
+    switch (status.toUpperCase()) {
+      case "UNREAD":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100";
-      case "draft":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100";
-      case "failed":
-        return "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100";
+      case "READ":
+      case "SENT":
+        return "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100";
     }
@@ -84,137 +87,127 @@ export default function Notifications() {
     }
   };
 
+  const handleDelete = (id) => {
+    // Call your service to delete notification in backend
+    deleteNotification(id);
+    setNotifications((prev) =>
+      prev.filter((n) => n.notificationId !== id && n.id !== id)
+    );
+  };
+  const handleMarkAsRead = async (notification) => {
+    try {
+      // Call your service to update status in backend
+      await markNotificationAsRead(
+        notification.notificationId || notification.id
+      );
+
+      // Update local state to mark as read
+      setNotifications((prev) =>
+        prev.map((n) =>
+          (n.notificationId || n.id) ===
+          (notification.notificationId || notification.id)
+            ? { ...n, status: "READ" }
+            : n
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Notifications</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage system alerts, payment reminders, and tenant notifications
+            View and manage all system notifications
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500">
+        <button
+          onClick={() => {
+            const storedUser = JSON.parse(localStorage.getItem("user"));
+            fetchNotifications(storedUser?.userId);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+        >
           <Send className="w-4 h-4" />
-          New Notification
+          Refresh
         </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Notifications */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <h2 className="text-lg font-semibold mb-1">Recent Notifications</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Track system and tenant-related notifications
+              Real-time system and tenant alerts
             </p>
-            <div className="space-y-4">
-              {notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center">
-                      {getTypeIcon(n.type)}
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{n.type}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {n.message}
-                      </p>
-                      <div className="flex items-center gap-4 mt-1">
-                        {n.tenant && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            {n.tenant}
+            {notifications.length === 0 ? (
+              <p className="text-center text-gray-500">No notifications yet</p>
+            ) : (
+              <div className="space-y-4">
+                {notifications.map((n) => (
+                  <div
+                    key={n.notificationId || n.id}
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center">
+                        {getTypeIcon(n.type)}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{n.type}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {n.message}
+                        </p>
+                        <div className="flex items-center gap-4 mt-1">
+                          {n.tenant?.companyName && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {n.tenant.companyName}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(n.createdAt).toLocaleDateString()}
                           </span>
-                        )}
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(n.createdAt).toLocaleDateString()}
-                        </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium capitalize ${getStatusColor(
-                        n.status
-                      )}`}
-                    >
-                      {n.status}
-                    </span>
-                    <div className="flex gap-1">
-                      <button className="px-2 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-                        View
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium capitalize ${getStatusColor(
+                          n.status
+                        )}`}
+                      >
+                        {n.status}
+                      </span>
+
+                      {/* Mark as Read Icon */}
+                      {n.status !== "READ" && (
+                        <button
+                          onClick={() => handleMarkAsRead(n)}
+                          className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                          title="Mark as read"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {/* Delete Icon */}
                       <button
-                        onClick={() =>
-                          setNotifications((prev) =>
-                            prev.filter((item) => item.id !== n.id)
-                          )
-                        }
+                        onClick={() => handleDelete(n.notificationId || n.id)}
                         className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Notification Stats */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-4">Quick Stats</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Total Sent
-                </span>
-                <span className="font-medium">128</span>
+                ))}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Pending
-                </span>
-                <span className="font-medium">12</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Failed
-                </span>
-                <span className="font-medium">4</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-              <Settings className="w-5 h-5" /> Notification Channels
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Configure how notifications are sent
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span>Email</span>
-                <input type="checkbox" defaultChecked />
-              </div>
-              <div className="flex items-center justify-between">
-                <span>SMS</span>
-                <input type="checkbox" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span>System Alerts</span>
-                <input type="checkbox" defaultChecked />
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

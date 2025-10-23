@@ -1,9 +1,14 @@
 import express from "express";
-import { sendPaymentNotification } from "./notification.controller.js";
+import {
+  getAllNotifications,
+  markAsRead,
+  deleteNotification,
+} from "./notification.controller.js";
 
 const router = express.Router();
 
-// Send a new notification (Admin/system)
-router.post("/", sendPaymentNotification);
+router.get("/:id", getAllNotifications);
+router.patch("/read/:id", markAsRead);
+router.delete("/:id", deleteNotification);
 
 export default router;

@@ -38,12 +38,10 @@ export const onlineUsers = new Map();
 io.on("connection", (socket) => {
   console.log("User connected: ", socket.id);
 
-  // Register userId when client logs in
   socket.on("register", (userId) => {
-    onlineUsers.set(userId, socket.id);
+    onlineUsers.set(Number(userId), socket.id);
     console.log("Registered online user:", userId);
   });
-
   // Handle disconnect
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
@@ -54,7 +52,7 @@ io.on("connection", (socket) => {
 });
 
 // Start server
-const PORT = config.PORT || 5000;
+const PORT = config.PORT || 3300;
 server.listen(PORT, () => {
   console.log(`http://localhost:${PORT} Server is running`);
 });

@@ -4,7 +4,6 @@ import { ThemeProvider } from "next-themes";
 import { Sidebar } from "../components/Sidebar";
 import { useState } from "react";
 import { TenantSidebar } from "../components/TenantSidebar";
-import TenantHeader from "../components/Header";
 
 function TenantLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -18,7 +17,7 @@ function TenantLayout() {
       <div className="min-h-screen bg-background flex">
         <TenantSidebar collapsed={collapsed} onToggle={toggleSidebar} />
         <div className="flex-1 flex flex-col">
-          <TenantHeader />
+          <Header />
           <main
             className={
               "flex-1 p-6 bg-background-alt overflow-auto transition-all duration-300 bg-gray-50 dark:bg-gray-900"

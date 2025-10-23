@@ -4,8 +4,7 @@ import {
   createMaintenanceRequest,
   getTenantRequests,
   deleteRequest,
-} from "../../services/maintenanceService"; // 👈 adjust path
-import { getActiveRentalForTenant } from "../../services/tenantService"; // 👈 new import
+} from "../../services/maintenanceService";
 import { useAuth } from "../../context/AuthContext";
 
 const StatsCard = ({ title, value, icon: Icon, color }) => (
@@ -28,31 +27,27 @@ const TenantMaintenance = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [newRequest, setNewRequest] = useState("");
-  const [activeRentalId, setActiveRentalId] = useState(null);
+  const [rentals, setRentals] = useState([]);
+  const [selectedRentId, setSelectedRentId] = useState("");
 
   useEffect(() => {
+    // Load rentals from localStorage
+    const storedRentals = JSON.parse(localStorage.getItem("rentals")) || [];
+    setRentals(storedRentals);
+
+    // Auto-select the first rental if available
+    if (storedRentals.length > 0) {
+      setSelectedRentId(storedRentals[0].rentId);
+    }
+
     if (user?.userId) {
-      fetchActiveRental(user.userId);
+      fetchRequests(user.userId);
     }
   }, [user]);
 
-  const fetchActiveRental = async (tenantId) => {
+  const fetchRequests = async (tenantId) => {
     try {
-      const res = await getActiveRentalForTenant(tenantId);
-      console.log("Active rental:", res);
-
-      if (res?.rentals?.length > 0) {
-        const rental = res.rentals[0];
-        setActiveRentalId(rental.rentId);
-        fetchRequests(rental.rentId);
-      }
-    } catch (err) {
-      console.error("Failed to fetch active rental:", err);
-    }
-  };
-  const fetchRequests = async (rentId) => {
-    try {
-      const data = await getTenantRequests(user.userId);
+      const data = await getTenantRequests(tenantId);
       setRequests(data);
     } catch (err) {
       console.error("Failed to fetch maintenance requests:", err);
@@ -60,14 +55,17 @@ const TenantMaintenance = () => {
   };
 
   const handleAddRequest = async () => {
-    if (!newRequest.trim() || !activeRentalId) return;
+    if (!newRequest.trim() || !selectedRentId) {
+      alert("Please select a rental and describe your issue.");
+      return;
+    }
 
     try {
       const res = await createMaintenanceRequest({
-        rentId: activeRentalId,
+        rentId: Number(selectedRentId),
         description: newRequest,
       });
-      setRequests([res.request, ...requests]); // <--- use res.request
+      setRequests([res.request, ...requests]);
       setNewRequest("");
     } catch (err) {
       console.error("Failed to submit request:", err.message || err);
@@ -91,7 +89,7 @@ const TenantMaintenance = () => {
           Maintenance Requests
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Track your maintenance requests and their status.
+          Submit and track your maintenance requests.
         </p>
       </div>
 
@@ -122,7 +120,23 @@ const TenantMaintenance = () => {
         <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
           Submit a New Request
         </h2>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-col md:flex-row gap-3 items-center">
+          {/* Rental Selector */}
+          <select
+            value={selectedRentId}
+            onChange={(e) => setSelectedRentId(e.target.value)}
+            className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">Select Rental</option>
+            {rentals.map((r) => (
+              <option key={r.rentId} value={r.rentId}>
+                {r.room.unitNumber} ({r.status})
+              </option>
+            ))}
+          </select>
+
+          {/* Description Input */}
           <input
             type="text"
             value={newRequest}
@@ -130,6 +144,8 @@ const TenantMaintenance = () => {
             placeholder="Describe your issue..."
             className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+
+          {/* Submit Button */}
           <button
             onClick={handleAddRequest}
             className="px-4 py-2 flex items-center gap-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700"
@@ -145,29 +161,38 @@ const TenantMaintenance = () => {
         <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
           Your Requests
         </h2>
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b dark:border-gray-700">
-              <th className="p-3">ID</th>
-              <th className="p-3">Description</th>
-              <th className="p-3">Date</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((req) => (
-              <tr key={req.requestId} className="border-b dark:border-gray-700">
-                <td className="p-3">{req.requestId}</td>
-                <td className="p-3">{req.description}</td>
-                <td className="p-3">
-                  {req.requestDate
-                    ? new Date(req.requestDate).toLocaleDateString()
-                    : "-"}
-                </td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium
+
+        {requests.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">
+            No maintenance requests found.
+          </p>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b dark:border-gray-700">
+                <th className="p-3">ID</th>
+                <th className="p-3">Description</th>
+                <th className="p-3">Date</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req) => (
+                <tr
+                  key={req.requestId}
+                  className="border-b dark:border-gray-700"
+                >
+                  <td className="p-3">{req.requestId}</td>
+                  <td className="p-3">{req.description}</td>
+                  <td className="p-3">
+                    {req.requestDate
+                      ? new Date(req.requestDate).toLocaleDateString()
+                      : "-"}
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium
                       ${
                         req.status === "Pending"
                           ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
@@ -175,23 +200,24 @@ const TenantMaintenance = () => {
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                           : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                       }`}
-                  >
-                    {req.status}
-                  </span>
-                </td>
-                <td className="p-3">
-                  <button
-                    onClick={() => handleDelete(req.requestId)}
-                    className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 flex items-center gap-1"
-                  >
-                    <Trash className="w-4 h-4" />
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    >
+                      {req.status}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleDelete(req.requestId)}
+                      className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 flex items-center gap-1"
+                    >
+                      <Trash className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

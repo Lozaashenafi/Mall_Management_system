@@ -230,7 +230,7 @@ export default function RentManage() {
 
     const allowed = [];
     if (months >= 1) allowed.push("Monthly");
-    if (months >= 4) allowed.push("Quarterly");
+    if (months >= 3) allowed.push("Quarterly");
     if (months >= 12) allowed.push("Yearly");
 
     return allowed;

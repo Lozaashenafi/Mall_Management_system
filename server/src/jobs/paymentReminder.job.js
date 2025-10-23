@@ -87,7 +87,7 @@ const sendPaymentReminders = async () => {
         await createNotification({
           tenantId: rent.tenantId,
           type: "PaymentReminder",
-          message,
+          message: `Your rent of $${amount} is due on ${dueDate}`,
           sentVia: "SMS",
         });
       }

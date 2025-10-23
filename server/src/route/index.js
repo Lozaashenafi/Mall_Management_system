@@ -12,6 +12,7 @@ import roomFeatureRoutes from "../api/roomFeature/roomFeature.routes.js";
 import InvoiceRoutes from "../api/invoices/Invoice.route.js";
 import paymentRoutes from "../api/payments/Payment.route.js";
 import terminateRental from "../api/terminate/terminate.route.js";
+import notificationRoutes from "../api/notification/notification.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -25,5 +26,6 @@ router.use("/roomfeature", roomFeatureRoutes);
 router.use("/invoice", InvoiceRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/terminate", terminateRental);
+router.use("/notifications", notificationRoutes);
 
 export default router;

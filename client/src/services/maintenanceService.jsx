@@ -77,7 +77,9 @@ export const deleteMaintenance = async (maintenanceId) => {
 // tenant side
 export const createMaintenanceRequest = async (requestData) => {
   try {
+    console.log("Creating maintenance request with data:", requestData);
     const res = await api.post("/maintenance/request", requestData);
+    console.log("Maintenance request created:", res.data);
     return res.data;
   } catch (error) {
     throw (
