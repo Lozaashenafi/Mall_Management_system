@@ -39,14 +39,20 @@ io.on("connection", (socket) => {
   console.log("User connected: ", socket.id);
 
   socket.on("register", (userId) => {
-    onlineUsers.set(Number(userId), socket.id);
-    console.log("Registered online user:", userId);
+    const sockets = onlineUsers.get(userId) || [];
+    sockets.push(socket.id);
+    onlineUsers.set(Number(userId), sockets);
   });
   // Handle disconnect
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-    for (let [userId, sId] of onlineUsers.entries()) {
-      if (sId === socket.id) onlineUsers.delete(userId);
+    for (const [userId, sockets] of onlineUsers.entries()) {
+      onlineUsers.set(
+        userId,
+        sockets.filter((id) => id !== socket.id)
+      );
+      if (onlineUsers.get(userId).length === 0) {
+        onlineUsers.delete(userId);
+      }
     }
   });
 });

@@ -93,6 +93,7 @@ export const createMaintenanceRequest = async (requestData) => {
 export const getTenantRequests = async (tenantId) => {
   try {
     const res = await api.get(`/maintenance/requests/${tenantId}`);
+    console.log("Fetched tenant requests:", res.data);
     return res.data.requests;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch requests" };

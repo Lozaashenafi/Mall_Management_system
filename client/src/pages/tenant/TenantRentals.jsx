@@ -10,7 +10,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// --- Reusable StatsCard Component (kept from previous example) ---
 const StatsCard = ({ title, value, icon: Icon, color }) => (
   <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800 flex items-center justify-between">
     <div>
@@ -30,7 +29,7 @@ const StatsCard = ({ title, value, icon: Icon, color }) => (
 // --- Helper Functions (kept from previous example) ---
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
-  // The Z in the string means UTC, so we use toLocaleDateString without UTC to get local time display.
+
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",

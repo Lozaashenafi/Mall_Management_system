@@ -2,7 +2,6 @@
 import prisma from "../../config/prismaClient.js";
 import { createAuditLog } from "../../utils/audit.js";
 import { createNotification } from "../notification/notification.service.js";
-import { io, onlineUsers } from "../../../app.js";
 // controllers/maintenanceController.js
 export const createMaintenance = async (req, res) => {
   try {
@@ -260,6 +259,7 @@ export const createMaintenanceRequest = async (req, res) => {
     const rental = await prisma.rental.findUnique({
       where: { rentId: Number(rentId) },
       include: {
+        room: true,
         tenant: {
           include: { user: true },
         },
@@ -280,14 +280,6 @@ export const createMaintenanceRequest = async (req, res) => {
       },
     });
 
-    // 3️⃣ Create audit log
-    await createAuditLog({
-      userId: req.user.userId,
-      action: "created",
-      tableName: "MaintenanceRequest",
-      recordId: request.requestId,
-      newValue: request,
-    });
     // 4️⃣ Notify admins
     const admins = await prisma.user.findMany({
       where: {
@@ -325,11 +317,11 @@ export const createMaintenanceRequest = async (req, res) => {
 // Tenant: Get own requests
 export const getTenantRequests = async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const { userId } = req.params;
 
     const requests = await prisma.maintenanceRequest.findMany({
       where: {
-        rental: { tenantId: Number(tenantId) },
+        rental: { tenant: { userId: Number(userId) } },
       },
       include: {
         rental: {
@@ -344,11 +336,11 @@ export const getTenantRequests = async (req, res) => {
   }
 };
 
-export const deleteRequest = async (req, res) => {
+export const deleteMaintenanceRequest = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { requestId } = req.params;
     await prisma.maintenanceRequest.delete({
-      where: { requestId: Number(id) },
+      where: { requestId: Number(requestId) },
     });
     res.json({ success: true, message: "Request deleted" });
   } catch (err) {

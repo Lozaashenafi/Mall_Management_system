@@ -45,9 +45,10 @@ const TenantMaintenance = () => {
     }
   }, [user]);
 
-  const fetchRequests = async (tenantId) => {
+  const fetchRequests = async (userId) => {
     try {
-      const data = await getTenantRequests(tenantId);
+      console.log("Fetching maintenance requests for userId:", userId);
+      const data = await getTenantRequests(userId);
       setRequests(data);
     } catch (err) {
       console.error("Failed to fetch maintenance requests:", err);

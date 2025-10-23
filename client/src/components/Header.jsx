@@ -53,16 +53,10 @@ function Header() {
     if (!user?.userId) return;
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
 
-    socket.on("connect", () => {
-      console.log("✅ Connected to socket server:", socket.id);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err);
-    });
-
     // Register userId with backend
-    socket.emit("register", user.userId);
+    socket.on("connect", () => {
+      socket.emit("register", user.userId);
+    });
 
     // Listen for notifications
     socket.on("notification", (data) => {

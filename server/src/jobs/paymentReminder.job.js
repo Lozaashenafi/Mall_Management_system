@@ -54,7 +54,6 @@ const sendPaymentReminders = async () => {
       const message = `Reminder: Your rent payment for room #${
         rent.roomId
       } is due in ${daysLeft} days (${nextDueDate.toDateString()}). Please make your payment on time.`;
-
       // --- System notification
       await createNotification({
         tenantId: rent.tenantId,

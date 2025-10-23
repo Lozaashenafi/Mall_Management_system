@@ -4,6 +4,7 @@ import {
   getAllMaintenances,
   updateMaintenance,
   deleteMaintenance,
+  deleteMaintenanceRequest,
   createMaintenanceRequest,
   getTenantRequests,
   updateRequestStatus,
@@ -23,7 +24,12 @@ router.put("/requests/:id", userAuth, isAdmin, updateRequestStatus);
 
 // Maintenance Requests (Tenant )
 router.post("/request", userAuth, isTenant, createMaintenanceRequest);
-router.get("/requests/:tenantId", userAuth, isTenant, getTenantRequests);
-router.delete("/requests/:id", userAuth, isTenant, deleteMaintenance);
+router.get("/requests/:userId", userAuth, isTenant, getTenantRequests);
+router.delete(
+  "/requests/:requestId",
+  userAuth,
+  isTenant,
+  deleteMaintenanceRequest
+);
 
 export default router;

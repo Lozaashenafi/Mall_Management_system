@@ -20,10 +20,10 @@ export const createNotification = async ({
     },
   });
 
-  // Emit via Socket.IO if the recipient is online
-  if (userId && onlineUsers.has(userId)) {
-    io.to(onlineUsers.get(userId)).emit("notification", notification);
+  if (userId && onlineUsers.has(Number(userId))) {
+    onlineUsers.get(Number(userId)).forEach((socketId) => {
+      io.to(socketId).emit("notification", notification);
+    });
   }
-
   return notification;
 };

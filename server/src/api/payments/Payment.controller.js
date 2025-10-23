@@ -24,6 +24,7 @@ export const createPayment = async (req, res) => {
     }
 
     let rentalId = null;
+    let tenantId = null;
     // --- If invoice payment
     if (invoiceId) {
       const invoice = await prisma.invoice.findUnique({
@@ -125,11 +126,10 @@ export const createPayment = async (req, res) => {
         where: { tenantId },
         include: { user: true },
       });
-      const message = `A payment of ${amount} has been recorded for your ${
-        invoiceId ? "rent invoice" : "utility invoice"
-      }.`;
-
-      const notification = await createNotification({
+      const message = `A payment of ${amount} ETB has been successfully processed for your ${
+        invoiceId ? "rent" : "utility"
+      } invoice. You can view the details in your payment history.`;
+      await createNotification({
         tenantId,
         userId: tenant.user ? tenant.user.userId : null,
         type: "PaymentReminder",
