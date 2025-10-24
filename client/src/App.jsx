@@ -11,7 +11,6 @@ import RoomManage from "./pages/RoomManage";
 import Payments from "./pages/Payments";
 import Maintenance from "./pages/Maintenance";
 import Expenses from "./pages/Expenses";
-import Statistics from "./pages/Statistics";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
@@ -78,7 +77,6 @@ function App() {
             <Route path="/payments/invoice" element={<AddInvoice />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/expenses" element={<Expenses />} />
-            <Route path="/statistics" element={<Statistics />} />
             <Route path="/logs" element={<AuditLogs />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/notifications" element={<Notifications />} />

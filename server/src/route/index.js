@@ -13,6 +13,7 @@ import InvoiceRoutes from "../api/invoices/Invoice.route.js";
 import paymentRoutes from "../api/payments/Payment.route.js";
 import terminateRental from "../api/terminate/terminate.route.js";
 import notificationRoutes from "../api/notification/notification.route.js";
+import dashboardRoutes from "../api/dashboard/dashboard.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -27,5 +28,6 @@ router.use("/invoice", InvoiceRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/terminate", terminateRental);
 router.use("/notifications", notificationRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 export default router;

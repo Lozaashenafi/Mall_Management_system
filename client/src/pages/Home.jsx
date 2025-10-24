@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Users,
   TrendingUp,
   DollarSign,
-  Activity,
-  Clock,
+  AlertTriangle,
   Building2,
+  FileText,
+  Wrench,
+  Package,
 } from "lucide-react";
-
 import { Line, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -20,8 +21,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { getDashboardData } from "../services/dashboardService";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -33,111 +34,120 @@ ChartJS.register(
   Legend
 );
 
-// Reusable StatsCard
-const StatsCard = ({
-  title,
-  value,
-  description,
-  icon: Icon,
-  trend,
-  className = "",
-}) => {
-  return (
-    <div
-      className={`p-5 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col space-y-2 ${className}
-      dark:border-gray-700 dark:bg-gray-800`}
-    >
-      {/* Header */}
-      <div className="flex items-center space-x-3">
-        <div
-          className="p-2 rounded-md bg-purple-50 text-purple-600 
-        dark:bg-purple-900 dark:text-purple-400"
-        >
-          <Icon className="w-6 h-6" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {title}
-        </h3>
-      </div>
-
-      {/* Value */}
-      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-        {value}
-      </p>
-
-      {/* Trend */}
-      <div className="flex items-center space-x-1 text-sm font-medium">
-        {trend && (
-          <>
-            {trend.isPositive ? (
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            ) : (
-              <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />
-            )}
-            <span
-              className={`${
-                trend.isPositive
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-600 dark:text-red-400"
-              }`}
-            >
-              {trend.value}%
-            </span>
-          </>
-        )}
-        <span className="text-gray-600 dark:text-gray-400">{description}</span>
-      </div>
-    </div>
-  );
+const getStatusColorClass = (status) => {
+  switch (status) {
+    case "Paid":
+    case "Occupied":
+    case "Completed":
+    case "Active":
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+    case "Unpaid":
+    case "Maintenance":
+    case "InProgress":
+    case "Expired":
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+    case "Overdue":
+    case "Vacant":
+    case "Pending":
+    case "Terminated":
+    case "Inactive":
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+  }
 };
 
-// Revenue Chart
-const RevenueChart = () => {
-  const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+const StatsCard = ({ title, value, description, icon: Icon }) => (
+  <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div className="flex items-center space-x-3">
+      <div className="p-2 bg-purple-50 text-purple-600 rounded-md dark:bg-purple-900 dark:text-purple-400">
+        <Icon className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        {title}
+      </h3>
+    </div>
+    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      {value}
+    </p>
+    <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+  </div>
+);
+
+const OperationalSnapshot = ({ title, icon: Icon, data, total }) => (
+  <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div className="flex items-center space-x-2 mb-4">
+      <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        {title}
+      </h2>
+    </div>
+    <ul className="space-y-3">
+      {Object.entries(data).map(([status, count]) => (
+        <li key={status} className="flex justify-between text-sm">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColorClass(
+              status
+            )}`}
+          >
+            {status}
+          </span>
+          <div>
+            <span className="font-bold text-gray-900 dark:text-gray-100">
+              {count}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+              ({((count / total) * 100).toFixed(1)}%)
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+    <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700 text-sm font-medium flex justify-between">
+      <span>Total:</span>
+      <span>{total}</span>
+    </div>
+  </div>
+);
+
+const RevenueChart = ({ data }) => {
+  const chartData = {
+    labels: data.map((item) => item.month),
     datasets: [
       {
         label: "Revenue",
-        data: [12000, 15000, 14000, 17000, 16000, 18000, 19000],
+        data: data.map((item) => item.revenue),
         fill: false,
-        borderColor: "rgb(124 58 237)", // Tailwind purple-600
+        borderColor: "rgb(124 58 237)",
         backgroundColor: "rgb(124 58 237)",
         tension: 0.3,
       },
     ],
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { display: true },
-      title: { display: true, text: "Monthly Revenue" },
-    },
-    scales: {
-      y: { beginAtZero: true },
-    },
-  };
-
   return (
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
       <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-        Revenue Chart
+        Monthly Revenue Trend
       </h2>
-      <Line data={data} options={options} />
+      <Line data={chartData} />
     </div>
   );
 };
 
-// Room Occupancy Pie Chart
-const OccupancyChart = () => {
-  const data = {
-    labels: ["Occupied Rooms", "Vacant Rooms"],
+// 🟣 Room Occupancy Pie Chart (with real API data)
+const OccupancyChart = ({ data, total }) => {
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+
+  const chartData = {
+    labels,
     datasets: [
       {
-        label: "Occupancy",
-        data: [75, 25], // Example: 75% occupied, 25% vacant
-        backgroundColor: ["#4ade80", "#f87171"], // green & red
-        borderColor: ["#22c55e", "#ef4444"],
+        label: "Rooms",
+        data: values,
+        backgroundColor: ["#10b981", "#f97316", "#eab308", "#ef4444"],
+        borderColor: ["#059669", "#ea580c", "#ca8a04", "#dc2626"],
         borderWidth: 1,
       },
     ],
@@ -147,119 +157,108 @@ const OccupancyChart = () => {
     responsive: true,
     plugins: {
       legend: { position: "bottom" },
-      title: { display: true, text: "Room Occupancy" },
     },
   };
 
   return (
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
       <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-        Room Occupancy
+        Room Occupancy Overview ({data.Occupied || 0}/{total})
       </h2>
-      <Pie data={data} options={options} />
+      <div className="max-w-xs mx-auto">
+        <Pie data={chartData} options={options} />
+      </div>
+      <p className="text-center text-sm mt-4 text-gray-600 dark:text-gray-400">
+        Total Units: {total}
+      </p>
     </div>
   );
 };
 
-// Recent Activity
-const RecentActivity = () => (
-  <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
-    <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-      Recent Activity
-    </h2>
-    <ul className="space-y-3 text-gray-700 dark:text-gray-300">
-      <li>New tenant registered</li>
-      <li>Maintenance request submitted</li>
-      <li>Lease contract renewed</li>
-      <li>Payment received</li>
-      <li>Vacant room inspection scheduled</li>
-    </ul>
-  </div>
-);
+const Dashboard = () => {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-const Home = () => {
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const data = await getDashboardData();
+        setDashboard(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading) return <p className="p-6">Loading dashboard...</p>;
+  if (!dashboard)
+    return <p className="p-6 text-red-500">Failed to load data</p>;
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Welcome back,{" "}
-          <span className="bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent font-extrabold">
-            Mall Admin
-          </span>
-        </h1>
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen dark:bg-gray-900 dark:text-gray-100">
+      {/* Header */}
+      <header className="mb-4 border-b border-gray-200 pb-4 dark:border-gray-700">
+        <h1 className="text-3xl font-bold">Mall Management Dashboard</h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Here's the latest overview of your mall management system.
+          A unified view of key financial and operational metrics.
         </p>
-      </div>
+      </header>
 
-      {/* Stats Grid */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Revenue"
-          value="$45,231"
-          description="+20.1% from last month"
-          icon={DollarSign}
-          trend={{ value: 20.1, isPositive: true }}
-        />
-        <StatsCard
-          title="Active Tenants"
-          value="120"
-          description="+5 new this month"
-          icon={Users}
-          trend={{ value: 4.3, isPositive: true }}
-        />
-        <StatsCard
-          title="Occupied Rooms"
-          value="85%"
-          description="Based on total capacity"
+          title="Total Rooms"
+          value={dashboard.rooms.total}
+          description="Current active rooms"
           icon={Building2}
-          trend={{ value: 2.1, isPositive: true }}
         />
         <StatsCard
-          title="Pending Requests"
-          value="12"
-          description="Maintenance & support"
-          icon={Activity}
-          trend={{ value: -1.2, isPositive: false }}
+          title="Active Rentals"
+          value={dashboard.rentals.total}
+          description="Ongoing leases"
+          icon={Package}
+        />
+
+        <StatsCard
+          title="Maintenance Tasks"
+          value={dashboard.maintenance.total}
+          description="Pending or in-progress"
+          icon={Wrench}
+        />
+
+        <StatsCard
+          title="Total Revenue"
+          value={new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "ETB",
+            minimumFractionDigits: 2,
+          }).format(dashboard.totalRevenue)}
+          description="Total income from all invoices"
+          icon={DollarSign}
         />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueChart />
-        <OccupancyChart />
-      </div>
+      {/* Snapshot + Charts */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RevenueChart data={dashboard.revenueTrend} />
+        <OccupancyChart
+          data={dashboard.rooms.data}
+          total={dashboard.rooms.total}
+        />
+      </section>
 
-      {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activity - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <RecentActivity />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="space-y-6">
-          <StatsCard
-            title="System Uptime"
-            value="99.9%"
-            description="Last 30 days"
-            icon={Activity}
-            className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 
-            dark:from-green-900 dark:to-green-800 dark:border-green-700"
-          />
-          <StatsCard
-            title="Avg Response Time"
-            value="245ms"
-            description="API performance"
-            icon={Clock}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200
-            dark:from-purple-900 dark:to-purple-800 dark:border-purple-700"
-          />
-        </div>
-      </div>
+      {/* Detailed Stats */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <OperationalSnapshot {...dashboard.rooms} icon={Building2} />
+        <OperationalSnapshot {...dashboard.rentals} icon={Package} />
+        <OperationalSnapshot {...dashboard.invoices} icon={FileText} />
+        <OperationalSnapshot {...dashboard.maintenance} icon={Wrench} />
+      </section>
     </div>
   );
 };
 
-export default Home;
+export default Dashboard;

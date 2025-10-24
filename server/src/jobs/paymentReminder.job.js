@@ -27,8 +27,13 @@ function addMonths(date, interval) {
 // --- Helper: get next due date based on last payment
 async function getNextDueDate(rent) {
   const lastPayment = await prisma.payment.findFirst({
-    where: { rentId: rent.rentId },
+    where: {
+      invoice: {
+        rentId: rent.rentId,
+      },
+    },
     orderBy: { endDate: "desc" },
+    include: { invoice: true },
   });
 
   const baseDate = lastPayment ? lastPayment.endDate : rent.startDate;
@@ -49,15 +54,42 @@ const sendPaymentReminders = async () => {
     const nextDueDate = await getNextDueDate(rent);
     const daysLeft = Math.ceil((nextDueDate - today) / (1000 * 60 * 60 * 24));
 
-    // Send reminders at 10, 6, 3, 1 days before due
+    console.log(
+      `Rental ID: ${
+        rent.rentId
+      }, Next Due Date: ${nextDueDate.toDateString()}, Days Left: ${daysLeft}`
+    );
+
+    let message = "";
+    let subject = "";
+    let notificationType = "";
+
+    // 🟢 Before due date reminders
     if ([10, 6, 3, 1].includes(daysLeft)) {
-      const message = `Reminder: Your rent payment for room #${
-        rent.roomId
+      subject = `Payment Reminder - ${daysLeft} Days Left`;
+      message = `Reminder: Your rent payment for room #${
+        rent.unitNumber
       } is due in ${daysLeft} days (${nextDueDate.toDateString()}). Please make your payment on time.`;
+      notificationType = "PaymentReminder";
+    }
+
+    // 🔴 Overdue notice (daysLeft < 0)
+    else if (daysLeft < 0) {
+      const overdueDays = Math.abs(daysLeft);
+      subject = `Overdue Payment Notice - ${overdueDays} Days Late`;
+      message = `⚠️ Your rent payment for room #${
+        rent.unitNumber
+      } was due on ${nextDueDate.toDateString()} (${overdueDays} days ago). Please make your payment immediately to avoid penalties.`;
+      notificationType = "OverduePayment";
+    }
+
+    // If there's a message to send
+    if (message) {
       // --- System notification
       await createNotification({
         tenantId: rent.tenantId,
-        type: "PaymentReminder",
+        userId: rent.tenant.userId,
+        type: notificationType,
         message,
         sentVia: "System",
       });
@@ -67,13 +99,14 @@ const sendPaymentReminders = async () => {
         await transporter.sendMail({
           from: `"Mall Management" <${process.env.EMAIL_USER}>`,
           to: rent.tenant.email,
-          subject: `Payment Reminder - ${daysLeft} Days Left`,
+          subject,
           text: message,
         });
 
         await createNotification({
           tenantId: rent.tenantId,
-          type: "PaymentReminder",
+          userId: rent.tenant.userId,
+          type: notificationType,
           message,
           sentVia: "Email",
         });
@@ -82,22 +115,14 @@ const sendPaymentReminders = async () => {
       // --- SMS via helper
       if (rent.tenant.phone) {
         await sendSMS(rent.tenant.phone, message);
-
-        await createNotification({
-          tenantId: rent.tenantId,
-          type: "PaymentReminder",
-          message: `Your rent of $${amount} is due on ${dueDate}`,
-          sentVia: "SMS",
-        });
       }
 
       // --- Real-time push
       const userId = rent.tenant.userId;
       if (userId && onlineUsers.has(userId)) {
-        const socketId = onlineUsers.get(userId);
-        io.to(socketId).emit("newNotification", {
+        io.to(onlineUsers.get(userId)).emit("newNotification", {
           message,
-          type: "PaymentReminder",
+          type: notificationType,
           sentVia: "System",
         });
       }
@@ -107,7 +132,9 @@ const sendPaymentReminders = async () => {
   console.log("✅ Payment reminder job completed.");
 };
 
-// --- Run every day at midnight
-cron.schedule("0 0 * * *", sendPaymentReminders);
+// --- Run every 5 minutes
+cron.schedule("0 7 * * *", sendPaymentReminders, {
+  timezone: "Africa/Addis_Ababa",
+});
 
 export default sendPaymentReminders;

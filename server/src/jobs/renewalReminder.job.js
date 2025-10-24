@@ -32,12 +32,13 @@ const sendRenewalReminders = async () => {
     // Send reminders 30 days and 7 days before endDate
     if ([30, 7].includes(daysLeft)) {
       const message = `Reminder: Your rental contract for room #${
-        rent.roomId
+        rent.unitNumber
       } is expiring in ${daysLeft} days (${rent.endDate.toDateString()}). Please contact management to renew your lease.`;
 
       // --- System notification
       await createNotification({
         tenantId: rent.tenantId,
+        userId: rent.tenant.userId,
         type: "RenewalReminder",
         message,
         sentVia: "System",
@@ -54,6 +55,7 @@ const sendRenewalReminders = async () => {
 
         await createNotification({
           tenantId: rent.tenantId,
+          userId: rent.tenant.userId,
           type: "RenewalReminder",
           message,
           sentVia: "Email",
@@ -63,13 +65,6 @@ const sendRenewalReminders = async () => {
       // --- SMS via helper
       if (rent.tenant.phone) {
         await sendSMS(rent.tenant.phone, message);
-
-        await createNotification({
-          tenantId: rent.tenantId,
-          type: "RenewalReminder",
-          message,
-          sentVia: "SMS",
-        });
       }
 
       // --- Real-time socket push
@@ -89,6 +84,8 @@ const sendRenewalReminders = async () => {
 };
 
 // --- Run daily at midnight
-cron.schedule("0 0 * * *", sendRenewalReminders);
+cron.schedule("0 7 * * *", sendRenewalReminders, {
+  timezone: "Africa/Addis_Ababa",
+});
 
 export default sendRenewalReminders;

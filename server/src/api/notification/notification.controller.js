@@ -13,6 +13,7 @@ export const getAllNotifications = async (req, res) => {
         createdAt: {
           gte: sevenDaysAgo,
         },
+        sentVia: "System",
       },
       orderBy: { createdAt: "desc" },
     });

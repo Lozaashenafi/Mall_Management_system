@@ -2,7 +2,6 @@
 import prisma from "../../config/prismaClient.js";
 import { createAuditLog } from "../../utils/audit.js";
 import { createNotification } from "../notification/notification.service.js";
-// controllers/maintenanceController.js
 export const createMaintenance = async (req, res) => {
   try {
     const {
@@ -175,6 +174,7 @@ export const updateRequestStatus = async (req, res) => {
       include: {
         rental: {
           include: {
+            room: true,
             tenant: {
               include: { user: true },
             },

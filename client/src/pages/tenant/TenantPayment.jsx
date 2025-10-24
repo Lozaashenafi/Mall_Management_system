@@ -140,13 +140,60 @@ const PaymentRequests = () => {
     0
   );
   const outstandingBalance = totalInvoiced - totalPaid;
-
+  // Today
   const today = new Date();
-  const upcomingInvoices = allInvoices
-    .filter((inv) => inv.status !== "Paid" && new Date(inv.dueDate) >= today)
+
+  // 1. Get all unpaid invoices
+  let unpaidInvoices = allInvoices
+    .filter((inv) => inv.status !== "Paid")
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-  const nextPayment = upcomingInvoices[0] || null;
+  // 2. Determine next payment
+  let nextPayment = null;
+
+  if (unpaidInvoices.length > 0) {
+    // Take the earliest unpaid invoice
+    nextPayment = unpaidInvoices[0];
+  } else if (allPayments.length > 0) {
+    // No unpaid invoices, calculate next expected payment from last payment's end date
+    const lastPayment = allPayments.reduce((latest, p) => {
+      const date = new Date(p.endDate || p.paymentDate);
+      return !latest || date > new Date(latest.endDate || latest.paymentDate)
+        ? p
+        : latest;
+    }, null);
+
+    const nextExpectedDate = new Date(
+      lastPayment.endDate || lastPayment.paymentDate
+    );
+    nextExpectedDate.setMonth(nextExpectedDate.getMonth() + 1); // assume monthly
+
+    nextPayment = {
+      totalAmount: selectedRental?.rentAmount || 0,
+      dueDate: nextExpectedDate,
+      invoiceId: "Expected",
+      paperInvoiceNumber: "N/A",
+      isExpected: true,
+    };
+  } else {
+    // No payments made yet → use rental start date
+    const startDate = new Date(selectedRental.startDate);
+    nextPayment = {
+      totalAmount: selectedRental?.rentAmount || 0,
+      dueDate: startDate,
+      invoiceId: "First Payment",
+      paperInvoiceNumber: "N/A",
+      isExpected: true,
+    };
+  }
+
+  // 3. Check if overdue
+  if (nextPayment && new Date(nextPayment.dueDate) < today) {
+    nextPayment.isOverdue = true;
+    nextPayment.daysOverdue = Math.ceil(
+      (today - new Date(nextPayment.dueDate)) / (1000 * 60 * 60 * 24)
+    );
+  }
 
   // Stats Data
   const statsData = [
@@ -240,12 +287,29 @@ const PaymentRequests = () => {
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             <strong>Due Date:</strong> {formatDate(nextPayment.dueDate)}
+            {nextPayment.isOverdue && (
+              <span className="ml-2 text-red-600 dark:text-red-400 font-semibold">
+                ⚠️ Overdue by {nextPayment.daysOverdue} day
+                {nextPayment.daysOverdue > 1 ? "s" : ""}
+              </span>
+            )}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Invoice: {nextPayment.paperInvoiceNumber || nextPayment.invoiceId}{" "}
-            for Unit {selectedRental?.room?.unitNumber || "N/A"}
+            {nextPayment.isExpected
+              ? nextPayment.isOverdue
+                ? "You have missed your payment. Please pay immediately!"
+                : "Payment expected based on your last payment cycle."
+              : `Invoice: ${
+                  nextPayment.paperInvoiceNumber || nextPayment.invoiceId
+                } for Unit ${selectedRental?.room?.unitNumber || "N/A"}`}
           </p>
-          <button className="mt-4 px-4 py-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700">
+          <button
+            className={`mt-4 px-4 py-2 rounded-lg font-medium ${
+              nextPayment.isOverdue
+                ? "bg-red-600 hover:bg-red-700 text-white"
+                : "bg-purple-600 hover:bg-purple-700 text-white"
+            }`}
+          >
             Pay Now
           </button>
         </div>
