@@ -40,6 +40,7 @@ import RentDetail from "./pages/RentDetail";
 import TenantRentals from "./pages/tenant/TenantRentals";
 import AdminTerminateRequests from "./pages/AdminTerminateRequests ";
 import SocketTest from "./SocketTest";
+import RentRenewal from "./pages/RentRenewal";
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
 
             <Route path="/room-detail/:id" element={<RoomDetails />} />
             <Route path="/rent-detail/:id" element={<RentDetail />} />
+            <Route path="/rent-renewal/:id" element={<RentRenewal />} />
             <Route
               path="/manage-roomfeature"
               element={<RoomFeatureTypeManage />}

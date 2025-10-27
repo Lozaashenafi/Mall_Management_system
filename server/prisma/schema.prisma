@@ -187,7 +187,7 @@ model Rental {
   endDate          DateTime
   rentAmount       Float
   paymentDueDate   Int
-  paymentInterval  String // Monthly, Quarterly, yearly
+  paymentInterval  String // e.g., "Monthly", "Quarterly" "Yearly"
   status           RentalStatus
   selfManagedElectricity Boolean @default(false) 
   utilityShare     Float? 
@@ -198,6 +198,10 @@ model Rental {
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  previousRentId   Int?     @unique
+  previousRental   Rental?  @relation("RentalRenewal", fields: [previousRentId], references: [rentId])
+  nextRental       Rental?  @relation("RentalRenewal")
 
   tenant           Tenant   @relation(fields: [tenantId], references: [tenantId])
   room             Room     @relation(fields: [roomId], references: [roomId])
@@ -265,6 +269,7 @@ model Maintenance {
   recordedBy     Int?
   room           Room     @relation(fields: [roomId], references: [roomId])
   user           User?    @relation(fields: [recordedBy], references: [userId])
+
 }
 
 model MaintenanceRequest {
@@ -274,6 +279,7 @@ model MaintenanceRequest {
   status         MaintenanceRequestStatus @default(Pending) // enum
   requestDate    DateTime  @default(now())
   rental         Rental    @relation(fields: [rentId], references: [rentId])
+ 
 }
 
 model Notification {

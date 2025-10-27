@@ -20,7 +20,7 @@ export const getRentalById = async (rentalId) => {
   try {
     const res = await api.get(`/rentals/${rentalId}`);
     // console.log(res.data);
-    return res.data.rental;
+    return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch rental" };
   }
@@ -50,5 +50,14 @@ export const terminateRental = async (rentalId) => {
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to terminate rental" };
+  }
+};
+
+export const renewRental = async (rentalId, data) => {
+  try {
+    const res = await api.post(`/rentals/${rentalId}/renew`, data);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to renew rental" };
   }
 };

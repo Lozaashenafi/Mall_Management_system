@@ -2,6 +2,7 @@
 import prisma from "../../config/prismaClient.js";
 import rentalSchema from "./rental.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
+import { stat } from "fs";
 
 export const createRental = async (req, res) => {
   try {
@@ -122,13 +123,18 @@ export const getRentals = async (req, res) => {
     if (status) where.status = status;
 
     const rentals = await prisma.rental.findMany({
-      where,
+      where: {
+        status: "Active",
+      },
       include: {
         tenant: true,
-        room: { include: { roomType: true } },
+        room: {
+          include: {
+            roomType: true,
+          },
+        },
         invoices: true,
       },
-      orderBy: { createdAt: "desc" },
     });
 
     res.json({ success: true, rentals });
@@ -142,26 +148,26 @@ export const getRentalById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Ensure rentId is a number
     const rentalId = Number(id);
     if (isNaN(rentalId)) {
       return res.status(400).json({ message: "Invalid rental ID" });
     }
 
+    // Get the requested rental
     const rental = await prisma.rental.findUnique({
       where: { rentId: rentalId },
       include: {
         tenant: true,
         room: {
           include: {
-            roomType: true, // includes typeName and typeDescription
+            roomType: true,
             roomFeatures: {
-              include: { featureType: true }, // includes name, description
+              include: { featureType: true },
             },
           },
         },
         invoices: {
-          include: { payments: true }, // nested payments for each invoice
+          include: { payments: true },
         },
         agreementDocuments: true,
         maintenanceRequests: true,
@@ -172,7 +178,28 @@ export const getRentalById = async (req, res) => {
       return res.status(404).json({ message: "Rental not found" });
     }
 
-    res.json({ success: true, rental });
+    // Get the last expired rental for the same room
+    const lastExpiredRental = await prisma.rental.findFirst({
+      where: {
+        roomId: rental.roomId,
+        status: "Expired",
+      },
+      orderBy: { endDate: "desc" }, // latest expired first
+      include: {
+        tenant: true,
+        invoices: {
+          include: { payments: true },
+        },
+        agreementDocuments: true,
+        maintenanceRequests: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      rental,
+      lastExpiredRental,
+    });
   } catch (err) {
     console.error("getRentalById error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -301,42 +328,11 @@ export const terminateRental = async (req, res) => {
   }
 };
 
-export const renewRental = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { newEndDate, newRentAmount } = req.body;
-    if (!newEndDate)
-      return res.status(400).json({ message: "newEndDate is required" });
-
-    const rental = await prisma.rental.findUnique({
-      where: { rentId: Number(id) },
-    });
-    if (!rental) return res.status(404).json({ message: "Rental not found" });
-
-    const updated = await prisma.rental.update({
-      where: { rentId: Number(id) },
-      data: {
-        endDate: new Date(newEndDate),
-        ...(newRentAmount !== undefined && {
-          rentAmount: Number(newRentAmount),
-        }),
-        versionNumber: rental.versionNumber + 1,
-        status: "Active",
-      },
-    });
-
-    res.json({ success: true, message: "Rental renewed", rental: updated });
-  } catch (err) {
-    console.error("renewRental error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
 export const getRentalsByTenant = async (req, res) => {
   try {
     const { tenantId } = req.params;
     const rentals = await prisma.rental.findMany({
-      where: { tenantId: Number(tenantId) },
+      where: { tenantId: Number(tenantId), status: "Active" },
       include: { room: { include: { roomType: true } } },
       orderBy: { startDate: "desc" },
     });
@@ -358,6 +354,91 @@ export const getActiveRentalByTenant = async (req, res) => {
     res.json({ success: true, rental });
   } catch (err) {
     console.error("getActiveRentalByTenant error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+// ✅ renewRental controller (replace old one)
+export const renewRental = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      newStartDate,
+      newEndDate,
+      newRentAmount,
+      paymentInterval,
+      paymentDueDate,
+    } = req.body;
+
+    if (!newStartDate || !newEndDate) {
+      return res
+        .status(400)
+        .json({ message: "newStartDate and newEndDate are required" });
+    }
+
+    const oldRental = await prisma.rental.findUnique({
+      where: { rentId: Number(id) },
+      include: { tenant: true, room: true },
+    });
+    if (!oldRental)
+      return res.status(404).json({ message: "Rental not found" });
+
+    if (new Date(newStartDate) >= new Date(newEndDate)) {
+      return res
+        .status(400)
+        .json({ message: "End date must be after start date" });
+    }
+
+    // ✅ Step 1: Expire old rental
+    await prisma.rental.update({
+      where: { rentId: oldRental.rentId },
+      data: { status: "Expired" },
+    });
+
+    // ✅ Step 2: Create new version
+    const newRental = await prisma.rental.create({
+      data: {
+        tenantId: oldRental.tenantId,
+        roomId: oldRental.roomId,
+        versionNumber: oldRental.versionNumber + 1,
+        startDate: new Date(newStartDate),
+        endDate: new Date(newEndDate),
+        rentAmount: newRentAmount ?? oldRental.rentAmount,
+        paymentDueDate: paymentDueDate ?? oldRental.paymentDueDate,
+        paymentInterval: paymentInterval ?? oldRental.paymentInterval,
+        status: "Active",
+        selfManagedElectricity: oldRental.selfManagedElectricity,
+        utilityShare: oldRental.utilityShare,
+        includeWater: oldRental.includeWater,
+        includeElectricity: oldRental.includeElectricity,
+        includeGenerator: oldRental.includeGenerator,
+        includeService: oldRental.includeService,
+        previousRentId: oldRental.rentId,
+      },
+    });
+
+    // ✅ Step 3: Update room status (stays Occupied)
+    await prisma.room.update({
+      where: { roomId: oldRental.roomId },
+      data: { status: "Occupied" },
+    });
+
+    // ✅ Step 4: Audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "renewed",
+      tableName: "Rental",
+      recordId: newRental.rentId,
+      oldValue: oldRental,
+      newValue: newRental,
+    });
+
+    res.json({
+      success: true,
+      message: "Rental renewed successfully",
+      rental: newRental,
+    });
+  } catch (err) {
+    console.error("renewRental error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
