@@ -113,6 +113,12 @@ export const createPayment = async (req, res) => {
         data: { status: "Paid" },
       });
     }
+    if (utilityInvoiceId) {
+      await prisma.utilityInvoice.update({
+        where: { id: utilityInvoiceId },
+        data: { status: "Paid" },
+      });
+    }
     // --- Log audit
     await createAuditLog({
       userId: req.user.userId,

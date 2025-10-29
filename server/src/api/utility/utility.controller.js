@@ -1,139 +1,213 @@
 import prisma from "../../config/prismaClient.js";
-import utilitySchema from "./utility.schema.js";
-import { createAuditLog } from "../../utils/audit.js";
-import { createNotification } from "../notification/notification.service.js";
+import dayjs from "dayjs";
 
-export const createUtilityCharge = async (req, res) => {
+export const getMonthlyUtilitySummary = async (req, res) => {
   try {
-    const { error, value } = utilitySchema.createCharge.validate(req.body);
-    if (error)
-      return res.status(400).json({ message: error.details[0].message });
+    const { month } = req.query; // e.g. "2025-10"
+    if (!month)
+      return res.status(400).json({ message: "Month is required (YYYY-MM)" });
 
-    const { type, month, totalCost, description } = value;
+    const start = dayjs(`${month}-01`).startOf("month").toDate();
+    const end = dayjs(start).endOf("month").toDate();
 
-    // Check if already recorded for the same month/type
-    const existing = await prisma.utilityCharge.findFirst({
-      where: { type, month },
-    });
-    if (existing)
-      return res
-        .status(400)
-        .json({ message: "Charge already exists for this month and type" });
-
-    const charge = await prisma.utilityCharge.create({
-      data: { type, month, totalCost, description },
-    });
-
-    await createAuditLog({
-      userId: req.user.userId,
-      action: "created",
-      tableName: "UtilityCharge",
-      recordId: charge.utilityChargeId,
-      newValue: charge,
+    // Sum expenses by utility type
+    const grouped = await prisma.utilityExpense.groupBy({
+      by: ["type"],
+      _sum: { amount: true },
+      where: {
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
     });
 
-    res
-      .status(201)
-      .json({ success: true, message: "Utility charge recorded", charge });
+    const result = grouped.map((g) => ({
+      type: g.type,
+      total: g._sum.amount || 0,
+    }));
+
+    return res.json({ month, utilities: result });
   } catch (err) {
-    console.error("createUtilityCharge error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    return res.status(500).json({ message: "Error fetching utility summary" });
   }
 };
-export const distributeUtilityCost = async (req, res) => {
+export const generateUtilityCharge = async (req, res) => {
   try {
-    const { error, value } = utilitySchema.distribute.validate(req.body);
-    if (error)
-      return res.status(400).json({ message: error.details[0].message });
+    const { month } = req.body;
+    console.log("Received body:", req.body);
+    if (!month)
+      return res.status(400).json({ message: "Month is required (YYYY-MM)" });
 
-    const { utilityChargeId } = value;
-
-    const charge = await prisma.utilityCharge.findUnique({
-      where: { utilityChargeId },
-    });
-    if (!charge)
-      return res.status(404).json({ message: "Utility charge not found" });
-
-    // Get active rentals for the month
-    const rentals = await prisma.rental.findMany({
-      where: { status: "Active" },
-      include: { tenant: true },
+    // ✅ Step 0: Check if this month is already generated
+    const existingCharges = await prisma.utilityCharge.findMany({
+      where: { month },
     });
 
-    if (rentals.length === 0)
-      return res
-        .status(400)
-        .json({ message: "No active rentals found to distribute cost" });
-
-    const sharePerRental = charge.totalCost / rentals.length;
-
-    const invoices = [];
-    for (const rental of rentals) {
-      const invoice = await prisma.utilityInvoice.create({
-        data: {
-          utilityChargeId: charge.utilityChargeId,
-          rentId: rental.rentId,
-          amount: sharePerRental,
-          status: "UNPAID",
-        },
-      });
-
-      invoices.push(invoice);
-
-      // Optional: Notify tenant
-      await createNotification({
-        tenantId: rental.tenantId,
-        type: "UtilityAlert",
-        message: `A new ${charge.type} bill of $${sharePerRental.toFixed(
-          2
-        )} has been issued for ${charge.month}.`,
-        sentVia: "System",
+    if (existingCharges.length > 0) {
+      return res.status(200).json({
+        message: `Utility charges for ${month} have already been generated.`,
       });
     }
 
-    res.json({
-      success: true,
-      message: `Utility cost distributed to ${rentals.length} rentals.`,
-      total: charge.totalCost,
-      eachShare: sharePerRental,
-      invoices,
+    // Step 1: Group all expenses by type
+    const start = dayjs(`${month}-01`).startOf("month").toDate();
+    const end = dayjs(start).endOf("month").toDate();
+
+    const expenses = await prisma.utilityExpense.groupBy({
+      by: ["type"],
+      _sum: { amount: true },
+      where: { date: { gte: start, lte: end } },
+    });
+
+    if (expenses.length === 0)
+      return res
+        .status(400)
+        .json({ message: "No utility expenses found for this month" });
+
+    // Step 2: Get all active rentals
+    const rentals = await prisma.rental.findMany({
+      where: { status: "Active" },
+      include: { tenant: true, room: true },
+    });
+
+    if (rentals.length === 0)
+      return res.status(400).json({ message: "No active rentals found" });
+
+    // Step 3: Create UtilityCharge + invoices
+    const createdCharges = [];
+
+    for (const expense of expenses) {
+      const utilityType = expense.type;
+      const totalCost = expense._sum.amount || 0;
+
+      const charge = await prisma.utilityCharge.create({
+        data: {
+          type: utilityType,
+          month, // ✅ now correct
+          totalCost,
+          description: `Utility charge for ${utilityType} (${month})`,
+          generated: true,
+        },
+      });
+
+      const eligibleRentals = rentals.filter((r) => {
+        if (utilityType === "Water") return r.includeWater;
+        if (utilityType === "Electricity") return r.includeElectricity;
+        if (utilityType === "Generator") return r.includeGenerator;
+        if (utilityType === "Service") return r.includeService;
+        return true;
+      });
+
+      const share =
+        eligibleRentals.length > 0 ? totalCost / eligibleRentals.length : 0;
+
+      for (const rental of eligibleRentals) {
+        await prisma.utilityInvoice.create({
+          data: {
+            utilityChargeId: charge.utilityChargeId,
+            rentId: rental.rentId,
+            amount: parseFloat(share.toFixed(2)),
+            status: "UNPAID",
+          },
+        });
+      }
+
+      createdCharges.push(charge);
+    }
+
+    return res.status(201).json({
+      message: "Utility charges and invoices generated successfully",
+      createdCharges,
     });
   } catch (err) {
-    console.error("distributeUtilityCost error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Error generating utility charges" });
   }
 };
+
 export const getUtilityCharges = async (req, res) => {
   try {
     const charges = await prisma.utilityCharge.findMany({
-      include: { utilityInvoices: true },
       orderBy: { createdAt: "desc" },
     });
-    res.json({ success: true, charges });
+    return res.json(charges);
   } catch (err) {
-    console.error("getUtilityCharges error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    return res.status(500).json({ message: "Error fetching utility charges" });
   }
 };
-export const getUtilityInvoices = async (req, res) => {
+export const TenantsInvoiceOfthisMonth = async (req, res) => {
   try {
-    const { month, type } = req.query;
-    const where = {};
-    if (month) where.month = month;
-    if (type) where.type = type;
+    const { month } = req.query; // e.g., "2025-10"
+    if (!month)
+      return res.status(400).json({ message: "Month is required (YYYY-MM)" });
 
     const invoices = await prisma.utilityInvoice.findMany({
-      where: where,
+      where: {
+        utilityCharge: { month },
+      },
       include: {
-        rental: { include: { tenant: true, room: true } },
+        rental: {
+          include: {
+            tenant: true,
+            room: true,
+          },
+        },
         utilityCharge: true,
       },
+    });
+
+    return res.json(invoices);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Error fetching tenants' utility invoices" });
+  }
+};
+
+export const getUtilityChargesByMonth = async (req, res) => {
+  try {
+    const { month } = req.query; // e.g., "2025-10"
+    if (!month)
+      return res.status(400).json({ message: "Month is required (YYYY-MM)" });
+
+    const charges = await prisma.utilityCharge.findMany({
+      where: { month },
       orderBy: { createdAt: "desc" },
     });
 
-    res.json({ success: true, invoices });
+    return res.json(charges);
   } catch (err) {
-    console.error("getUtilityInvoices error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    return res.status(500).json({ message: "Error fetching utility charges" });
+  }
+};
+
+export const getUtilityInvoiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.utilityInvoice.findUnique({
+      where: { id: Number(id) },
+      include: {
+        rental: {
+          include: {
+            tenant: true,
+            room: true,
+          },
+        },
+        utilityCharge: true,
+      },
+    });
+    if (!invoice)
+      return res.status(404).json({ message: "Utility invoice not found" });
+    return res.json(invoice);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error fetching utility invoice" });
   }
 };

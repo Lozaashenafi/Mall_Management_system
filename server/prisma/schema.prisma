@@ -302,6 +302,7 @@ model UtilityCharge {
   description     String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  generated       Boolean?     @default(false)
   utilityInvoices UtilityInvoice[]
 }
 model UtilityInvoice {

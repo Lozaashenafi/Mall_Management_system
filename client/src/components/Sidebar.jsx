@@ -27,6 +27,7 @@ const baseSidebarItems = [
   { title: "Payments", icon: DollarSign, url: "/payments" },
   { title: "Maintenance", icon: Wrench, url: "/maintenance" },
   { title: "Expenses", icon: Receipt, url: "/expenses" },
+  { title: "Utilities", icon: DollarSign, url: "/utilities" },
   { title: "Statistics", icon: BarChart3, url: "/statistics" },
   { title: "Logs", icon: History, url: "/logs" },
   { title: "Terminate Requests ", icon: Receipt, url: "/terminate" },

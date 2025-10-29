@@ -41,6 +41,8 @@ import TenantRentals from "./pages/tenant/TenantRentals";
 import AdminTerminateRequests from "./pages/AdminTerminateRequests ";
 import SocketTest from "./SocketTest";
 import RentRenewal from "./pages/RentRenewal";
+import UtiliySummary from "./pages/UtilitySummary";
+import AddUtilityPayment from "./pages/AddUtilityPayment";
 
 function App() {
   return (
@@ -65,6 +67,11 @@ function App() {
             <Route path="/edit-tenant/:id" element={<EditTenant />} />
             <Route path="/manage-rooms" element={<RoomManage />} />
             <Route path="/manage-rooms/add" element={<AddRoom />} />
+            <Route path="/utilities" element={<UtiliySummary />} />
+            <Route
+              path="/add-utility-payment/:id"
+              element={<AddUtilityPayment />}
+            />
 
             <Route path="/room-detail/:id" element={<RoomDetails />} />
             <Route path="/rent-detail/:id" element={<RentDetail />} />

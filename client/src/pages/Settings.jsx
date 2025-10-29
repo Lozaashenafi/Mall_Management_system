@@ -114,7 +114,6 @@ export default function Settings() {
         ))}
       </nav>
 
-      {/* Tabs content */}
       <section>
         {/* General */}
         {activeTab === "general" && (
