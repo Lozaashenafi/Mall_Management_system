@@ -162,7 +162,13 @@ export const getPayments = async (req, res) => {
             },
           },
         },
-        utilityInvoice: true,
+        utilityInvoice: {
+          include: {
+            rental: {
+              include: { tenant: true, room: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

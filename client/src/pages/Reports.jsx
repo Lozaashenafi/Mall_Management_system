@@ -1,213 +1,243 @@
+import React, { useEffect, useState } from "react";
+import { DollarSign, PieChart, Clock, TrendingUp } from "lucide-react";
 import {
-  DollarSign,
-  BarChart3,
-  TrendingUp,
-  Filter,
-  Calendar,
-  Download,
-} from "lucide-react";
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line, Pie, Bar } from "react-chartjs-2";
+import { BarElement } from "chart.js";
 
-const reportData = [
-  {
-    id: "1",
-    title: "Sales Report",
-    description: "Monthly sales performance and trends",
-    type: "Sales",
-    lastGenerated: "2024-01-15",
-    status: "Ready",
-    metrics: { revenue: "$45,250", growth: "+12.5%" },
-  },
-  {
-    id: "2",
-    title: "User Analytics",
-    description: "User engagement and activity metrics",
-    type: "Analytics",
-    lastGenerated: "2024-01-14",
-    status: "Ready",
-    metrics: { users: "2,845", growth: "+8.3%" },
-  },
-  {
-    id: "3",
-    title: "Financial Summary",
-    description: "Comprehensive financial overview",
-    type: "Finance",
-    lastGenerated: "2024-01-10",
-    status: "Processing",
-    metrics: { profit: "$12,680", growth: "+15.2%" },
-  },
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  BarElement, // ✅ add this line
+  Title,
+  Tooltip,
+  Legend
+);
 
-export default function Reports() {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Ready":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "Processing":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "Error":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-    }
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "ETB",
+    minimumFractionDigits: 2,
+  }).format(value);
+
+const StatsCard = ({ title, value, icon: Icon, color }) => (
+  <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div className="flex items-center space-x-3">
+      <div className={`p-2 rounded-md ${color}`}>
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        {title}
+      </h3>
+    </div>
+    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+      {value}
+    </p>
+  </div>
+);
+
+const ReportPage = () => {
+  const [report, setReport] = useState(null);
+
+  useEffect(() => {
+    // Simulating API call (replace with your API later)
+    const data = {
+      revenue: {
+        monthlyRevenue: [{ month: "2025-10", total: 106352 }],
+        revenueByUtilityType: [
+          { type: "Water", total: 699.99 },
+          { type: "Generator", total: 6000 },
+          { type: "Electricity", total: 24000 },
+          { type: "Service", total: 6999.99 },
+        ],
+        revenueGrowth: 0,
+        totalRevenue: 106352,
+      },
+      utilities: {
+        summary: {
+          "2025-10": {
+            Water: 700,
+            Generator: 6000,
+            Electricity: 24000,
+            Service: 7000,
+          },
+        },
+        comparison: {
+          totalCost: 37700,
+          totalPaid: 37699.98,
+          difference: 0.02,
+        },
+      },
+      maintenance: {
+        summary: [],
+        avgResolveTime: { _avg: { resolveTimeHours: 0 } },
+      },
+      notifications: [
+        { channel: "System", type: "Maintenance", count: 13 },
+        { channel: "System", type: "Invoice", count: 2 },
+        { channel: "System", type: "PaymentReminder", count: 4 },
+        { channel: "System", type: "OverduePayment", count: 1 },
+        { channel: "Email", type: "OverduePayment", count: 1 },
+      ],
+      contracts: {
+        renewals: 0,
+        terminations: 0,
+        avgDuration: { _avg: { durationMonths: 0 } },
+      },
+    };
+    setReport(data);
+  }, []);
+
+  if (!report) return <p className="p-6">Loading report...</p>;
+
+  // 🎯 Revenue Chart
+  const revenueTrend = {
+    labels: report.revenue.monthlyRevenue.map((r) => r.month),
+    datasets: [
+      {
+        label: "Revenue (ETB)",
+        data: report.revenue.monthlyRevenue.map((r) => r.total),
+        borderColor: "#7C3AED",
+        backgroundColor: "#7C3AED",
+        tension: 0.3,
+      },
+    ],
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case "Sales":
-        return (
-          <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-        );
-      case "Analytics":
-        return (
-          <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-        );
-      case "Finance":
-        return (
-          <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-        );
-      default:
-        return <BarChart3 className="w-5 h-5" />;
-    }
+  // 🧾 Utility Revenue Pie
+  const utilityChart = {
+    labels: report.revenue.revenueByUtilityType.map((u) => u.type),
+    datasets: [
+      {
+        data: report.revenue.revenueByUtilityType.map((u) => u.total),
+        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"],
+      },
+    ],
+  };
+
+  // 🔔 Notifications Bar
+  const notificationChart = {
+    labels: report.notifications.map((n) => `${n.type} (${n.channel})`),
+    datasets: [
+      {
+        label: "Notifications",
+        data: report.notifications.map((n) => n.count),
+        backgroundColor: "#6366F1",
+      },
+    ],
   };
 
   return (
-    <div className="space-y-8 p-6 bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen dark:bg-gray-900 dark:text-gray-100">
       {/* Header */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Generate and download business reports
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            className="flex items-center gap-2 border border-gray-300 rounded-md px-4 py-2 text-gray-900 hover:bg-gray-100 transition dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800"
-          >
-            <Filter className="w-4 h-4" />
-            Filter
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 border border-gray-300 rounded-md px-4 py-2 text-gray-900 hover:bg-gray-100 transition dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800"
-          >
-            <Calendar className="w-4 h-4" />
-            Date Range
-          </button>
-        </div>
+      <header className="border-b border-gray-200 pb-4 dark:border-gray-700">
+        <h1 className="text-3xl font-bold">Monthly Report Overview</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Summary of financial, operational, and maintenance activities.
+        </p>
       </header>
 
-      {/* Summary Cards */}
-      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: "Total Revenue",
-            value: "$127,450",
-            growth: "+12.5%",
-            growthColor: "text-green-600 dark:text-green-400",
-          },
-          {
-            label: "Active Users",
-            value: "8,245",
-            growth: "+8.3%",
-            growthColor: "text-green-600 dark:text-green-400",
-          },
-          {
-            label: "Conversion Rate",
-            value: "3.8%",
-            growth: "+0.5%",
-            growthColor: "text-green-600 dark:text-green-400",
-          },
-          {
-            label: "Monthly Growth",
-            value: "15.2%",
-            growth: "+2.1%",
-            growthColor: "text-green-600 dark:text-green-400",
-          },
-        ].map(({ label, value, growth, growthColor }, idx) => (
-          <div
-            key={idx}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm transition"
-          >
-            <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-            <h2 className="text-2xl font-bold mt-1">{value}</h2>
-            <p className={`text-xs mt-1 ${growthColor}`}>
-              {growth} from last month
-            </p>
-          </div>
-        ))}
-      </section>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Total Revenue"
+          value={formatCurrency(report.revenue.totalRevenue)}
+          icon={DollarSign}
+          color="bg-indigo-600"
+        />
+        <StatsCard
+          title="Revenue Growth"
+          value={`${report.revenue.revenueGrowth}%`}
+          icon={TrendingUp}
+          color="bg-green-600"
+        />
+        <StatsCard
+          title="Total Utility Cost"
+          value={formatCurrency(report.utilities.comparison.totalCost)}
+          icon={PieChart}
+          color="bg-amber-600"
+        />
+        <StatsCard
+          title="Avg Resolve Time"
+          value={`${report.maintenance.avgResolveTime._avg.resolveTimeHours} hr`}
+          icon={Clock}
+          color="bg-blue-600"
+        />
+      </div>
 
-      {/* Reports List */}
-      <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm transition">
-        <header className="mb-4">
-          <h2 className="text-xl font-semibold">Available Reports</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Generate and download comprehensive business reports
-          </p>
-        </header>
-
-        <div className="space-y-4">
-          {reportData.map((report) => (
-            <div
-              key={report.id}
-              className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg transition hover:shadow-md"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                  {getTypeIcon(report.type)}
-                </div>
-                <div>
-                  <h3 className="font-medium">{report.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {report.description}
-                  </p>
-                  <div className="flex items-center gap-4 mt-1">
-                    <time className="text-xs text-gray-500 dark:text-gray-400">
-                      Last generated:{" "}
-                      {new Date(report.lastGenerated).toLocaleDateString()}
-                    </time>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(
-                        report.status
-                      )}`}
-                    >
-                      {report.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-sm font-medium">
-                    {Object.values(report.metrics)[0]}
-                  </div>
-                  <div className="text-xs text-green-600 dark:text-green-400">
-                    {Object.values(report.metrics)[1]}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="border border-gray-300 dark:border-gray-700 px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    Generate
-                  </button>
-                  <button
-                    type="button"
-                    disabled={report.status !== "Ready"}
-                    className="border border-gray-300 dark:border-gray-700 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center justify-center"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Monthly Revenue Trend</h2>
+          <Line data={revenueTrend} />
         </div>
-      </section>
+
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold mb-4">
+            Revenue by Utility Type
+          </h2>
+          <Pie data={utilityChart} />
+        </div>
+      </div>
+
+      {/* Notifications + Contract Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Notifications Summary</h2>
+          <Bar data={notificationChart} />
+        </div>
+
+        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Contract Overview</h2>
+          <ul className="space-y-2 text-sm">
+            <li>
+              <strong>Renewals:</strong> {report.contracts.renewals}
+            </li>
+            <li>
+              <strong>Terminations:</strong> {report.contracts.terminations}
+            </li>
+            <li>
+              <strong>Average Duration:</strong>{" "}
+              {report.contracts.avgDuration._avg.durationMonths} months
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Utilities Summary */}
+      <div className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+        <h2 className="text-lg font-semibold mb-4">
+          Utility Summary (2025-10)
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          {Object.entries(report.utilities.summary["2025-10"]).map(
+            ([type, cost]) => (
+              <div
+                key={type}
+                className="flex flex-col items-center p-3 border rounded-lg dark:border-gray-700"
+              >
+                <span className="font-semibold">{type}</span>
+                <span>{formatCurrency(cost)}</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default ReportPage;

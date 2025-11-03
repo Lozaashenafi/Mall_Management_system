@@ -6,11 +6,13 @@ import {
   TenantsInvoiceOfthisMonth,
   getUtilityChargesByMonth,
   getUtilityInvoiceById,
+  getInvoicesByUserId,
 } from "./utility.controller.js";
 
 const router = express.Router();
 
 router.get("/summary", getMonthlyUtilitySummary);
+router.get("/userinvoice/:userId", getInvoicesByUserId);
 router.post("/generate", generateUtilityCharge);
 router.get("/generate", getUtilityCharges);
 router.get("/invoice", TenantsInvoiceOfthisMonth);

@@ -247,16 +247,17 @@ export default function UtilitySummary() {
                       ${invoice.amount.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      {invoice.paid ? (
-                        <span className="text-green-600 dark:text-green-400 font-semibold">
-                          Paid
-                        </span>
-                      ) : (
-                        <span className="text-red-600 dark:text-red-400 font-semibold">
-                          Pending
-                        </span>
-                      )}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          invoice.status.toLowerCase() === "paid"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {invoice.status.toLowerCase()}
+                      </span>
                     </td>
+
                     <td className="px-6 py-4 text-sm">
                       <button
                         onClick={() =>

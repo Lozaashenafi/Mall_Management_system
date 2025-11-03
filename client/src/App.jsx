@@ -33,6 +33,7 @@ import TenantDashboard from "./pages/tenant/TenantDashboard";
 import TenantPayment from "./pages/tenant/TenantPayment";
 import TenantMaintenance from "./pages/tenant/TenantMaintenance";
 import TenantNotifications from "./pages/tenant/TenantNotifications";
+import TenantUtilityPage from "./pages/tenant/TenantUtilityPage";
 import TenantTerminateRequest from "./pages/tenant/TenantTerminateRequest";
 import RoomFeatureTypeManage from "./pages/RoomFeatureTypeManage";
 import RoomDetails from "./pages/RoomDetails";
@@ -116,6 +117,7 @@ function App() {
 
             {/* Tenant-specific pages */}
             <Route path="payments" element={<TenantPayment />} />
+            <Route path="invoice" element={<TenantUtilityPage />} />
             <Route path="maintenance" element={<TenantMaintenance />} />
             <Route path="notifications" element={<TenantNotifications />} />
             <Route

@@ -255,6 +255,7 @@ export default function Payments() {
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="px-4 py-2">Payment</th>
+                  <th className="px-4 py-2">type </th>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Amount</th>
                   <th className="px-4 py-2">Method</th>
@@ -270,9 +271,30 @@ export default function Payments() {
                       className="hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       <td className="px-4 py-2">
-                        {p.invoice.rental.tenant.contactPerson} -{" "}
-                        {p.invoice.rental.room.unitNumber}
+                        {p.invoice ? (
+                          <>
+                            {p.invoice.rental?.tenant?.contactPerson} -{" "}
+                            {p.invoice.rental?.room?.unitNumber}
+                          </>
+                        ) : (
+                          <>
+                            {p.utilityInvoice.rental?.tenant?.contactPerson} -{" "}
+                            {p.utilityInvoice.rental?.room?.unitNumber}
+                          </>
+                        )}
                       </td>
+                      <td>
+                        {p.invoice ? (
+                          <>
+                            <p className="px-4 py-2">Rental Payment </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="px-4 py-2">Utility Payment</p>
+                          </>
+                        )}
+                      </td>
+
                       <td className="px-4 py-2">
                         {new Date(p.paymentDate).toISOString().split("T")[0]}
                       </td>

@@ -13,6 +13,11 @@ enum MaintenanceRequestStatus {
   Declined
   Approved
 }
+enum PaymentRequestStatus {
+  Pending
+  Approved
+  Rejected
+}
 
 enum MaintenanceStatus {
   Pending
@@ -176,6 +181,7 @@ model Tenant {
   rental        Rental[]
   notifications Notification[]
   feedbacks     Feedback[]
+  paymentRequest  PaymentRequest[]
 }
 
 model Rental {
@@ -236,6 +242,7 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
   rental        Rental        @relation(fields: [rentId], references: [rentId])
   payments      Payment[]
+  paymentRequest  PaymentRequest[]
 }
 
 model Feedback {
@@ -318,6 +325,7 @@ model UtilityInvoice {
   utilityCharge   UtilityCharge @relation(fields: [utilityChargeId], references: [utilityChargeId])
   rental          Rental        @relation(fields: [rentId], references: [rentId])
   payments        Payment[]
+  paymentRequest  PaymentRequest[]
 }
 
 model Payment {
@@ -347,4 +355,24 @@ model TerminateRequest {
   effectiveDate      DateTime?
   adminNote          String?
   rental             Rental    @relation(fields: [rentId], references: [rentId])
+}
+
+model PaymentRequest {
+  requestId        Int                  @id @default(autoincrement())
+  tenantId         Int
+  invoiceId        Int?                 // For rent payments
+  utilityInvoiceId Int?                 // For utility payments
+  amount           Float
+  paymentDate      DateTime             @default(now())
+  method           String?              // e.g., "Bank Transfer", "Mobile Money"
+  reference        String?              // Transaction ID or bank ref number
+  proofFilePath    String?              // Uploaded receipt/proof
+  status           PaymentRequestStatus @default(Pending)
+  adminNote        String?              // Admin comment on approval/rejection
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  tenant           Tenant               @relation(fields: [tenantId], references: [tenantId])
+  invoice          Invoice?             @relation(fields: [invoiceId], references: [invoiceId])
+  utilityInvoice   UtilityInvoice?      @relation(fields: [utilityInvoiceId], references: [id])
 }

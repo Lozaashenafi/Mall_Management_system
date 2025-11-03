@@ -74,3 +74,12 @@ export const getUtilityInvoiceById = async (id) => {
     );
   }
 };
+export const utilityForTenant = async (userId) => {
+  try {
+    const res = await api.get(`/utilities/userinvoice/${userId}`);
+    return res.data; // ✅ Return the actual data
+  } catch (error) {
+    console.error("Failed to fetch utility invoices:", error);
+    throw error.response?.data || { message: "Failed to fetch invoice" };
+  }
+};

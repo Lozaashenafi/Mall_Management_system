@@ -18,6 +18,7 @@ const tenantSidebarItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/tenant" },
   { title: "My Rentals", icon: House, url: "/tenant/myrentals" },
   { title: "Payments", icon: DollarSign, url: "/tenant/payments" },
+  { title: "Invoice", icon: DollarSign, url: "/tenant/invoice" },
   { title: "Maintenance", icon: Wrench, url: "/tenant/maintenance" },
   { title: "Notifications", icon: Bell, url: "/tenant/notifications" },
   { title: "Settings", icon: Settings, url: "/tenant/settings" },

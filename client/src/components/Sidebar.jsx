@@ -20,6 +20,7 @@ import { useAuth } from "../context/AuthContext";
 
 const baseSidebarItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+  { title: "Reports", icon: FileText, url: "/reports" },
   { title: "Tenants", icon: Users, url: "/manage-tenants" },
   { title: "Rooms", icon: Building2, url: "/manage-rooms" },
   { title: "RoomFeature", icon: Building2, url: "/manage-roomfeature" },
@@ -31,7 +32,7 @@ const baseSidebarItems = [
   { title: "Statistics", icon: BarChart3, url: "/statistics" },
   { title: "Logs", icon: History, url: "/logs" },
   { title: "Terminate Requests ", icon: Receipt, url: "/terminate" },
-  { title: "Reports", icon: FileText, url: "/reports" },
+
   { title: "Notifications", icon: Bell, url: "/notifications" },
   { title: "Settings", icon: Settings, url: "/settings" },
 ];

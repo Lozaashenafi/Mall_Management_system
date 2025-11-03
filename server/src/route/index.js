@@ -15,6 +15,7 @@ import terminateRental from "../api/terminate/terminate.route.js";
 import notificationRoutes from "../api/notification/notification.route.js";
 import dashboardRoutes from "../api/dashboard/dashboard.route.js";
 import utilityRoutes from "../api/utility/utility.route.js";
+import reportRoutes from "../api/report/report.routes.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -31,5 +32,6 @@ router.use("/terminate", terminateRental);
 router.use("/notifications", notificationRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/utilities", utilityRoutes);
+router.use("/report", reportRoutes);
 
 export default router;
