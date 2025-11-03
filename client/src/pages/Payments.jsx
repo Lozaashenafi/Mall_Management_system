@@ -16,6 +16,11 @@ import {
   updatePayment,
   updateInvoice,
 } from "../services/paymentService";
+import UpdatePaymentStatus from "../components/UpdatePaymentStatus";
+import {
+  getPaymentRequests,
+  updatePaymentRequestStatus,
+} from "../services/paymentRequestService";
 
 export default function Payments() {
   const [invoices, setInvoices] = useState([]);
@@ -26,17 +31,21 @@ export default function Payments() {
 
   const [editingItem, setEditingItem] = useState(null);
   const [editData, setEditData] = useState({});
+  const [paymentRequests, setPaymentRequests] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [invoiceData, paymentData] = await Promise.all([
+        const [invoiceData, paymentData, requestData] = await Promise.all([
           getInvoices(),
           getPayments(),
+          getPaymentRequests(),
         ]);
         setInvoices(invoiceData || []);
         setPayments(paymentData || []);
+        console.log(requestData);
+        setPaymentRequests(requestData || []);
       } catch (error) {
         toast.error(error.message || "Failed to fetch data");
       } finally {
@@ -45,7 +54,21 @@ export default function Payments() {
     };
     fetchData();
   }, []);
-
+  const handleStatusChange = async (paymentId, status, adminNote) => {
+    try {
+      const updated = await updatePaymentRequestStatus(paymentId, {
+        status,
+        adminNote,
+      });
+      console.log(updated);
+      setPaymentRequests((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r))
+      );
+      toast.success(`Payment request ${status.toLowerCase()} successfully`);
+    } catch (err) {
+      toast.error("Failed to update status");
+    }
+  };
   const totalPages = Math.ceil(payments.length / pageSize);
   const paginatedPayments = payments.slice(
     (currentPage - 1) * pageSize,
@@ -483,6 +506,93 @@ export default function Payments() {
           </div>
         </div>
       )}
+
+      <section>
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          Payment Requests
+        </h2>
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+          <table className="min-w-full border border-gray-200 dark:border-gray-700 text-sm">
+            <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+              <tr>
+                <th className="px-4 py-2 text-left">Request </th>
+                <th className="px-4 py-2 text-left">Tenant</th>
+                <th className="px-4 py-2 text-left">Amount</th>
+                <th className="px-4 py-2 text-left">Method</th>
+                <th className="px-4 py-2 text-left">Reference</th>
+                <th className="px-4 py-2 text-left">Proof</th>
+
+                <th className="px-4 py-2 text-left">Status</th>
+                <th className="px-4 py-2 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paymentRequests.length > 0 ? (
+                paymentRequests.map((req) => (
+                  <tr
+                    key={req.id}
+                    className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-4 py-2">
+                      {req.invoice ? "payment" : "utility"}
+                    </td>
+                    <td className="px-4 py-2">
+                      {req.tenant?.contactPerson || "Unknown"}
+                    </td>
+                    <td className="px-4 py-2">{req.amount} ETB</td>
+                    <td className="px-4 py-2">{req.method}</td>
+                    <td className="px-4 py-2">{req.reference}</td>
+                    <td className="px-4 py-2">
+                      {req.proofFilePath ? (
+                        <a
+                          href={`http://localhost:3300${req.proofFilePath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          View Proof
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No proof</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-2">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          req.status === "Approved"
+                            ? "bg-green-100 text-green-700"
+                            : req.status === "Rejected"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {req.status === "Pending" ? (
+                        <UpdatePaymentStatus
+                          paymentId={req.requestId}
+                          onStatusChange={handleStatusChange}
+                        />
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center py-4 text-gray-500">
+                    No payment requests found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

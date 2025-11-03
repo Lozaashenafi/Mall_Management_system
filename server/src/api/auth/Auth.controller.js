@@ -151,11 +151,13 @@ export const login = async (req, res) => {
             invoices: {
               include: {
                 payments: true,
+                paymentRequest: true,
               },
             },
             utilityInvoices: {
               include: {
                 payments: true,
+                paymentRequest: true,
               },
             },
           },

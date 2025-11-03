@@ -10,6 +10,8 @@ import {
   FileText,
   CheckCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 import image from "../../assets/Telebirr.png";
 import { Line } from "react-chartjs-2";
 import {
@@ -42,6 +44,7 @@ const UtilityPage = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("telebirr");
   const [paymentFile, setPaymentFile] = useState(null);
+  const navigate = useNavigate();
 
   const { user } = useAuth();
 
@@ -296,7 +299,17 @@ const UtilityPage = () => {
 
               {/* Attach Proof Card */}
               <button
-                onClick={() => setPaymentMethod("attach")}
+                onClick={() => {
+                  setShowPaymentModal(false);
+
+                  // Determine type
+                  const type = selectedInvoice?.invoiceId
+                    ? "invoice"
+                    : "utility";
+                  const id = selectedInvoice?.invoiceId || selectedInvoice?.id;
+
+                  navigate(`/tenant/request/${type}/${id}`);
+                }}
                 className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-purple-50 dark:hover:bg-gray-800 transition"
               >
                 <svg

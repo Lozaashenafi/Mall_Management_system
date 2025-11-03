@@ -239,7 +239,7 @@ export const updatePayment = async (req, res) => {
       userId: req.user.userId,
       action: "updated",
       tableName: "Payment",
-      recordId: updated.id,
+      recordId: updated.paymentId,
       oldValue: existing,
       newValue: updated,
     });
@@ -247,6 +247,252 @@ export const updatePayment = async (req, res) => {
     res.json({ success: true, payment: updated });
   } catch (err) {
     console.error("updatePayment error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// payment request
+// ✅ Create Payment Request (Tenant)
+export const createPaymentRequest = async (req, res) => {
+  try {
+    const {
+      userId,
+      invoiceId,
+      utilityInvoiceId,
+      amount,
+      method,
+      reference,
+      paymentDate,
+    } = req.body;
+
+    // ✅ Handle proof file if uploaded
+    let proofFilePath = null;
+    if (req.file) {
+      proofFilePath = `/uploads/${req.file.filename}`;
+    }
+
+    // ✅ Validate tenant exists using userId
+    const tenant = await prisma.tenant.findFirst({
+      where: { userId: Number(userId) },
+      include: { user: true },
+    });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    // ✅ Create payment request
+    const paymentRequest = await prisma.paymentRequest.create({
+      data: {
+        tenantId: tenant.tenantId,
+        invoiceId: invoiceId ? Number(invoiceId) : null,
+        utilityInvoiceId: utilityInvoiceId ? Number(utilityInvoiceId) : null,
+        amount: Number(amount),
+        method,
+        reference,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        proofFilePath,
+        status: "Pending",
+      },
+    });
+
+    // ✅ Log audit trail
+    if (req.user && req.user.userId) {
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "PaymentRequest",
+        recordId: paymentRequest.id,
+        newValue: paymentRequest,
+      });
+    }
+
+    // ✅ Notify all Admins and SuperAdmins
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["Admin", "SuperAdmin"] } },
+    });
+
+    const adminNotifications = admins.map((admin) =>
+      createNotification({
+        userId: admin.userId,
+        tenantId: tenant.tenantId,
+        type: "PaymentRequest",
+        message: `Tenant ${
+          tenant.user?.username || tenant.tenantId
+        } requested a payment of ${amount} ETB.`,
+        sentVia: "System",
+      })
+    );
+
+    await Promise.all(adminNotifications);
+
+    res.status(201).json({
+      success: true,
+      message: "Payment request created successfully",
+      paymentRequest,
+    });
+  } catch (err) {
+    console.error("createPaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const handlePaymentRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+
+    // ✅ Fetch existing payment request
+    const paymentRequest = await prisma.paymentRequest.findUnique({
+      where: { requestId: Number(id) },
+      include: {
+        tenant: { include: { user: true } },
+      },
+    });
+
+    if (!paymentRequest)
+      return res.status(404).json({ message: "Payment Request not found" });
+
+    // ✅ Update status and admin note
+    const updatedRequest = await prisma.paymentRequest.update({
+      where: { requestId: Number(id) },
+      data: { status, adminNote },
+    });
+
+    // ✅ Log audit for update
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "updated",
+      tableName: "PaymentRequest",
+      recordId: Number(id),
+      oldValue: paymentRequest,
+      newValue: updatedRequest,
+    });
+
+    // ✅ If approved, create a new Payment
+    if (status === "Approved") {
+      const {
+        invoiceId,
+        utilityInvoiceId,
+        amount,
+        method,
+        tenantId,
+        reference,
+      } = paymentRequest;
+
+      // Create Payment record
+      const payment = await prisma.payment.create({
+        data: {
+          invoiceId,
+          utilityInvoiceId,
+          amount,
+          method,
+          reference,
+          status: "Confirmed",
+          paymentDate: new Date(),
+        },
+      });
+
+      // Update related invoice/utility invoice
+      if (invoiceId) {
+        await prisma.invoice.update({
+          where: { invoiceId },
+          data: { status: "Paid" },
+        });
+      }
+      if (utilityInvoiceId) {
+        await prisma.utilityInvoice.update({
+          where: { id: utilityInvoiceId },
+          data: { status: "Paid" },
+        });
+      }
+
+      // Log audit for payment creation
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "Payment",
+        recordId: payment.paymentId,
+        newValue: payment,
+      });
+
+      // ✅ Notify Tenant about approval
+      await createNotification({
+        tenantId,
+        userId: paymentRequest?.tenant?.user?.userId || null,
+        type: "PaymentConfirmation",
+        message: `Your payment request of ${amount} ETB has been approved and recorded as a payment.`,
+        sentVia: "System",
+      });
+
+      return res.json({
+        success: true,
+        message: "Payment request approved and payment created.",
+        paymentRequest: updatedRequest,
+        payment,
+      });
+    }
+
+    // ✅ If declined
+    if (status === "Declined") {
+      await createNotification({
+        tenantId: paymentRequest.tenantId,
+        userId: paymentRequest.tenant.user?.userId || null,
+        type: "PaymentDeclined",
+        message: `Your payment request of ${paymentRequest.amount} ETB has been declined by admin.`,
+        sentVia: "System",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Payment request ${status.toLowerCase()} successfully.`,
+      paymentRequest: updatedRequest,
+    });
+  } catch (err) {
+    console.error("handlePaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+/**
+ * Get All Payment Requests
+ */
+export const getPaymentRequests = async (req, res) => {
+  try {
+    const requests = await prisma.paymentRequest.findMany({
+      include: {
+        tenant: { include: { user: true } },
+        invoice: true,
+        utilityInvoice: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ success: true, requests });
+  } catch (err) {
+    console.error("getPaymentRequests error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * Get Payment Request by ID
+ */
+export const getPaymentRequestById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await prisma.paymentRequest.findUnique({
+      where: { id: Number(id) },
+      include: {
+        tenant: { include: { user: true } },
+        invoice: true,
+        utilityInvoice: true,
+      },
+    });
+
+    if (!request)
+      return res.status(404).json({ message: "Payment Request not found" });
+
+    res.json({ success: true, request });
+  } catch (err) {
+    console.error("getPaymentRequestById error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

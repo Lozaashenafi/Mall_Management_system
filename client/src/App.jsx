@@ -44,6 +44,7 @@ import SocketTest from "./SocketTest";
 import RentRenewal from "./pages/RentRenewal";
 import UtiliySummary from "./pages/UtilitySummary";
 import AddUtilityPayment from "./pages/AddUtilityPayment";
+import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
 
 function App() {
   return (
@@ -120,6 +121,8 @@ function App() {
             <Route path="invoice" element={<TenantUtilityPage />} />
             <Route path="maintenance" element={<TenantMaintenance />} />
             <Route path="notifications" element={<TenantNotifications />} />
+            <Route path="request/:type/:id" element={<AddPaymentRequest />} />
+
             <Route
               path="terminate-request"
               element={<TenantTerminateRequest />}

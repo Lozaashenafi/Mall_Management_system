@@ -75,6 +75,8 @@ enum NotificationType {
   RenewalReminder
   OverduePayment
   PaymentConfirmation
+  PaymentDeclined
+  PaymentRequest
   UtilityAlert
   SystemAlert
 }

@@ -142,7 +142,7 @@ const PaymentRequests = () => {
   const outstandingBalance = totalInvoiced - totalPaid;
   // Today
   const today = new Date();
-
+  const user = JSON.parse(localStorage.getItem("user"));
   // 1. Get all unpaid invoices
   let unpaidInvoices = allInvoices
     .filter((inv) => inv.status !== "Paid")
@@ -274,6 +274,48 @@ const PaymentRequests = () => {
       )}
     </div>
   );
+  const TenantPaymentRequests = () => {
+    const tenantPaymentRequests = user.rentals.flatMap((rental) => {
+      const rentRequests = rental.invoices.flatMap(
+        (inv) => inv.paymentRequest || []
+      );
+      const utilityRequests = rental.utilityInvoices.flatMap(
+        (ui) => ui.paymentRequest || []
+      );
+      return [...rentRequests, ...utilityRequests];
+    });
+
+    return (
+      <div className="mt-6 p-5 rounded-xl border bg-white dark:bg-gray-800 shadow-md">
+        <h2 className="text-lg font-semibold mb-4">Your Payment Requests</h2>
+        {tenantPaymentRequests.length === 0 ? (
+          <p className="text-gray-500">No payment requests submitted yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+            {tenantPaymentRequests.map((req) => (
+              <li key={req.requestId} className="py-2 flex justify-between">
+                <span>
+                  ${req.amount.toLocaleString()} via {req.method}{" "}
+                  {req.reference && `(${req.reference})`}
+                </span>
+                <span
+                  className={`font-semibold ${
+                    req.status === "Pending"
+                      ? "text-yellow-600"
+                      : req.status === "Approved"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {req.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  };
 
   const UpcomingPayment = () => (
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
@@ -438,6 +480,9 @@ const PaymentRequests = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InvoiceHistory />
         <RecentPaymentActivity />
+      </div>
+      <div className="mt-6">
+        <TenantPaymentRequests />
       </div>
     </div>
   );
