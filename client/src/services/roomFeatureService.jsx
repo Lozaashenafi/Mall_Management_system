@@ -3,6 +3,7 @@ import api from "../util/axios";
 // ---- Feature Type APIs ----
 export const getFeatureTypes = async () => {
   const res = await api.get("/roomfeature/type");
+  console.log(res);
   return res.data;
 };
 

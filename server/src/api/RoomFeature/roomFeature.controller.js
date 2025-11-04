@@ -111,15 +111,26 @@ export const getRoomFeatureType = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const getRoomFeatureById = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("RoomFeature ID param:", id); // 👈 Add this log
+
+    if (!id || isNaN(id)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid roomFeatureId parameter" });
+    }
+
     const roomFeature = await prisma.roomFeature.findUnique({
       where: { roomFeatureId: Number(id) },
       include: { room: true, featureType: true },
     });
+
     if (!roomFeature)
       return res.status(404).json({ message: "RoomFeature not found" });
+
     res.json({ success: true, roomFeature });
   } catch (err) {
     console.error("getRoomFeatureById error:", err);
@@ -129,11 +140,8 @@ export const getRoomFeatureById = async (req, res) => {
 
 export const updateRoomFeature = async (req, res) => {
   try {
-    const { error, value } = roomFeatureSchema.update.validate(req.body);
-    if (error)
-      return res.status(400).json({ message: error.details[0].message });
-
     const { id } = req.params;
+    const { value } = req.body;
     const existing = await prisma.roomFeature.findUnique({
       where: { roomFeatureId: Number(id) },
     });
@@ -232,6 +240,35 @@ export const deleteRoomFeature = async (req, res) => {
     res.json({ success: true, message: "RoomFeature deleted" });
   } catch (err) {
     console.error("deleteRoomFeature error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const deleteRoomFeatureType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.roomFeatureType.findUnique({
+      where: { featureTypeId: Number(id) },
+    });
+    if (!existing)
+      return res.status(404).json({ message: "RoomFeatureType not found" });
+
+    await prisma.roomFeatureType.delete({
+      where: { featureTypeId: Number(id) },
+    });
+
+    // Audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "deleted",
+      tableName: "RoomFeature",
+      recordId: existing.featureTypeId,
+      oldValue: existing,
+    });
+
+    res.json({ success: true, message: "RoomFeatureType deleted" });
+  } catch (err) {
+    console.error("deleteRoomFeaturetype error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

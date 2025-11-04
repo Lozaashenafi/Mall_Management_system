@@ -13,13 +13,24 @@ export const addTenant = async (req, res) => {
 
     const { companyName, contactPerson, phone, email, tinNumber, vatNumber } =
       req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    // Check if tenant already exists
-    const existingTenant = await prisma.tenant.findFirst({ where: { email } });
+    const existingTenant = await prisma.tenant.findFirst({
+      where: { email: normalizedEmail },
+    });
     if (existingTenant)
       return res
         .status(400)
         .json({ message: "Tenant with this email already exists" });
+
+    // Check if user already exists with this email
+    const existingUser = await prisma.user.findFirst({
+      where: { email: normalizedEmail },
+    });
+    if (existingUser)
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
 
     // ✅ Handle file uploads
     const files = req.files || {};
@@ -33,6 +44,7 @@ export const addTenant = async (req, res) => {
     // Generate password & create linked user
     const plainPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
+    // chack email
 
     const user = await prisma.user.create({
       data: {

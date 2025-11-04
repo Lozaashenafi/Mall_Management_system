@@ -48,30 +48,19 @@ export default function RoomFeatureManage() {
         getRooms(),
       ]);
 
-      // Feature types
-      if (typesRes.status === "fulfilled") {
-        // service expected shape: { success: true, featureTypes: [...] } or direct [...]
-        const types = typesRes.value.featureTypes ?? typesRes.value;
-        setFeatureTypes(types || []);
-      } else {
-        toast.error("Failed to load feature types");
-      }
+      const types =
+        typesRes.value?.featureTypes ??
+        typesRes.value?.data?.featureTypes ??
+        [];
+      const features =
+        featuresRes.value?.roomFeatures ??
+        featuresRes.value?.data?.roomFeatures ??
+        [];
+      const rooms = roomsRes.value?.rooms ?? roomsRes.value?.data?.rooms ?? [];
 
-      // Room features
-      if (featuresRes.status === "fulfilled") {
-        const fs = featuresRes.value.roomFeatures ?? featuresRes.value;
-        setFeatures(fs || []);
-      } else {
-        toast.error("Failed to load room features");
-      }
-
-      // Rooms
-      if (roomsRes.status === "fulfilled") {
-        const rs = roomsRes.value.rooms ?? roomsRes.value;
-        setRooms(rs || []);
-      } else {
-        toast.error("Failed to load rooms");
-      }
+      setFeatureTypes(types);
+      setFeatures(features);
+      setRooms(rooms);
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch data");
