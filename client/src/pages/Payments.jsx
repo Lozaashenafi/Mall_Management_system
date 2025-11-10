@@ -15,6 +15,7 @@ import {
   deletePayment,
   updatePayment,
   updateInvoice,
+  DownloadInvoice,
 } from "../services/paymentService";
 import UpdatePaymentStatus from "../components/UpdatePaymentStatus";
 import {
@@ -32,6 +33,27 @@ export default function Payments() {
   const [editingItem, setEditingItem] = useState(null);
   const [editData, setEditData] = useState({});
   const [paymentRequests, setPaymentRequests] = useState([]);
+
+  const handleDownloadInvoice = async (invoiceId) => {
+    const toastId = toast.loading("Downloading invoice...");
+
+    try {
+      const data = await DownloadInvoice(invoiceId);
+
+      // create a download link
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice_${invoiceId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Invoice downloaded!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download invoice", { id: toastId });
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -211,13 +233,13 @@ export default function Payments() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-2 text-left">Rental</th>
+                  <th className="px-4 py-2">Tenant</th>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Base Rent</th>
-                  <th className="px-4 py-2">Tax</th>
-                  <th className="px-4 py-2">Total</th>
+                  <th className="px-4 py-2">Tax Amount</th>
+                  <th className="px-4 py-2">Total Amount</th>
                   <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Actions</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,6 +276,13 @@ export default function Payments() {
                           className="p-1 rounded hover:bg-gray-100"
                         >
                           <Edit className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadInvoice(inv.invoiceId)}
+                          className="p-1 rounded hover:bg-gray-100"
+                          title="Download Invoice PDF"
+                        >
+                          <FileText className="w-4 h-4 text-purple-600" />
                         </button>
                       </td>
                     </tr>

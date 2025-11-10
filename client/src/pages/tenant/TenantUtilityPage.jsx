@@ -25,7 +25,12 @@ import {
   Legend,
 } from "chart.js";
 import { useAuth } from "../../context/AuthContext";
-import { utilityForTenant } from "../../services/utilityService";
+import {
+  DownloadUtilityInvoice,
+  utilityForTenant,
+} from "../../services/utilityService";
+import toast from "react-hot-toast";
+import { DownloadInvoice } from "../../services/paymentService";
 
 ChartJS.register(
   CategoryScale,
@@ -70,7 +75,49 @@ const UtilityPage = () => {
     setPaymentMethod("telebirr");
     setPaymentFile(null);
   };
+  const handleDownloadInvoice = async (invoiceId) => {
+    const toastId = toast.loading("Downloading invoice...");
 
+    try {
+      const data = await DownloadInvoice(invoiceId);
+
+      // create a download link
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice_${invoiceId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Invoice downloaded!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download invoice", { id: toastId });
+    }
+  };
+  const handleDownloadUtilityInvoice = async (invoiceId) => {
+    const toastId = toast.loading("Preparing your invoice...");
+
+    try {
+      const blob = await DownloadUtilityInvoice(invoiceId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `utility-invoice-${invoiceId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Invoice downloaded successfully!", { id: toastId });
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error(err.response?.data?.message || "Failed to download invoice", {
+        id: toastId,
+      });
+    }
+  };
   const handleSubmitPayment = async () => {
     try {
       console.log("Paying invoice:", selectedInvoice.invoiceId);
@@ -251,6 +298,7 @@ const UtilityPage = () => {
         invoices={utilityInvoices}
         getIcon={getIconForType}
         onPayClick={handlePayClick}
+        onUtilityDownloadClick={handleDownloadUtilityInvoice}
       />
 
       {/* Rent Invoices Table */}
@@ -259,6 +307,7 @@ const UtilityPage = () => {
         invoices={rentInvoices}
         getIcon={() => null}
         onPayClick={handlePayClick}
+        onDownloadClick={handleDownloadInvoice}
         isRent
       />
 
@@ -356,6 +405,8 @@ const InvoiceTable = ({
   title,
   invoices,
   getIcon,
+  onDownloadClick, // <-- add this
+  onUtilityDownloadClick,
   onPayClick,
   isRent = false,
 }) => {
@@ -428,7 +479,7 @@ const InvoiceTable = ({
                     >
                       {inv.status}
                     </td>
-                    <td className="p-2 text-right">
+                    <td className="p-2 text-right flex gap-2 justify-end">
                       {inv.status === "Unpaid" ? (
                         <button
                           onClick={() => onPayClick(inv)}
@@ -437,8 +488,17 @@ const InvoiceTable = ({
                           Pay Now
                         </button>
                       ) : (
-                        <span className="text-sm text-gray-500">Paid</span>
+                        <span className="text-sm text-gray-500 flex items-center">
+                          Paid
+                        </span>
                       )}
+
+                      <button
+                        onClick={() => onDownloadClick(inv.invoiceId)}
+                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                      >
+                        Download
+                      </button>
                     </td>
                   </>
                 ) : (
@@ -459,7 +519,8 @@ const InvoiceTable = ({
                       {inv.status}
                     </td>
                     <td className="p-2">{formatDate(inv.createdAt)}</td>
-                    <td className="p-2 text-right">
+
+                    <td className="p-2 text-right flex gap-2 justify-end">
                       {inv.status.toLowerCase() === "unpaid" ? (
                         <button
                           onClick={() => onPayClick(inv)}
@@ -470,6 +531,12 @@ const InvoiceTable = ({
                       ) : (
                         <span className="text-sm text-gray-500">Paid</span>
                       )}
+                      <button
+                        onClick={() => onUtilityDownloadClick(inv.id)}
+                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                      >
+                        Download
+                      </button>
                     </td>
                   </>
                 )}

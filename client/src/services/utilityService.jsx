@@ -11,6 +11,19 @@ export const getSummaryUtilityCharges = async (month) => {
     );
   }
 };
+export const DownloadUtilityInvoice = async (invoiceId) => {
+  try {
+    const res = await api.get(`/utilities/invoice/${invoiceId}/pdf`, {
+      responseType: "blob", // ensure Axios returns a Blob
+    });
+    return res.data; // return the PDF blob
+  } catch (error) {
+    console.error("Error downloading utility invoice:", error);
+    throw (
+      error.response?.data || { message: "Failed to create utility invoice" }
+    );
+  }
+};
 
 export const generateUtilityCharge = async (month) => {
   try {

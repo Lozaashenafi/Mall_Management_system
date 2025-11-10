@@ -2,50 +2,36 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard,
+  BarChart3,
   Users,
   Building2,
+  Home,
+  Puzzle,
   DollarSign,
   Wrench,
   FileText,
-  BarChart3,
   Bell,
   Settings,
   Receipt,
   History,
+  Power,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Lightbulb,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const baseSidebarItems = [
-  { title: "Dashboard", icon: LayoutDashboard, url: "/" },
-  { title: "Reports", icon: FileText, url: "/reports" },
-  { title: "Tenants", icon: Users, url: "/manage-tenants" },
-  { title: "Rooms", icon: Building2, url: "/manage-rooms" },
-  { title: "RoomFeature", icon: Building2, url: "/manage-roomfeature" },
-  { title: "Rentals", icon: Building2, url: "/manage-rentals" },
-  { title: "Payments", icon: DollarSign, url: "/payments" },
-  { title: "Maintenance", icon: Wrench, url: "/maintenance" },
-  { title: "Expenses", icon: Receipt, url: "/expenses" },
-  { title: "Utilities", icon: DollarSign, url: "/utilities" },
-  { title: "Logs", icon: History, url: "/logs" },
-  { title: "Terminate Requests ", icon: Receipt, url: "/terminate" },
-
-  { title: "Notifications", icon: Bell, url: "/notifications" },
-  { title: "Settings", icon: Settings, url: "/settings" },
-];
-
-// Extra items only for SuperAdmin
-const superAdminItems = [{ title: "Users", icon: Users, url: "/manage-users" }];
-
 export function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
-
+  const { theme } = useTheme();
   const { user } = useAuth();
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   useEffect(() => {
     setMounted(true);
@@ -53,20 +39,55 @@ export function Sidebar({ collapsed, onToggle }) {
 
   if (!mounted) return null;
 
-  // Build final sidebar items based on role
-  let sidebarItems = [...baseSidebarItems];
-  console.log("User role:", user?.role);
-  if (user?.role === "SuperAdmin") {
-    sidebarItems = [...superAdminItems, ...sidebarItems];
-  }
+  // Grouped menu structure
+  const groupedItems = [
+    {
+      title: "Overview",
+      icon: BarChart3,
+      items: [
+        { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+        { title: "Reports", icon: FileText, url: "/reports" },
+      ],
+    },
+    {
+      title: "Room Management",
+      icon: Home,
+      items: [
+        { title: "Rooms", icon: Building2, url: "/manage-rooms" },
+        { title: "Room Features", icon: Puzzle, url: "/manage-roomfeature" },
+      ],
+    },
+    {
+      title: "Operations",
+      icon: ClipboardList,
+      items: [
+        { title: "Rentals", icon: Receipt, url: "/manage-rentals" },
+        { title: "Payments", icon: DollarSign, url: "/payments" },
+        { title: "Maintenance", icon: Wrench, url: "/maintenance" },
+        { title: "Expenses", icon: FileText, url: "/expenses" },
+        { title: "Utilities", icon: Lightbulb, url: "/utilities" },
+        { title: "Tenants", icon: Users, url: "/manage-tenants" }, // ✅ added here
+        { title: "Terminate Requests", icon: Power, url: "/terminate" },
+      ],
+    },
+    {
+      title: "Users & Settings",
+      icon: Users,
+      items: [
+        ...(user?.role === "SuperAdmin"
+          ? [{ title: "Users", icon: Users, url: "/manage-users" }]
+          : []),
+        { title: "Logs", icon: History, url: "/logs" },
+        { title: "Notifications", icon: Bell, url: "/notifications" },
+        { title: "Settings", icon: Settings, url: "/settings" },
+      ],
+    },
+  ];
 
   const SidebarContent = (
     <div className="h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 dark:bg-gray-900 dark:border-gray-700">
       {/* Header */}
-      <div
-        className="p-4 border-b border-gray-200 flex items-center justify-between
-                   dark:border-gray-700"
-      >
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between dark:border-gray-700">
         {!collapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-500 rounded-lg flex items-center justify-center">
@@ -97,30 +118,53 @@ export function Sidebar({ collapsed, onToggle }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {sidebarItems.map((item) => {
-          const isActive = location.pathname === item.url;
+        {groupedItems.map((group) => {
+          const isOpen = openDropdown === group.title;
+
           return (
-            <NavLink
-              key={item.title}
-              to={item.url}
-              className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative
-                ${
-                  isActive
-                    ? "bg-gray-200 dark:bg-gray-800 text-black dark:text-white shadow-sm"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
-                }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <item.icon
-                className={`flex-shrink-0 w-5 h-5 transition-colors ${
-                  collapsed ? "mx-auto" : "mr-3"
-                }`}
-              />
-              {!collapsed && <span className="truncate">{item.title}</span>}
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-purple-500 rounded-r-full" />
+            <div key={group.title}>
+              <button
+                onClick={() => setOpenDropdown(isOpen ? null : group.title)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+                  text-gray-700 hover:text-purple-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white`}
+              >
+                <div className="flex items-center">
+                  <group.icon className="w-5 h-5 mr-3" />
+                  {!collapsed && <span>{group.title}</span>}
+                </div>
+                {!collapsed &&
+                  (isOpen ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  ))}
+              </button>
+
+              {/* Dropdown content */}
+              {isOpen && !collapsed && (
+                <div className="pl-10 space-y-1 mt-1">
+                  {group.items.map((item) => {
+                    const isActive = location.pathname === item.url;
+                    return (
+                      <NavLink
+                        key={item.title}
+                        to={item.url}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center px-2 py-2 rounded-md text-sm transition-all duration-200
+                          ${
+                            isActive
+                              ? "bg-purple-100 dark:bg-purple-700 text-purple-600 dark:text-white"
+                              : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4 mr-2" />
+                        {item.title}
+                      </NavLink>
+                    );
+                  })}
+                </div>
               )}
-            </NavLink>
+            </div>
           );
         })}
       </nav>

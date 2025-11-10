@@ -10,6 +10,7 @@ import {
   FiLoader,
 } from "react-icons/fi";
 import {
+  DownloadUtilityInvoice,
   generateUtilityCharge,
   getSummaryUtilityCharges,
   getTenantsInvoicesOfMonth,
@@ -30,6 +31,7 @@ export default function UtilitySummary() {
   const [charges, setCharges] = useState([]);
   const [tenantInvoices, setTenantInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const navigate = useNavigate();
 
   const fetchTenantInvoices = async () => {
@@ -65,6 +67,29 @@ export default function UtilitySummary() {
       setCharges(data);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch charges");
+    }
+  };
+  const handleDownloadInvoice = async (invoiceId) => {
+    const toastId = toast.loading("Preparing your invoice...");
+
+    try {
+      const blob = await DownloadUtilityInvoice(invoiceId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `utility-invoice-${invoiceId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Invoice downloaded successfully!", { id: toastId });
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error(err.response?.data?.message || "Failed to download invoice", {
+        id: toastId,
+      });
     }
   };
 
@@ -234,7 +259,7 @@ export default function UtilitySummary() {
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {tenantInvoices.map((invoice) => (
                   <tr
-                    key={invoice.id} // make sure your invoice model has `id`
+                    key={invoice.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-800 transition duration-150"
                   >
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
@@ -258,14 +283,33 @@ export default function UtilitySummary() {
                       </span>
                     </td>
 
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-sm flex items-center gap-2">
+                      {/* ✅ Only show Pay button if not paid */}
+                      {invoice.status.toLowerCase() !== "paid" && (
+                        <button
+                          onClick={() =>
+                            navigate(`/add-utility-payment/${invoice.id}`)
+                          }
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                        >
+                          Pay
+                        </button>
+                      )}
+
                       <button
-                        onClick={() =>
-                          navigate(`/add-utility-payment/${invoice.id}`)
-                        }
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                        onClick={() => handleDownloadInvoice(invoice.id)}
+                        disabled={downloadingId === invoice.id}
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center gap-1"
                       >
-                        Pay
+                        {downloadingId === invoice.id ? (
+                          <>
+                            <FiLoader className="animate-spin" /> Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <FiLoader /> Download
+                          </>
+                        )}
                       </button>
                     </td>
                   </tr>

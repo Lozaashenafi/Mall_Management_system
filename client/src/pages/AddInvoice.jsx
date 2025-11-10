@@ -9,7 +9,7 @@ export default function AddInvoice() {
   const navigate = useNavigate();
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [originalRent, setOriginalRent] = useState(0); // total rent from rental table
+  const [originalRent, setOriginalRent] = useState(0);
 
   const [formData, setFormData] = useState({
     rentId: "",

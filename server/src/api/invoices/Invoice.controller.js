@@ -2,7 +2,30 @@ import prisma from "../../config/prismaClient.js";
 import invoiceSchema from "./Invoice.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
 import { createNotification } from "../notification/notification.service.js";
+import { generateInvoicePdf } from "../../../pdfService.js";
+import path from "path";
 
+export const downloadInvoicePdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.invoice.findUnique({
+      where: { invoiceId: Number(id) },
+      include: { rental: { include: { tenant: true, room: true } } },
+    });
+
+    if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+    const pdfPath = await generateInvoicePdf(invoice);
+    const absolutePath = path.join(process.cwd(), pdfPath);
+
+    res.download(absolutePath, `invoice-${invoice.invoiceId}.pdf`);
+  } catch (err) {
+    console.error("downloadInvoicePdf error:", err);
+    res
+      .status(500)
+      .json({ message: "Failed to generate PDF", error: err.message });
+  }
+};
 // ✅ Create Manual Invoice
 export const createInvoice = async (req, res) => {
   try {

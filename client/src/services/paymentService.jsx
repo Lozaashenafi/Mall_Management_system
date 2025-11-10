@@ -1,5 +1,16 @@
 import api from "../util/axios";
 
+export const DownloadInvoice = async (invoiceId) => {
+  try {
+    const res = await api.get(`/invoice/${invoiceId}/pdf`, {
+      responseType: "blob", // important!
+    });
+    return res.data; // <- correct
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to create invoice" };
+  }
+};
+
 export const createPayment = async (paymentData) => {
   try {
     const res = await api.post("/payments", paymentData, {

@@ -1,6 +1,40 @@
 import prisma from "../../config/prismaClient.js";
 import dayjs from "dayjs";
 import { createNotification } from "../notification/notification.service.js";
+import path from "path";
+import { generateUtilityInvoicePdf } from "../../../pdfGenerator.utility.js";
+
+export const downloadUtilityInvoicePdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.utilityInvoice.findUnique({
+      where: { id: Number(id) },
+      include: {
+        rental: {
+          include: {
+            tenant: true,
+            room: true,
+          },
+        },
+        utilityCharge: true,
+      },
+    });
+
+    if (!invoice)
+      return res.status(404).json({ message: "Utility invoice not found" });
+
+    const pdfPath = await generateUtilityInvoicePdf(invoice);
+    const absolutePath = path.join(process.cwd(), pdfPath);
+
+    res.download(absolutePath, `utility-invoice-${invoice.id}.pdf`);
+  } catch (err) {
+    console.error("downloadUtilityInvoicePdf error:", err);
+    res.status(500).json({
+      message: "Failed to generate Utility Invoice PDF",
+      error: err.message,
+    });
+  }
+};
 
 export const getMonthlyUtilitySummary = async (req, res) => {
   try {
@@ -137,7 +171,6 @@ export const generateUtilityCharge = async (req, res) => {
       .json({ message: "Error generating utility charges" });
   }
 };
-
 export const getUtilityCharges = async (req, res) => {
   try {
     const charges = await prisma.utilityCharge.findMany({

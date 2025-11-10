@@ -129,14 +129,30 @@ export default function AddTenant() {
 
           <div>
             <label className="block text-sm font-medium mb-1">TIN Number</label>
-            <input
-              type="text"
-              name="tinNumber"
-              value={formData.tinNumber}
-              onChange={handleChange}
-              placeholder="123456789"
-              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="tinNumber"
+                value={formData.tinNumber}
+                onChange={handleChange}
+                placeholder="123456789"
+                className="flex-1 border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!formData.tinNumber) {
+                    toast.error("Please enter a TIN number first!");
+                    return;
+                  }
+                  const tinUrl = `https://etrade.gov.et/business-license-checker?tin=${formData.tinNumber}`;
+                  window.open(tinUrl, "_blank");
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
+              >
+                Check
+              </button>
+            </div>
           </div>
 
           <div>

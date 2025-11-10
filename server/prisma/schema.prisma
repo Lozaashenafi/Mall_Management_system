@@ -240,6 +240,7 @@ model Invoice {
   taxAmount     Float?
   totalAmount   Float
   status        InvoiceStatus
+  pdfUrl        String? 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   rental        Rental        @relation(fields: [rentId], references: [rentId])
@@ -377,4 +378,12 @@ model PaymentRequest {
   tenant           Tenant               @relation(fields: [tenantId], references: [tenantId])
   invoice          Invoice?             @relation(fields: [invoiceId], references: [invoiceId])
   utilityInvoice   UtilityInvoice?      @relation(fields: [utilityInvoiceId], references: [id])
+}
+
+model AgreementTemplate {
+  templateId  Int      @id @default(autoincrement())
+  name        String
+  content     String   
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
