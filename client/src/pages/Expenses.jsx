@@ -6,45 +6,54 @@ import {
   createExpense,
   deleteExpense,
   updateExpense,
+  getUtilityTypes,
 } from "../services/expenseService";
 import { useAuth } from "../context/AuthContext";
 
 export default function Expenses() {
   const { user } = useAuth();
 
-  const utilityTypes = [
-    "Generator",
-    "Water",
-    "Electricity",
-    "Service",
-    "Other",
-  ];
-  const [showDetailPopup, setShowDetailPopup] = useState(false);
-  const [detailExpense, setDetailExpense] = useState(null);
-
+  const [utilityTypes, setUtilityTypes] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showDetailPopup, setShowDetailPopup] = useState(false);
+
   const [newExpense, setNewExpense] = useState({
-    type: "",
+    utilityTypeId: "",
     description: "",
     amount: "",
     date: "",
     invoice: null,
   });
 
-  const [showEditPopup, setShowEditPopup] = useState(false);
   const [editExpense, setEditExpense] = useState(null);
+  const [detailExpense, setDetailExpense] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const expensesPerPage = 5;
 
+  // Fetch expenses and utility types
   useEffect(() => {
+    fetchUtilityTypes();
     fetchExpenses();
   }, []);
+
+  const fetchUtilityTypes = async () => {
+    try {
+      const res = await getUtilityTypes();
+      console.log(res);
+      setUtilityTypes(res.utilityTypes || []);
+    } catch (err) {
+      toast.error("Failed to fetch utility types");
+      console.error(err);
+    }
+  };
 
   const fetchExpenses = async () => {
     try {
       const data = await getExpenses();
+      console.log(data);
       setExpenses(data);
     } catch (err) {
       toast.error("Failed to fetch expenses");
@@ -52,7 +61,7 @@ export default function Expenses() {
     }
   };
 
-  // Input change
+  // Input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewExpense((prev) => ({ ...prev, [name]: value }));
@@ -62,12 +71,17 @@ export default function Expenses() {
     setNewExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
   };
 
-  // Add Expense
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditExpense((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Add expense
   const handleAddExpense = async (e) => {
     e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append("type", newExpense.type);
+      formData.append("utilityTypeId", newExpense.utilityTypeId);
       formData.append("description", newExpense.description);
       formData.append("amount", parseFloat(newExpense.amount) || 0);
       formData.append("date", new Date(newExpense.date).toISOString());
@@ -77,7 +91,7 @@ export default function Expenses() {
       const res = await createExpense(formData);
       setExpenses((prev) => [res.expense, ...prev]);
       setNewExpense({
-        type: "",
+        utilityTypeId: "",
         description: "",
         amount: "",
         date: "",
@@ -91,23 +105,7 @@ export default function Expenses() {
     }
   };
 
-  // Delete Expense
-  const handleDeleteExpense = async (id) => {
-    const confirm = window.confirm(
-      "Are you sure you want to delete this expense?"
-    );
-    if (!confirm) return;
-    try {
-      await deleteExpense(id);
-      setExpenses((prev) => prev.filter((e) => e.expenseId !== id));
-      toast.success("Expense deleted!");
-    } catch (err) {
-      toast.error("Failed to delete expense");
-      console.error(err);
-    }
-  };
-
-  // Edit Expense
+  // Edit expense
   const handleEditClick = (expense) => {
     setEditExpense({
       ...expense,
@@ -117,16 +115,11 @@ export default function Expenses() {
     setShowEditPopup(true);
   };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditExpense((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleEditSave = async (e) => {
     e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append("type", editExpense.type);
+      formData.append("utilityTypeId", editExpense.utilityTypeId);
       formData.append("description", editExpense.description);
       formData.append("amount", parseFloat(editExpense.amount) || 0);
       formData.append("date", new Date(editExpense.date).toISOString());
@@ -145,11 +138,30 @@ export default function Expenses() {
       console.error(err);
     }
   };
+
+  // Delete expense
+  const handleDeleteExpense = async (id) => {
+    const confirm = window.confirm(
+      "Are you sure you want to delete this expense?"
+    );
+    if (!confirm) return;
+    try {
+      await deleteExpense(id);
+      setExpenses((prev) => prev.filter((e) => e.expenseId !== id));
+      toast.success("Expense deleted!");
+    } catch (err) {
+      toast.error("Failed to delete expense");
+      console.error(err);
+    }
+  };
+
+  // View details
   const handleViewDetail = (expense) => {
     setDetailExpense(expense);
     setShowDetailPopup(true);
   };
 
+  // Pagination
   const indexOfLast = currentPage * expensesPerPage;
   const indexOfFirst = indexOfLast - expensesPerPage;
   const currentExpenses = expenses.slice(indexOfFirst, indexOfLast);
@@ -183,16 +195,16 @@ export default function Expenses() {
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             <select
-              name="type"
-              value={newExpense.type}
+              name="utilityTypeId"
+              value={newExpense.utilityTypeId}
               onChange={handleInputChange}
               required
               className="col-span-1 md:col-span-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
             >
               <option value="">Select Type</option>
               {utilityTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+                <option key={type.id} value={type.id}>
+                  {type.name}
                 </option>
               ))}
             </select>
@@ -234,13 +246,7 @@ export default function Expenses() {
                   type="file"
                   name="invoice"
                   accept="image/*,application/pdf"
-                  onChange={(e) => {
-                    handleFileChange(e);
-                    setNewExpense((prev) => ({
-                      ...prev,
-                      invoice: e.target.files[0],
-                    }));
-                  }}
+                  onChange={handleFileChange}
                   className="hidden"
                 />
               </label>
@@ -256,7 +262,7 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* Expense List */}
+      {/* Expense Table */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <h2 className="text-lg font-semibold mb-4">Expense List</h2>
         <div className="overflow-x-auto">
@@ -276,13 +282,12 @@ export default function Expenses() {
                   key={exp.expenseId}
                   className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <td className="p-3 font-medium">{exp.type}</td>
+                  <td className="p-3 font-medium">{exp.utilityType?.name}</td>
                   <td className="p-3">{exp.description}</td>
                   <td className="p-3">${exp.amount.toFixed(2)}</td>
                   <td className="p-3">
                     {new Date(exp.date).toLocaleDateString()}
                   </td>
-
                   <td className="p-3 flex gap-2">
                     <button
                       onClick={() => handleEditClick(exp)}
@@ -333,26 +338,27 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* Edit Expense Popup */}
+      {/* Edit & Detail Popups */}
       {showEditPopup && editExpense && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
             <h2 className="text-lg font-semibold mb-4">Edit Expense</h2>
             <form onSubmit={handleEditSave} className="space-y-4">
               <select
-                name="type"
-                value={editExpense.type}
+                name="utilityTypeId"
+                value={editExpense.utilityTypeId}
                 onChange={handleEditChange}
                 required
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
               >
                 <option value="">Select Type</option>
                 {utilityTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+                  <option key={type.id} value={type.id}>
+                    {type.name}
                   </option>
                 ))}
               </select>
+
               <input
                 type="text"
                 name="description"
@@ -379,42 +385,31 @@ export default function Expenses() {
                 required
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
               />
+
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Invoice
                 </label>
                 <label className="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
                   📎{" "}
-                  {newExpense.invoice
-                    ? newExpense.invoice.name
+                  {editExpense.invoice
+                    ? editExpense.invoice.name
                     : "Choose Invoice"}
                   <input
                     type="file"
                     name="invoice"
                     accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      handleFileChange(e);
-                      setNewExpense((prev) => ({
+                    onChange={(e) =>
+                      setEditExpense((prev) => ({
                         ...prev,
                         invoice: e.target.files[0],
-                      }));
-                    }}
+                      }))
+                    }
                     className="hidden"
                   />
                 </label>
               </div>
 
-              {editExpense.invoice &&
-                typeof editExpense.invoice === "string" && (
-                  <a
-                    href={`http://localhost:3000/${editExpense.invoice}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    View current invoice
-                  </a>
-                )}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -434,13 +429,14 @@ export default function Expenses() {
           </div>
         </div>
       )}
+
       {showDetailPopup && detailExpense && (
-        <div className="fixed inset-0 flex items-center justify-center  bg-black/50 dark:bg-black/60 bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
             <h2 className="text-lg font-semibold mb-4">Expense Details</h2>
-
             <p>
-              <strong>Type:</strong> {detailExpense.type}
+              <strong>Type:</strong>{" "}
+              {detailExpense.utilityType?.name || detailExpense.type}
             </p>
             <p>
               <strong>Description:</strong> {detailExpense.description}

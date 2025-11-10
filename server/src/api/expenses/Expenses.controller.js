@@ -4,6 +4,21 @@ import { createAuditLog } from "../../utils/audit.js";
 import path from "path";
 import fs from "fs";
 
+export const getUtilityTypes = async (req, res) => {
+  try {
+    const types = await prisma.utilityType.findMany({
+      orderBy: { name: "asc" },
+    });
+    res.json({
+      success: true,
+      utilityTypes: types,
+    });
+  } catch (err) {
+    console.error("getUtilityTypes error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 // Create a new utility expense with optional file
 export const createUtilityExpense = async (req, res) => {
   try {
@@ -11,16 +26,16 @@ export const createUtilityExpense = async (req, res) => {
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { type, description, amount, date, createdBy } = value;
+    const { utilityTypeId, description, amount, date, createdBy } = value;
 
     let invoicePath = null;
     if (req.file) {
-      invoicePath = req.file.path; // multer stores file path
+      invoicePath = req.file.path;
     }
 
     const expense = await prisma.utilityExpense.create({
       data: {
-        type,
+        utilityTypeId,
         description,
         amount,
         date: date ? new Date(date) : new Date(),
@@ -49,13 +64,13 @@ export const createUtilityExpense = async (req, res) => {
   }
 };
 
-// Get all utility expenses (filters: type, user, date)
+// Get all utility expenses
 export const getUtilityExpenses = async (req, res) => {
   try {
-    const { type, userId, startDate, endDate } = req.query;
+    const { utilityTypeId, userId, startDate, endDate } = req.query;
     const where = {};
 
-    if (type) where.type = type;
+    if (utilityTypeId) where.utilityTypeId = Number(utilityTypeId);
     if (userId) where.createdBy = Number(userId);
     if (startDate || endDate) where.date = {};
     if (startDate) where.date.gte = new Date(startDate);
@@ -63,7 +78,7 @@ export const getUtilityExpenses = async (req, res) => {
 
     const expenses = await prisma.utilityExpense.findMany({
       where,
-      include: { user: true },
+      include: { user: true, utilityType: true },
       orderBy: { date: "desc" },
     });
 
@@ -80,7 +95,7 @@ export const getUtilityExpenseById = async (req, res) => {
     const { id } = req.params;
     const expense = await prisma.utilityExpense.findUnique({
       where: { expenseId: Number(id) },
-      include: { user: true },
+      include: { user: true, utilityType: true },
     });
 
     if (!expense)
@@ -93,7 +108,7 @@ export const getUtilityExpenseById = async (req, res) => {
   }
 };
 
-// Update utility expense (with optional file)
+// Update utility expense
 export const updateUtilityExpense = async (req, res) => {
   try {
     const { error, value } = utilityExpenseSchema.update.validate(req.body);
@@ -109,7 +124,6 @@ export const updateUtilityExpense = async (req, res) => {
 
     let invoicePath = existing.invoice;
     if (req.file) {
-      // delete old file if exists
       if (invoicePath && fs.existsSync(invoicePath)) fs.unlinkSync(invoicePath);
       invoicePath = req.file.path;
     }
@@ -149,7 +163,6 @@ export const deleteUtilityExpense = async (req, res) => {
     if (!existing)
       return res.status(404).json({ message: "Utility expense not found" });
 
-    // delete invoice file if exists
     if (existing.invoice && fs.existsSync(existing.invoice))
       fs.unlinkSync(existing.invoice);
 

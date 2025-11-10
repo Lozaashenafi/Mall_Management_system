@@ -8,6 +8,15 @@ export const createExpense = async (expenseData) => {
     throw error.response?.data || { message: "Failed to create expense" };
   }
 };
+export const getUtilityTypes = async () => {
+  try {
+    const res = await api.get("/expenses/type");
+    console.log(res.data);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch utility type " };
+  }
+};
 
 export const getExpenses = async () => {
   try {

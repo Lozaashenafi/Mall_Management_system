@@ -2,7 +2,7 @@ import Joi from "joi";
 
 export default {
   create: Joi.object({
-    type: Joi.string().required(),
+    utilityTypeId: Joi.number(),
     description: Joi.string().required(),
     amount: Joi.number().precision(2).required(),
     date: Joi.date().required(),
@@ -10,7 +10,7 @@ export default {
   }),
 
   update: Joi.object({
-    type: Joi.string().optional(),
+    utilityTypeId: Joi.number(),
     description: Joi.string().optional(),
     amount: Joi.number().precision(2).optional(),
     date: Joi.date().optional(),

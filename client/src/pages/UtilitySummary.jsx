@@ -64,6 +64,7 @@ export default function UtilitySummary() {
   const fetchCharges = async () => {
     try {
       const data = await getUtilityChargesByMonth(month);
+      console.log(data);
       setCharges(data);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch charges");
@@ -179,7 +180,7 @@ export default function UtilitySummary() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-800 transition duration-150"
                   >
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      {getUtilityIcon(item.type)} {item.type}
+                      {getUtilityIcon(item.name)} {item.name}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-green-600 dark:text-green-400">
                       ${item.total.toFixed(2)}

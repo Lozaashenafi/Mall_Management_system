@@ -19,18 +19,24 @@ export const getComprehensiveReport = async (req, res) => {
       month: m,
       total: t,
     }));
-
     // 2️⃣ Revenue by Utility Type
     const utilityRevenue = await prisma.utilityInvoice.findMany({
       where: { amount: { gt: 0 } },
-      include: { utilityCharge: { select: { type: true } } },
+      include: {
+        utilityCharge: {
+          include: {
+            utilityType: { select: { name: true } }, // ✅ select the name of the type
+          },
+        },
+      },
     });
 
     const revenueByUtilityType = utilityRevenue.reduce((acc, inv) => {
-      const type = inv.utilityCharge?.type || "Unknown";
+      const type = inv.utilityCharge?.utilityType?.name || "Unknown"; // ✅ get name
       acc[type] = (acc[type] || 0) + inv.amount;
       return acc;
     }, {});
+
     const revenueByUtilityTypeArray = Object.entries(revenueByUtilityType).map(
       ([type, total]) => ({ type, total })
     );
@@ -47,15 +53,20 @@ export const getComprehensiveReport = async (req, res) => {
           ).toFixed(2)
         : 0) || 0;
 
-    // 4️⃣ Utility Summary
     const utilityCharges = await prisma.utilityCharge.findMany({
-      select: { month: true, totalCost: true, type: true },
+      select: {
+        month: true,
+        totalCost: true,
+        utilityType: { select: { name: true } }, // ✅ select the name
+      },
     });
+
     const utilitySummary = {};
     utilityCharges.forEach((u) => {
       if (!utilitySummary[u.month]) utilitySummary[u.month] = {};
-      utilitySummary[u.month][u.type] =
-        (utilitySummary[u.month][u.type] || 0) + u.totalCost;
+      const typeName = u.utilityType?.name || "Unknown";
+      utilitySummary[u.month][typeName] =
+        (utilitySummary[u.month][typeName] || 0) + u.totalCost;
     });
 
     // 5️⃣ Utility comparison

@@ -42,13 +42,6 @@ enum RoomStatus {
   Maintenance
   Inactive
 }
-enum UtilityType {
-  Generator
-  Water
-  Electricity
-  Service
-  Other
-}
 
 enum RentalStatus {
   Active
@@ -258,16 +251,29 @@ model Feedback {
   tenant       Tenant   @relation(fields: [tenantId], references: [tenantId])
 }
 
+model UtilityType {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  utilityCharges UtilityCharge[]
+  utilityExpenses UtilityExpense[]
+}
+
 model UtilityExpense {
   expenseId     Int        @id @default(autoincrement())
-  type          UtilityType   // Generator | Water | Electricity | Other
+  utilityTypeId Int
   amount        Float
   description   String?
   invoice       String?
   date          DateTime     @default(now())
   createdBy     Int
   user          User         @relation(fields: [createdBy], references: [userId])
+  utilityType   UtilityType  @relation(fields: [utilityTypeId], references: [id])
 }
+
 model Maintenance {
   maintenanceId  Int      @id @default(autoincrement())
   roomId         Int
@@ -306,13 +312,15 @@ model Notification {
 }
 model UtilityCharge {
   utilityChargeId Int        @id @default(autoincrement())
-  type            UtilityType
-  month           String      // e.g., "2025-10"
+  utilityTypeId   Int
+  month           String
   totalCost       Float
   description     String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  generated       Boolean?     @default(false)
+  generated       Boolean?    @default(false)
+
+  utilityType     UtilityType @relation(fields: [utilityTypeId], references: [id])
   utilityInvoices UtilityInvoice[]
 }
 model UtilityInvoice {
