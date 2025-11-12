@@ -16,18 +16,19 @@ function RootLayout() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {/* <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900"> */}
-      <div className="min-h-screen bg-background flex">
+      <div className="h-screen bg-background flex overflow-hidden">
         {isTenant ? (
           <TenantSidebar collapsed={collapsed} onToggle={toggleSidebar} />
         ) : (
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
         )}
-        <div className="flex-1 flex flex-col">
+
+        {/* Main Content Wrapper (Header + Main Area) */}
+        <div className="flex-1 flex flex-col min-w-0">
           <Header />
           <main
             className={
-              "flex-1 p-6 bg-background-alt overflow-auto transition-all duration-300 bg-gray-50 dark:bg-gray-900"
+              "flex-1 p-6 transition-all duration-300 bg-gray-50 dark:bg-gray-900 overflow-y-auto"
             }
           >
             <Outlet />
