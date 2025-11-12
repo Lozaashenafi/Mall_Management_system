@@ -44,6 +44,14 @@ export const createInvoice = async (invoiceData) => {
   }
 };
 
+export const deleteInvoice = async (invoiceId) => {
+  try {
+    await api.delete(`/invoice/${invoiceId}`);
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to delete invoice" };
+  }
+};
+
 export const getPayments = async () => {
   try {
     const res = await api.get("/payments");

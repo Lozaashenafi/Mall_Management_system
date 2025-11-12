@@ -13,6 +13,7 @@ import {
   getPayments,
   getInvoices,
   deletePayment,
+  deleteInvoice,
   updatePayment,
   updateInvoice,
   DownloadInvoice,
@@ -33,6 +34,17 @@ export default function Payments() {
   const [editingItem, setEditingItem] = useState(null);
   const [editData, setEditData] = useState({});
   const [paymentRequests, setPaymentRequests] = useState([]);
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!window.confirm("Are you sure you want to delete this invoice?"))
+      return;
+    try {
+      await deleteInvoice(invoiceId); // make sure you have this service
+      setInvoices((prev) => prev.filter((i) => i.invoiceId !== invoiceId));
+      toast.success("Invoice deleted successfully");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete invoice");
+    }
+  };
 
   const handleDownloadInvoice = async (invoiceId) => {
     const toastId = toast.loading("Downloading invoice...");
@@ -124,31 +136,16 @@ export default function Payments() {
       if (!editingItem) return;
 
       if (editingItem.type === "invoice") {
-        const { paperInvoiceNumber, baseRent, taxPercentage } = editData;
-
+        const { paperInvoiceNumber } = editData;
         if (!paperInvoiceNumber)
           return toast.error("Invoice number is required");
-        if (baseRent == null) return toast.error("Base Rent is required");
-        if (taxPercentage == null)
-          return toast.error("Tax Percentage is required");
 
-        const taxAmount =
-          (parseFloat(baseRent) * parseFloat(taxPercentage)) / 100;
-        const totalAmount = parseFloat(baseRent) + taxAmount;
-
-        const dataToSend = {
-          paperInvoiceNumber,
-          baseRent: parseFloat(baseRent),
-          taxPercentage: parseFloat(taxPercentage),
-          taxAmount,
-          totalAmount,
-        };
+        const dataToSend = { paperInvoiceNumber };
 
         const response = await updateInvoice(
           editingItem.data.invoiceId,
           dataToSend
         );
-        console.log("Update response:", response);
 
         if (response?.invoice) {
           setInvoices((prev) =>
@@ -262,14 +259,22 @@ export default function Payments() {
                       <td className="px-4 py-2">{inv.status}</td>
                       <td className="px-4 py-2 flex gap-2">
                         {inv.status === "Unpaid" ? (
-                          <Link
-                            to={`/payments/add/${inv.invoiceId}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            Pay
-                          </Link>
+                          <>
+                            <Link
+                              to={`/payments/add/${inv.invoiceId}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Pay
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteInvoice(inv.invoiceId)}
+                              className="p-1 rounded hover:bg-gray-100"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </>
                         ) : (
-                          "N/A"
+                          ""
                         )}
                         <button
                           onClick={() => handleEdit("invoice", inv)}
@@ -360,12 +365,6 @@ export default function Payments() {
                         >
                           <Edit className="w-4 h-4 text-green-600" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(p.paymentId)}
-                          className="p-1 rounded hover:bg-gray-100"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
                       </td>
                     </tr>
                   ))
@@ -426,51 +425,11 @@ export default function Payments() {
                   onChange={handleChange}
                   className="w-full mb-3 border px-2 py-1 rounded"
                 />
-                <label className="block mb-2 text-sm">Base Rent</label>
-                <input
-                  type="number"
-                  name="baseRent"
-                  value={editData.baseRent || ""}
-                  onChange={handleChange}
-                  className="w-full mb-3 border px-2 py-1 rounded"
-                />
-                <label className="block mb-2 text-sm">Tax %</label>
-                <input
-                  type="number"
-                  name="taxPercentage"
-                  value={editData.taxPercentage || ""}
-                  onChange={handleChange}
-                  className="w-full mb-3 border px-2 py-1 rounded"
-                />
               </>
             ) : (
               <>
                 <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Amount</label>
-                    <input
-                      type="number"
-                      name="amount"
-                      value={editData.amount || ""}
-                      onChange={handleChange}
-                      className="w-full mb-3 border px-2 py-1 rounded"
-                    />
-
-                    <label className="block mb-2 text-sm">Payment Date</label>
-                    <input
-                      type="date"
-                      name="paymentDate"
-                      value={
-                        editData.paymentDate
-                          ? new Date(editData.paymentDate)
-                              .toISOString()
-                              .split("T")[0]
-                          : ""
-                      }
-                      onChange={handleChange}
-                      className="w-full mb-3 border px-2 py-1 rounded"
-                    />
-
                     <label className="block mb-2 text-sm">Payment Method</label>
                     <select
                       name="method"

@@ -2,15 +2,87 @@ import prisma from "../../config/prismaClient.js";
 import roomSchema from "./Room.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
 
-// ✅ Add Room
+export const addOrUpdatePriceofCare = async (req, res) => {
+  try {
+    const { floor, basePrice } = req.body;
+
+    // ✅ Input validation
+    if (floor === undefined || basePrice === undefined) {
+      return res
+        .status(400)
+        .json({ message: "floor and basePrice are required." });
+    }
+
+    // ✅ Check if a price already exists for this floor
+    const existingPrice = await prisma.priceofCare.findFirst({
+      where: { floor },
+    });
+
+    let priceRecord;
+    if (existingPrice) {
+      // ✅ Update existing record
+      priceRecord = await prisma.priceofCare.update({
+        where: { PriceId: existingPrice.PriceId },
+        data: { basePrice },
+      });
+    } else {
+      // ✅ Create a new record
+      priceRecord = await prisma.priceofCare.create({
+        data: { floor, basePrice },
+      });
+    }
+    // ✅ Return result
+    res.status(200).json({
+      success: true,
+      message: existingPrice
+        ? `Updated price for floor ${floor}`
+        : `Added price for floor ${floor}`,
+      data: priceRecord,
+    });
+  } catch (error) {
+    console.error("Error adding/updating PriceofCare:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+export const getAllPriceofCare = async (req, res) => {
+  try {
+    const prices = await prisma.priceofCare.findMany({
+      orderBy: { floor: "asc" },
+    });
+
+    if (prices.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No floor pricing records found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: prices.length,
+      data: prices,
+    });
+  } catch (error) {
+    console.error("Error in getAllPriceofCare:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 export const addRoom = async (req, res) => {
   try {
     const { error } = roomSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { unitNumber } = req.body;
+    const {
+      unitNumber,
+      floor,
+      size,
+      roomTypeId,
+      hasParking,
+      parkingType,
+      parkingSpaces,
+    } = req.body;
 
+    // ✅ Check if unit number already exists
     const existingRoom = await prisma.room.findFirst({ where: { unitNumber } });
     if (existingRoom) {
       return res.status(400).json({
@@ -18,23 +90,36 @@ export const addRoom = async (req, res) => {
       });
     }
 
+    // ✅ Get base price based on floor
+    const floorPrice = await prisma.priceofCare.findFirst({
+      where: { floor },
+    });
+
+    if (!floorPrice) {
+      return res
+        .status(400)
+        .json({ message: `No base price found for floor ${floor}` });
+    }
+
+    const roomPrice = floorPrice.basePrice * (size || 1);
+
+    // ✅ Create room
     const room = await prisma.room.create({
       data: {
-        unitNumber: req.body.unitNumber,
-        floor: req.body.floor,
-        size: req.body.size,
-        roomTypeId: req.body.roomTypeId,
+        unitNumber,
+        floor,
+        size,
+        roomTypeId,
+        roomPrice,
         status: "Vacant",
-        hasParking: req.body.hasParking ?? false,
-        parkingType: req.body.parkingType || null,
-        parkingSpaces:
-          req.body.parkingType === "Limited"
-            ? req.body.parkingSpaces ?? 0
-            : null,
+        hasParking: hasParking ?? false,
+        parkingType: parkingType || null,
+        parkingSpaces: parkingType === "Limited" ? parkingSpaces ?? 0 : null,
       },
       include: { roomType: true },
     });
 
+    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "created",
@@ -43,8 +128,11 @@ export const addRoom = async (req, res) => {
       newValue: room,
     });
 
-    res.status(201).json({ success: true, message: "Room created", room });
+    res
+      .status(201)
+      .json({ success: true, message: "Room created successfully", room });
   } catch (error) {
+    console.error("Add Room Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

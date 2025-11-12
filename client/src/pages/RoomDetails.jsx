@@ -140,7 +140,6 @@ export default function RoomDetails() {
             <X className="w-6 h-6 text-gray-600 dark:text-gray-300 group-hover:text-white" />
           </Link>
         </div>
-
         {/* Main Information Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <DetailCard
@@ -168,9 +167,9 @@ export default function RoomDetails() {
             color="text-teal-500"
           />
         </div>
-
-        {/* Status and Parking Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        {/* Status, Parking, and Price Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {/* Current Status */}
           <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
             <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
               <Clock className="w-5 h-5 mr-2 text-purple-600" /> Current Status
@@ -188,6 +187,7 @@ export default function RoomDetails() {
             )}
           </div>
 
+          {/* Parking */}
           <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
             <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
               <Car className="w-5 h-5 mr-2 text-purple-600" /> Parking
@@ -203,6 +203,16 @@ export default function RoomDetails() {
                 {parkingDisplay}
               </p>
             </div>
+          </div>
+
+          {/* Room Price */}
+          <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
+            <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-purple-600" /> Room Price
+            </h2>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              ${room.roomPrice?.toLocaleString() || "N/A"}
+            </p>
           </div>
         </div>
 

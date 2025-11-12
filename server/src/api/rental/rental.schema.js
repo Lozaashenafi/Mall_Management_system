@@ -22,6 +22,8 @@ export default {
     includeService: Joi.boolean().default(true),
     includeWater: Joi.boolean().default(true),
     includeGenerator: Joi.boolean().default(true),
+    includeTax: Joi.boolean().default(true),
+    utilityShare: Joi.number().allow(null),
   }),
 
   update: Joi.object({
@@ -38,5 +40,7 @@ export default {
     includeService: Joi.boolean().optional(),
     includeWater: Joi.boolean().optional(),
     includeGenerator: Joi.boolean().optional(),
+    includeTax: Joi.boolean().optional(),
+    utilityShare: Joi.number().allow(null),
   }),
 };

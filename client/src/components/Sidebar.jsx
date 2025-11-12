@@ -62,7 +62,10 @@ export function Sidebar({ collapsed, onToggle }) {
       icon: ClipboardList,
       items: [
         { title: "Rentals", icon: Receipt, url: "/manage-rentals" },
+
         { title: "Payments", icon: DollarSign, url: "/payments" },
+        { title: "Banks", icon: DollarSign, url: "/manage-bank" },
+
         { title: "Maintenance", icon: Wrench, url: "/maintenance" },
         { title: "Expenses", icon: FileText, url: "/expenses" },
         { title: "Utilities", icon: Lightbulb, url: "/utilities" },

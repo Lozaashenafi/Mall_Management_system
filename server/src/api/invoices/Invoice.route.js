@@ -6,6 +6,7 @@ import {
   getInvoiceById,
   updateInvoice,
   downloadInvoicePdf,
+  deleteInvoice,
 } from "./Invoice.controller.js";
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.get("/:id", userAuth, isAdmin, getInvoiceById);
 router.post("/", userAuth, isAdmin, createInvoice);
 router.get("/:id/pdf", userAuth, downloadInvoicePdf);
 router.put("/:id", userAuth, isAdmin, updateInvoice);
+router.delete("/:invoiceId", userAuth, isAdmin, deleteInvoice);
 
 export default router;

@@ -45,6 +45,8 @@ import RentRenewal from "./pages/RentRenewal";
 import UtiliySummary from "./pages/UtilitySummary";
 import AddUtilityPayment from "./pages/AddUtilityPayment";
 import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
+import AddFloorPrice from "./pages/addFloorPrice";
+import BankManage from "./pages/BankManage";
 
 function App() {
   return (
@@ -64,10 +66,13 @@ function App() {
             <Route index element={<Home />} />
             <Route path="/manage-users" element={<UserManage />} />
             <Route path="/manage-tenants" element={<TenantManage />} />
+            <Route path="/manage-bank" element={<BankManage />} />
 
             <Route path="/add-tenant" element={<AddTenant />} />
             <Route path="/edit-tenant/:id" element={<EditTenant />} />
             <Route path="/manage-rooms" element={<RoomManage />} />
+            <Route path="/floor-price" element={<AddFloorPrice />} />
+
             <Route path="/manage-rooms/add" element={<AddRoom />} />
             <Route path="/utilities" element={<UtiliySummary />} />
             <Route

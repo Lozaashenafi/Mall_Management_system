@@ -30,11 +30,11 @@ export default function RentManage() {
     status: "Active",
     selfManagedElectricity: false,
     sharedUtilities: true,
-    utilityShare: "",
     includeWater: true,
     includeElectricity: true,
     includeGenerator: true,
     includeService: true,
+    includeTax: true,
   });
 
   // Edit state
@@ -75,17 +75,22 @@ export default function RentManage() {
     const updateState = (prev) => {
       const updated = { ...prev, [name]: val };
 
-      // 🔹 When toggling shared utilities
+      // ✅ When room is selected, set rentAmount to room price
+      if (name === "roomId") {
+        const selectedRoom = rooms.find((r) => r.roomId === Number(val));
+        if (selectedRoom) {
+          updated.rentAmount = selectedRoom.roomPrice || ""; // assumes room object has `price`
+        }
+      }
+
       if (name === "sharedUtilities") {
         if (!val) {
-          // Turn off all utility-related fields
           updated.includeWater = false;
           updated.includeElectricity = false;
           updated.includeGenerator = false;
           updated.includeService = false;
           updated.utilityShare = "";
         } else {
-          // When turned on again → restore defaults
           updated.includeWater = true;
           updated.includeElectricity = !prev.selfManagedElectricity;
           updated.includeGenerator = true;
@@ -93,23 +98,16 @@ export default function RentManage() {
         }
       }
 
-      // 🔹 When selfManagedElectricity is true → disable includeElectricity
       if (name === "selfManagedElectricity") {
-        if (val) {
-          updated.includeElectricity = false;
-        } else if (prev.sharedUtilities) {
-          updated.includeElectricity = true;
-        }
+        if (val) updated.includeElectricity = false;
+        else if (prev.sharedUtilities) updated.includeElectricity = true;
       }
 
       return updated;
     };
 
-    if (editingRental) {
-      setEditingRental(updateState);
-    } else {
-      setNewRental(updateState);
-    }
+    if (editingRental) setEditingRental(updateState);
+    else setNewRental(updateState);
   };
 
   const handleAddRental = async (e) => {
@@ -130,9 +128,10 @@ export default function RentManage() {
         includeElectricity: newRental.includeElectricity,
         includeGenerator: newRental.includeGenerator,
         includeService: newRental.includeService,
+        includeTax: newRental.includeTax,
+        utilityShare: newRental.utilityShare || null,
       };
 
-      // ❌ Ensure utilityShare is not included
       delete rentalData.utilityShare;
 
       const created = await createRental(rentalData);
@@ -149,7 +148,6 @@ export default function RentManage() {
       };
 
       setRentals((prev) => [rentalWithDetails, ...prev]);
-
       setNewRental({
         tenantId: "",
         roomId: "",
@@ -198,8 +196,9 @@ export default function RentManage() {
         includeElectricity: editingRental.includeElectricity,
         includeGenerator: editingRental.includeGenerator,
         includeService: editingRental.includeService,
+        includeTax: editingRental.includeTax,
+        utilityShare: editingRental.utilityShare || null,
       });
-
       // Merge changes locally
       setRentals((prev) =>
         prev.map((r) =>
@@ -510,6 +509,16 @@ export default function RentManage() {
                 </div>
               )}
             </div>
+            <label className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                name="includeTax"
+                checked={newRental.includeTax}
+                onChange={handleInputChange}
+                className="w-4 h-4"
+              />
+              Include Tax
+            </label>
 
             <button
               type="submit"
@@ -807,6 +816,16 @@ export default function RentManage() {
                   </div>
                 )}
               </div>
+              <label className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  name="includeTax"
+                  checked={editingRental.includeTax}
+                  onChange={handleInputChange}
+                  className="w-4 h-4"
+                />
+                Include Tax
+              </label>
 
               {/* Actions (full width) */}
               <div className="md:col-span-2 flex justify-end gap-2 mt-4">

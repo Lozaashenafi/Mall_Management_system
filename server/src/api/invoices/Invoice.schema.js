@@ -7,9 +7,11 @@ export default {
     invoiceDate: Joi.date().required(),
     dueDate: Joi.date().required(),
     baseRent: Joi.number().optional(),
-    taxPercentage: Joi.number().optional(),
+    taxPercentage: Joi.number().optional().default(15), // Default 15%
     taxAmount: Joi.number().optional(),
-    totalAmount: Joi.number().required(),
+    totalAmount: Joi.number().optional(), // ← backend will calculate
+    withholdingRate: Joi.number().optional().default(3),
+    withholdingAmount: Joi.number().optional(),
     paymentInterval: Joi.string()
       .valid("Monthly", "Quarterly", "Yearly")
       .optional(),
@@ -23,5 +25,7 @@ export default {
     taxPercentage: Joi.number().optional(),
     taxAmount: Joi.number().optional(),
     totalAmount: Joi.number().optional(),
+    withholdingRate: Joi.number().optional(),
+    withholdingAmount: Joi.number().optional(),
   }),
 };

@@ -1,3 +1,4 @@
+// Add roomPrice to the table and edit modal
 import { useState, useEffect } from "react";
 import {
   Plus,
@@ -26,7 +27,6 @@ export default function RoomManage() {
     const fetchRooms = async () => {
       try {
         const data = await getRooms();
-        console.log("rooms", data);
         setRooms(Array.isArray(data.rooms) ? data.rooms : data || []);
       } catch (error) {
         toast.error(error.message || "Failed to fetch rooms");
@@ -64,6 +64,8 @@ export default function RoomManage() {
     setEditingRoom(null);
     setIsEditing(false);
   };
+
+  // ✅ Handle edit submit
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -71,6 +73,7 @@ export default function RoomManage() {
         unitNumber: editingRoom.unitNumber,
         floor: editingRoom.floor,
         size: editingRoom.size,
+        roomPrice: editingRoom.roomPrice,
         hasParking: editingRoom.hasParking,
         parkingType: editingRoom.hasParking ? editingRoom.parkingType : null,
         parkingSpaces:
@@ -83,7 +86,6 @@ export default function RoomManage() {
       toast.success(res.message || "Room updated successfully");
       closeEditPopup();
 
-      // update UI instantly
       setRooms((prev) =>
         prev.map((r) =>
           r.roomId === editingRoom.roomId ? { ...r, ...payload } : r
@@ -104,12 +106,20 @@ export default function RoomManage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Room Management
         </h1>
-        <Link
-          to="/manage-rooms/add"
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
-        >
-          <Plus className="w-4 h-4" /> Add Room
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/manage-rooms/add"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+          >
+            <Plus className="w-4 h-4" /> Add Room
+          </Link>
+          <Link
+            to="/floor-price"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+          >
+            <Plus className="w-4 h-4" /> Add Floor price
+          </Link>
+        </div>
       </div>
 
       {/* Table */}
@@ -130,6 +140,9 @@ export default function RoomManage() {
                 Type
               </th>
               <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
+                Price
+              </th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
                 Status
               </th>
               <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -146,22 +159,13 @@ export default function RoomManage() {
                 key={room.roomId}
                 className="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
-                  {room.unitNumber}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
-                  {room.floor}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
-                  {room.size}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
-                  {room.roomType?.typeName}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
-                  {room.status}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-gray-100">
+                <td className="px-4 py-2">{room.unitNumber}</td>
+                <td className="px-4 py-2">{room.floor}</td>
+                <td className="px-4 py-2">{room.size}</td>
+                <td className="px-4 py-2">{room.roomType?.typeName}</td>
+                <td className="px-4 py-2">${room.roomPrice?.toFixed(2)}</td>
+                <td className="px-4 py-2">{room.status}</td>
+                <td className="px-4 py-2">
                   {room.hasParking
                     ? `${room.parkingType} ${
                         room.parkingType === "Limited"
@@ -195,7 +199,7 @@ export default function RoomManage() {
             {paginatedRooms.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={8}
                   className="px-4 py-4 text-center text-gray-500 dark:text-gray-400"
                 >
                   No rooms found.
@@ -245,7 +249,7 @@ export default function RoomManage() {
                 onChange={(e) =>
                   setEditingRoom({ ...editingRoom, unitNumber: e.target.value })
                 }
-                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                 placeholder="Unit Number"
               />
               <input
@@ -257,7 +261,7 @@ export default function RoomManage() {
                     floor: Number(e.target.value),
                   })
                 }
-                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                 placeholder="Floor"
               />
               <input
@@ -269,9 +273,22 @@ export default function RoomManage() {
                     size: Number(e.target.value),
                   })
                 }
-                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                 placeholder="Size"
               />
+              <input
+                type="number"
+                value={editingRoom.roomPrice || ""}
+                onChange={(e) =>
+                  setEditingRoom({
+                    ...editingRoom,
+                    roomPrice: Number(e.target.value),
+                  })
+                }
+                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
+                placeholder="Room Price"
+              />
+
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -296,7 +313,7 @@ export default function RoomManage() {
                         parkingType: e.target.value,
                       })
                     }
-                    className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                   >
                     <option value="">Select Type</option>
                     <option value="Unlimited">Unlimited</option>
@@ -314,7 +331,7 @@ export default function RoomManage() {
                         })
                       }
                       placeholder="Number of parking spaces"
-                      className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800"
                     />
                   )}
                 </>

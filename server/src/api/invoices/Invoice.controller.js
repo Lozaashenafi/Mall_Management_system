@@ -26,7 +26,6 @@ export const downloadInvoicePdf = async (req, res) => {
       .json({ message: "Failed to generate PDF", error: err.message });
   }
 };
-// ✅ Create Manual Invoice
 export const createInvoice = async (req, res) => {
   try {
     const { error, value } = invoiceSchema.create.validate(req.body);
@@ -38,30 +37,64 @@ export const createInvoice = async (req, res) => {
       paperInvoiceNumber,
       invoiceDate,
       dueDate,
-      baseRent,
-      taxPercentage,
-      taxAmount,
-      totalAmount,
+      taxPercentage: taxFromClient,
       paymentInterval,
     } = value;
 
-    // Check rental existence with tenant and associated user
+    const DEFAULT_TAX = 15;
+    const DEFAULT_WITHHOLDING = 3;
+
+    // ✅ Step 1: Fetch rental and tenant
     const rental = await prisma.rental.findUnique({
       where: { rentId },
       include: {
         tenant: { include: { user: true } },
       },
     });
+
     if (!rental) return res.status(404).json({ message: "Rental not found" });
 
-    // --- Update rental with the new paymentInterval
-    if (paymentInterval) {
+    // ✅ Step 2: Update paymentInterval if provided
+    const interval = paymentInterval || rental.paymentInterval || "Monthly";
+    if (paymentInterval && paymentInterval !== rental.paymentInterval) {
       await prisma.rental.update({
         where: { rentId },
         data: { paymentInterval },
       });
     }
-    // Insert invoice
+
+    // ✅ Step 3: Calculate rent amount based on interval
+    let rentAmount = Number(rental.rentAmount);
+    if (interval === "Quarterly") rentAmount *= 3;
+    if (interval === "Yearly") rentAmount *= 12;
+
+    // ✅ Step 4: Calculate tax/base/withholding
+    const taxPct = Number(taxFromClient ?? DEFAULT_TAX);
+
+    let baseRent, taxAmount, withholdingAmount, totalAmount;
+
+    if (rental.includeTax) {
+      baseRent = rentAmount / (1 + taxPct / 100);
+      taxAmount = rentAmount - baseRent;
+    } else {
+      baseRent = rentAmount;
+      taxAmount = baseRent * (taxPct / 100);
+    }
+
+    const withholdingRate = baseRent >= 10000 ? DEFAULT_WITHHOLDING : 0;
+    withholdingAmount = baseRent * (withholdingRate / 100);
+
+    totalAmount = rental.includeTax
+      ? rentAmount - withholdingAmount
+      : baseRent + taxAmount - withholdingAmount;
+
+    // ✅ Step 5: Round all numbers to 2 decimals
+    baseRent = parseFloat(baseRent.toFixed(2));
+    taxAmount = parseFloat(taxAmount.toFixed(2));
+    withholdingAmount = parseFloat(withholdingAmount.toFixed(2));
+    totalAmount = parseFloat(totalAmount.toFixed(2));
+
+    // ✅ Step 6: Create invoice
     const invoice = await prisma.invoice.create({
       data: {
         rentId,
@@ -69,13 +102,16 @@ export const createInvoice = async (req, res) => {
         invoiceDate,
         dueDate,
         baseRent,
-        taxPercentage,
+        taxPercentage: taxPct,
         taxAmount,
+        withholdingRate,
+        withholdingAmount,
         totalAmount,
         status: "Unpaid",
       },
     });
 
+    // ✅ Step 7: Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "created",
@@ -83,16 +119,22 @@ export const createInvoice = async (req, res) => {
       recordId: invoice.invoiceId,
       newValue: invoice,
     });
-    // --- Notification to tenant + user
+
+    // ✅ Step 8: Notification
     if (rental.tenant) {
       await createNotification({
         tenantId: rental.tenant.tenantId,
         userId: rental.tenant.user ? rental.tenant.user.userId : null,
         type: "Invoice",
-        message: `A new invoice  of ${totalAmount} ETB has been generated. Please note that it is due by ${dueDate.toDateString()}`,
+        message: `A new invoice of ${totalAmount.toFixed(
+          2
+        )} ETB has been generated. It’s due by ${new Date(
+          dueDate
+        ).toDateString()}.`,
         sentVia: "System",
       });
     }
+
     res.status(201).json({ success: true, invoice });
   } catch (err) {
     console.error("createInvoice error:", err);
@@ -164,6 +206,52 @@ export const updateInvoice = async (req, res) => {
     res.json({ success: true, invoice: updated });
   } catch (err) {
     console.error("updateInvoice error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+export const deleteInvoice = async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+
+    if (!invoiceId)
+      return res.status(400).json({ message: "Invoice ID is required" });
+
+    // ✅ Check if invoice exists
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { invoiceId: parseInt(invoiceId) },
+    });
+
+    if (!existingInvoice)
+      return res.status(404).json({ message: "Invoice not found" });
+
+    // ✅ Prevent deletion if invoice is paid
+    if (existingInvoice.status === "Paid") {
+      return res.status(400).json({
+        message: "Paid invoices cannot be deleted",
+      });
+    }
+
+    // ✅ Delete invoice
+    const deletedInvoice = await prisma.invoice.delete({
+      where: { invoiceId: parseInt(invoiceId) },
+    });
+
+    // ✅ Optional: Create audit log
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "deleted",
+      tableName: "Invoice",
+      recordId: deletedInvoice.invoiceId,
+      oldValue: deletedInvoice,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Invoice deleted successfully",
+      invoice: deletedInvoice,
+    });
+  } catch (err) {
+    console.error("deleteInvoice error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -3,7 +3,6 @@ import prisma from "../../config/prismaClient.js";
 import rentalSchema from "./rental.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
 import { stat } from "fs";
-
 export const createRental = async (req, res) => {
   try {
     const { error, value } = rentalSchema.create.validate(req.body);
@@ -25,6 +24,7 @@ export const createRental = async (req, res) => {
       includeGenerator,
       includeElectricity,
       includeService,
+      includeTax, // <-- added here
     } = value;
 
     const tenant = await prisma.tenant.findUnique({ where: { tenantId } });
@@ -86,6 +86,7 @@ export const createRental = async (req, res) => {
           includeElectricity: includeElectricityFinal,
           includeGenerator: includeGenerator ?? true,
           includeService: includeService ?? true,
+          includeTax: includeTax ?? true, // <-- default to true if not provided
         },
       });
 
@@ -205,7 +206,6 @@ export const getRentalById = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 export const updateRental = async (req, res) => {
   try {
     const { error, value } = rentalSchema.update.validate(req.body);
@@ -218,20 +218,23 @@ export const updateRental = async (req, res) => {
       where: { rentId: Number(id) },
     });
     if (!existing) return res.status(404).json({ message: "Rental not found" });
-    if (new Date(value.startDate) >= new Date(value.endDate)) {
-      return res
-        .status(400)
-        .json({ message: "End date must be after start date." });
-    }
 
-    const diffInDays =
-      (new Date(value.endDate) - new Date(value.startDate)) /
-      (1000 * 60 * 60 * 24);
+    if (value.startDate && value.endDate) {
+      if (new Date(value.startDate) >= new Date(value.endDate)) {
+        return res
+          .status(400)
+          .json({ message: "End date must be after start date." });
+      }
 
-    if (diffInDays < 30) {
-      return res.status(400).json({
-        message: "Rental period must be at least 30 days.",
-      });
+      const diffInDays =
+        (new Date(value.endDate) - new Date(value.startDate)) /
+        (1000 * 60 * 60 * 24);
+
+      if (diffInDays < 30) {
+        return res.status(400).json({
+          message: "Rental period must be at least 30 days.",
+        });
+      }
     }
 
     const updateData = {};
@@ -258,9 +261,14 @@ export const updateRental = async (req, res) => {
     if (value.includeElectricity !== undefined)
       updateData.includeElectricity = value.includeElectricity;
 
+    // Force electricity to false if self-managed
     if (value.selfManagedElectricity === true) {
       updateData.includeElectricity = false;
     }
+
+    // ✅ Handle includeTax
+    if (value.includeTax !== undefined)
+      updateData.includeTax = value.includeTax;
 
     const updated = await prisma.rental.update({
       where: { rentId: Number(id) },

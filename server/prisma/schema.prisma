@@ -30,6 +30,11 @@ enum UserRole {
   Admin
   Tenant
 }
+enum BankTransactionType {
+  Deposit
+  Withdrawal
+  Transfer
+}
 
 enum UserStatus {
   Active
@@ -126,6 +131,7 @@ model Room {
   floor         Int
   size          Float
   roomTypeId    Int
+  roomPrice     Int
   status        RoomStatus @default(Vacant)
   hasParking    Boolean    @default(false)
   parkingType   String?    // "Unlimited" or "Limited"
@@ -136,6 +142,13 @@ model Room {
   rental        Rental[]
   maintenance   Maintenance[]
   roomFeatures  RoomFeature[]
+}
+model PriceofCare {
+  PriceId Int      @id @default(autoincrement())
+  floor       Int
+  basePrice   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 model RoomFeatureType {
   featureTypeId Int     @id @default(autoincrement())
@@ -199,6 +212,7 @@ model Rental {
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  includeTax       Boolean @default(true)
 
   previousRentId   Int?     @unique
   previousRental   Rental?  @relation("RentalRenewal", fields: [previousRentId], references: [rentId])
@@ -233,6 +247,8 @@ model Invoice {
   taxAmount     Float?
   totalAmount   Float
   status        InvoiceStatus
+  withholdingRate  Float?
+  withholdingAmount Float?
   pdfUrl        String? 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -260,6 +276,7 @@ model UtilityType {
 
   utilityCharges UtilityCharge[]
   utilityExpenses UtilityExpense[]
+  budget  Budget[]
 }
 
 model UtilityExpense {
@@ -355,6 +372,7 @@ model Payment {
 
   invoice          Invoice?        @relation(fields: [invoiceId], references: [invoiceId])
   utilityInvoice   UtilityInvoice? @relation(fields: [utilityInvoiceId], references: [id])
+  bankTransactions BankTransaction[]
 }
 
 model TerminateRequest {
@@ -394,4 +412,68 @@ model AgreementTemplate {
   content     String   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model BankAccount {
+  bankAccountId Int      @id @default(autoincrement())
+  accountName   String
+  accountNumber String   @unique
+  bankName      String
+  balance       Float               @default(0)
+  currency      String   @default("ETB")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  // One-to-many relationship with bank transactions
+  transactions  BankTransaction[]
+}
+
+model BankTransaction {
+  transactionId  Int      @id @default(autoincrement())
+  bankAccountId  Int?
+  paymentId      Int?        // linked if this came from a tenant payment
+  receiptImage       String?
+  receiverAccountId String?
+  receiverAccount   String?    // receiver’s account number
+  receiverName      String?    // receiver’s name
+  type           BankTransactionType      // e.g., "Deposit", "Withdrawal", "Transfer"
+  amount         Float
+  description    String?
+  transactionDate DateTime   @default(now())
+  bankAccount    BankAccount? @relation(fields: [bankAccountId], references: [bankAccountId])
+  payment        Payment?    @relation(fields: [paymentId], references: [paymentId])
+}
+model MaintenanceSchedule {
+  scheduleId     Int       @id @default(autoincrement())
+  title          String
+  description    String?
+  scheduledDate  DateTime
+  status         String    @default("Upcoming") // Upcoming, Done, Cancelled
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+
+model Budget {
+  budgetId     Int      @id @default(autoincrement())
+  catagoryId  Int
+  year         Int
+  month        Int
+  plannedAmount Float
+  actualAmount  Float?  @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  utilityType     UtilityType @relation(fields: [catagoryId], references: [id])
+  updatedAt    DateTime @updatedAt
+}
+model InventoryItem {
+  itemId       Int      @id @default(autoincrement())
+  name         String
+  category     String
+  quantity     Int       @default(0)
+  unitPrice    Float?
+  location     String?
+  status       String    @default("Available") // Available, InUse, Maintenance, Damaged
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

@@ -424,6 +424,10 @@ const RentalSection = ({ title, rental }) => {
               label=" Services & Cleaning"
               isIncluded={rental?.includeService}
             />
+            <UtilityItem
+              label=" Price Tax Included "
+              isIncluded={rental?.includeTax}
+            />
           </ul>
         </InfoCard>
       </div>

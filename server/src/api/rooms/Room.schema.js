@@ -12,6 +12,7 @@ const roomSchema = {
   }),
   update: Joi.object({
     unitNumber: Joi.string(),
+    roomPrice: Joi.number(),
     floor: Joi.number().integer(),
     size: Joi.number().precision(2),
     roomTypeId: Joi.number().integer(),
