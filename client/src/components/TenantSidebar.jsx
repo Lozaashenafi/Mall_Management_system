@@ -52,7 +52,7 @@ export function TenantSidebar({ collapsed, onToggle }) {
       >
         {!collapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-lg flex items-center justify-center">
               <LayoutDashboard className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-gray-900 dark:text-white">
@@ -101,7 +101,7 @@ export function TenantSidebar({ collapsed, onToggle }) {
               />
               {!collapsed && <span className="truncate">{item.title}</span>}
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-purple-500 rounded-r-full" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full" />
               )}
             </NavLink>
           );
@@ -112,7 +112,7 @@ export function TenantSidebar({ collapsed, onToggle }) {
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         {!collapsed && user && (
           <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-700/50">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-xs font-medium text-white">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-xs font-medium text-white">
               {user.fullName
                 ? user.fullName
                     .split(" ")

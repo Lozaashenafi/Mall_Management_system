@@ -129,7 +129,7 @@ const TenantRentals = () => {
 
   if (totalRentals === 0) {
     return (
-      <div className="p-10 text-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-300">
+      <div className="p-10 text-center rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border border-indigo-300">
         <p className="font-semibold">
           <Info className="inline w-5 h-5 mr-2" />
           No rental agreements found for this tenant.
@@ -157,7 +157,7 @@ const TenantRentals = () => {
           title="Active Rentals"
           value={activeRentals.length}
           icon={ClipboardList}
-          color="bg-purple-600"
+          color="bg-indigo-600"
         />
         <StatsCard
           title="Total Monthly Rent"
@@ -187,10 +187,10 @@ const TenantRentals = () => {
             return (
               <div
                 key={rental.rentId}
-                className="p-6 rounded-xl border border-purple-300 bg-white shadow-lg dark:border-purple-700 dark:bg-gray-800 transition hover:shadow-xl"
+                className="p-6 rounded-xl border border-indigo-300 bg-white shadow-lg dark:border-indigo-700 dark:bg-gray-800 transition hover:shadow-xl"
               >
                 <div className="flex justify-between items-start mb-4 border-b pb-3 border-gray-100 dark:border-gray-700">
-                  <h3 className="text-2xl font-bold text-purple-700 dark:text-purple-400 flex items-center">
+                  <h3 className="text-2xl font-bold text-indigo-700 dark:text-indigo-400 flex items-center">
                     <Home className="w-6 h-6 mr-2" />
                     Unit {unitNumber}
                   </h3>
@@ -291,7 +291,7 @@ const TenantRentals = () => {
                     </span>
                     <button
                       title="View Agreement Document"
-                      className="p-2 rounded-full text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 transition"
+                      className="p-2 rounded-full text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 transition"
                     >
                       <FileText className="w-5 h-5" />
                     </button>

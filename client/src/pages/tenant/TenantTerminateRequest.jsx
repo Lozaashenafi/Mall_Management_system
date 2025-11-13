@@ -252,7 +252,7 @@ const TenantTerminateRequest = () => {
                       <button
                         type="button"
                         onClick={() => startEdit(req)}
-                        className="text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-indigo-600 hover:underline flex items-center gap-1"
                       >
                         <Edit3 size={16} /> Edit
                       </button>
@@ -274,7 +274,7 @@ const TenantTerminateRequest = () => {
                   {req.effectiveDate ? req.effectiveDate.split("T")[0] : "—"}
                 </p>
                 <p className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-purple-500" />
+                  <Clock className="w-4 h-4 text-indigo-500" />
                   <span>
                     Submitted On:{" "}
                     <span className="font-medium">

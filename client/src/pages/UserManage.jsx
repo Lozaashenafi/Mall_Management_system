@@ -112,7 +112,7 @@ export default function UserManage() {
   if (loading)
     return (
       <div className="flex justify-center items-center h-48">
-        <p className="text-xl text-purple-600 dark:text-purple-400">
+        <p className="text-xl text-indigo-600 dark:text-indigo-400">
           Loading admin data...
         </p>
       </div>
@@ -136,7 +136,7 @@ export default function UserManage() {
             ${
               showAddForm
                 ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-purple-600 text-white hover:bg-purple-700"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
             }`}
         >
           {showAddForm ? (
@@ -166,7 +166,7 @@ export default function UserManage() {
                 value={newAdmin.fullName}
                 onChange={handleInputChange}
                 required
-                className="col-span-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="col-span-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <input
                 type="email"
@@ -175,7 +175,7 @@ export default function UserManage() {
                 value={newAdmin.email}
                 onChange={handleInputChange}
                 required
-                className="col-span-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="col-span-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <input
                 type="text"
@@ -183,7 +183,7 @@ export default function UserManage() {
                 placeholder="Phone (Optional)"
                 value={newAdmin.phone}
                 onChange={handleInputChange}
-                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <input
                 type="password"
@@ -192,13 +192,13 @@ export default function UserManage() {
                 value={newAdmin.password}
                 onChange={handleInputChange}
                 required
-                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <select
                 name="role"
                 value={newAdmin.role}
                 onChange={handleInputChange}
-                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="Admin">Admin</option>
                 <option value="Super Admin">Super Admin</option>
@@ -254,8 +254,8 @@ export default function UserManage() {
                       <span
                         className={`px-3 py-1 text-xs font-semibold rounded-full ${
                           admin.role === "Super Admin"
-                            ? "bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-300"
-                            : "bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300"
+                            ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-800 dark:text-indigo-300"
+                            : "bg-indigo-100 text-indigo-700 dark:bg-indigo-800 dark:text-indigo-300"
                         }`}
                       >
                         {admin.role}

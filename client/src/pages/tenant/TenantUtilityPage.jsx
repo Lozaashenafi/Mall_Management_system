@@ -270,7 +270,7 @@ const UtilityPage = () => {
             className="p-5 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 flex flex-col space-y-2"
           >
             <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-400">
+              <div className="p-2 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">
                 <stat.icon className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -319,7 +319,7 @@ const UtilityPage = () => {
             </h2>
 
             <div className="text-center mb-8">
-              <p className="text-3xl font-bold text-purple-600">
+              <p className="text-3xl font-bold text-indigo-600">
                 ETB{" "}
                 {selectedInvoice?.totalAmount?.toLocaleString() ||
                   selectedInvoice?.amount?.toLocaleString()}
@@ -359,11 +359,11 @@ const UtilityPage = () => {
 
                   navigate(`/tenant/request/${type}/${id}`);
                 }}
-                className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-purple-50 dark:hover:bg-gray-800 transition"
+                className="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center hover:bg-indigo-50 dark:hover:bg-gray-800 transition"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-12 h-12 mb-3 text-purple-600 group-hover:scale-110 transition-transform"
+                  className="w-12 h-12 mb-3 text-indigo-600 group-hover:scale-110 transition-transform"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -483,7 +483,7 @@ const InvoiceTable = ({
                       {inv.status === "Unpaid" ? (
                         <button
                           onClick={() => onPayClick(inv)}
-                          className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                          className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
                         >
                           Pay Now
                         </button>
@@ -495,7 +495,7 @@ const InvoiceTable = ({
 
                       <button
                         onClick={() => onDownloadClick(inv.invoiceId)}
-                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                        className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
                       >
                         Download
                       </button>
@@ -504,7 +504,7 @@ const InvoiceTable = ({
                 ) : (
                   <>
                     <td className="p-2 flex items-center gap-2">
-                      {Icon && <Icon className="w-4 h-4 text-purple-500" />}
+                      {Icon && <Icon className="w-4 h-4 text-indigo-500" />}
                       {inv.utilityCharge?.type}
                     </td>
                     <td className="p-2">{inv.utilityCharge?.month}</td>
@@ -524,7 +524,7 @@ const InvoiceTable = ({
                       {inv.status.toLowerCase() === "unpaid" ? (
                         <button
                           onClick={() => onPayClick(inv)}
-                          className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                          className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
                         >
                           Pay Now
                         </button>
@@ -533,7 +533,7 @@ const InvoiceTable = ({
                       )}
                       <button
                         onClick={() => onUtilityDownloadClick(inv.id)}
-                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                        className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
                       >
                         Download
                       </button>

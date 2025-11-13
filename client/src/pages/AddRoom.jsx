@@ -216,7 +216,7 @@ export default function AddRoom() {
           </button>
           <button
             type="submit"
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
           >
             <Save className="w-4 h-4" /> Save Room
           </button>

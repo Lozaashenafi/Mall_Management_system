@@ -55,7 +55,7 @@ const SocketTest = () => {
           onChange={(e) => setUserId(e.target.value)}
         />
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-indigo-500 text-white px-4 py-2 rounded"
           onClick={registerUser}
         >
           Register

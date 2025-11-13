@@ -17,7 +17,7 @@ const ProfileCard = ({ title, icon: Icon, children }) => {
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
       <div className="flex items-center space-x-3 mb-4">
         {Icon && (
-          <div className="p-2 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-400">
+          <div className="p-2 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">
             <Icon className="w-6 h-6" />
           </div>
         )}
@@ -77,7 +77,7 @@ const Profile = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
             {user.fullName || "Unnamed User"}
           </h1>
-          <p className="text-lg text-purple-600 font-medium dark:text-purple-400">
+          <p className="text-lg text-indigo-600 font-medium dark:text-indigo-400">
             {user.role || "User"}
           </p>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -91,7 +91,7 @@ const Profile = () => {
               ? navigate("/tenant/edit-profile")
               : navigate("/edit-profile")
           }
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-colors"
+          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors"
         >
           <ChevronRight className="w-5 h-5 mr-1 -rotate-90 md:rotate-0" />
           Edit Profile

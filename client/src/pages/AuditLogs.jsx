@@ -33,7 +33,7 @@ export default function AuditLogs() {
       case "created":
         return "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100";
       case "updated":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100";
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100";
       case "deleted":
         return "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100";
       default:
@@ -150,7 +150,7 @@ export default function AuditLogs() {
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Audit Logs</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500">
+        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
           Export Logs
         </button>
       </div>
@@ -206,7 +206,7 @@ export default function AuditLogs() {
                     className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-800 rounded-lg flex items-center justify-center">
                         {getActionIcon(log.action)}
                       </div>
                       <div>

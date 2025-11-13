@@ -63,7 +63,7 @@ export default function Settings() {
         </div>
         <button
           type="button"
-          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded"
         >
           <Save className="w-4 h-4" />
           Save Changes
@@ -104,7 +104,7 @@ export default function Settings() {
             onClick={() => setActiveTab(id)}
             className={`flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 ${
               activeTab === id
-                ? "border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400"
+                ? "border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
                 : "border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
             } transition`}
           >
@@ -134,7 +134,7 @@ export default function Settings() {
                 <input
                   id="siteName"
                   type="text"
-                  className="w-full rounded border bg-white text-gray-500 border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full rounded border bg-white text-gray-500 border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={generalSettings.siteName}
                   onChange={(e) =>
                     updateGeneralSetting("siteName", e.target.value)
@@ -151,7 +151,7 @@ export default function Settings() {
                 <input
                   id="timezone"
                   type="text"
-                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={generalSettings.timezone}
                   onChange={(e) =>
                     updateGeneralSetting("timezone", e.target.value)
@@ -170,7 +170,7 @@ export default function Settings() {
               <input
                 id="siteDescription"
                 type="text"
-                className="w-full rounded border bg-white text-gray-500 border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded border bg-white text-gray-500 border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 value={generalSettings.siteDescription}
                 onChange={(e) =>
                   updateGeneralSetting("siteDescription", e.target.value)
@@ -193,7 +193,7 @@ export default function Settings() {
               <input
                 id="maintenanceMode"
                 type="checkbox"
-                className="h-5 w-5 bg-white  cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                className="h-5 w-5 bg-white  cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                 checked={generalSettings.maintenanceMode}
                 onChange={(e) =>
                   updateGeneralSetting("maintenanceMode", e.target.checked)
@@ -236,7 +236,7 @@ export default function Settings() {
                 <input
                   id="profileName"
                   type="text"
-                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={profileSettings.name}
                   onChange={(e) =>
                     setProfileSettings((p) => ({ ...p, name: e.target.value }))
@@ -253,7 +253,7 @@ export default function Settings() {
                 <input
                   id="profileEmail"
                   type="email"
-                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={profileSettings.email}
                   onChange={(e) =>
                     setProfileSettings((p) => ({ ...p, email: e.target.value }))
@@ -293,7 +293,7 @@ export default function Settings() {
                     twoFactorEnabled: e.target.checked,
                   }))
                 }
-                className="h-5 w-5 bg-white  cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                className="h-5 w-5 bg-white  cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </section>
@@ -318,7 +318,7 @@ export default function Settings() {
                 <input
                   id="passwordExpiry"
                   type="number"
-                  className="w-full rounded bg-white text-gray-500 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full rounded bg-white text-gray-500 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={securitySettings.passwordExpiry}
                   onChange={(e) =>
                     updateSecuritySetting("passwordExpiry", e.target.value)
@@ -335,7 +335,7 @@ export default function Settings() {
                 <input
                   id="sessionTimeout"
                   type="number"
-                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={securitySettings.sessionTimeout}
                   onChange={(e) =>
                     updateSecuritySetting("sessionTimeout", e.target.value)
@@ -354,7 +354,7 @@ export default function Settings() {
               <input
                 id="maxLoginAttempts"
                 type="number"
-                className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full bg-white text-gray-500 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 value={securitySettings.maxLoginAttempts}
                 onChange={(e) =>
                   updateSecuritySetting("maxLoginAttempts", e.target.value)
@@ -377,7 +377,7 @@ export default function Settings() {
                 onChange={(e) =>
                   updateSecuritySetting("requireTwoFactor", e.target.checked)
                 }
-                className="h-5 w-5 cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                className="h-5 w-5 cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </section>
@@ -435,7 +435,7 @@ export default function Settings() {
                   onChange={(e) =>
                     updateNotificationSetting(key, e.target.checked)
                   }
-                  className="h-5 w-5 cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="h-5 w-5 cursor-pointer rounded border border-gray-400 dark:border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             ))}
@@ -454,11 +454,11 @@ export default function Settings() {
               {/* Light Theme */}
               <button
                 type="button"
-                className="cursor-pointer border-2 border-purple-600 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="cursor-pointer border-2 border-indigo-600 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 aria-label="Light Theme"
                 // onClick={} add your theme switching logic here
               >
-                <div className="w-full h-20 bg-gradient-to-br from-purple-500 to-purple-600"></div>
+                <div className="w-full h-20 bg-gradient-to-br from-indigo-500 to-indigo-600"></div>
                 <p className="text-center p-2 text-sm text-gray-900 dark:text-gray-100">
                   Light Theme
                 </p>
@@ -467,7 +467,7 @@ export default function Settings() {
               {/* Dark Theme */}
               <button
                 type="button"
-                className="cursor-pointer border border-gray-300 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="cursor-pointer border border-gray-300 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 aria-label="Dark Theme"
               >
                 <div className="w-full h-20 bg-gradient-to-br from-gray-800 to-gray-900"></div>
@@ -479,10 +479,10 @@ export default function Settings() {
               {/* Auto Theme */}
               <button
                 type="button"
-                className="cursor-pointer border border-gray-300 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="cursor-pointer border border-gray-300 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 aria-label="Auto Theme"
               >
-                <div className="w-full h-20 bg-gradient-to-br from-purple-500 to-gray-800"></div>
+                <div className="w-full h-20 bg-gradient-to-br from-indigo-500 to-gray-800"></div>
                 <p className="text-center p-2 text-sm text-gray-900 dark:text-gray-100">
                   Auto
                 </p>

@@ -30,7 +30,7 @@ const StatsCard = ({ title, value, description, icon: Icon, trend }) => {
   return (
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col space-y-2 dark:border-gray-700 dark:bg-gray-800">
       <div className="flex items-center space-x-3">
-        <div className="p-2 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-400">
+        <div className="p-2 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">
           <Icon className="w-6 h-6" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -160,7 +160,7 @@ const TenantDashboard = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           Welcome back,{" "}
-          <span className="bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent font-extrabold">
+          <span className="bg-gradient-to-r from-indigo-500 to-indigo-600 bg-clip-text text-transparent font-extrabold">
             Tenant
           </span>
         </h1>

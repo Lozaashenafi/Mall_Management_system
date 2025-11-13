@@ -12,21 +12,21 @@ function Footer() {
             Follow us on
             <a
               href="https://twitter.com"
-              className="text-purple-400 hover:underline ml-1"
+              className="text-indigo-400 hover:underline ml-1"
             >
               Twitter
             </a>
             ,
             <a
               href="https://facebook.com"
-              className="text-purple-400 hover:underline ml-1"
+              className="text-indigo-400 hover:underline ml-1"
             >
               Facebook
             </a>
             ,
             <a
               href="https://instagram.com"
-              className="text-purple-400 hover:underline ml-1"
+              className="text-indigo-400 hover:underline ml-1"
             >
               Instagram
             </a>

@@ -17,7 +17,7 @@ import { getRooms } from "../services/roomService";
 
 // Helper components for improved readability (Optional, but good practice)
 const LoadingSpinner = ({ text = "Loading..." }) => (
-  <div className="flex items-center justify-center p-6 text-lg font-medium text-blue-600 dark:text-blue-400">
+  <div className="flex items-center justify-center p-6 text-lg font-medium text-indigo-600 dark:text-indigo-400">
     <Loader2 className="w-6 h-6 mr-3 animate-spin" />
     {text}
   </div>
@@ -284,7 +284,7 @@ export default function RoomFeatureManage() {
         <div className="flex gap-3 mt-4 sm:mt-0">
           <button
             onClick={openAddType}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-150 ease-in-out disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50"
             disabled={loadingAction}
           >
             <PlusCircle className="w-4 h-4" />
@@ -292,7 +292,7 @@ export default function RoomFeatureManage() {
           </button>
           <button
             onClick={openAddFeature}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg shadow-md hover:bg-purple-700 transition duration-150 ease-in-out disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50"
             disabled={loadingAction}
           >
             <PlusCircle className="w-4 h-4" />
@@ -342,7 +342,7 @@ export default function RoomFeatureManage() {
                             onClick={() => openEditType(type)}
                             icon={Pencil}
                             title="Edit Feature Type"
-                            className="text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-gray-700"
+                            className="text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-gray-700"
                           />
                           <ActionButton
                             onClick={() => handleDeleteType(type)}
@@ -428,7 +428,7 @@ export default function RoomFeatureManage() {
                               onClick={() => openEditFeature(feature)}
                               icon={Pencil}
                               title="Edit Room Feature"
-                              className="text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-gray-700"
+                              className="text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-gray-700"
                             />
                             <ActionButton
                               onClick={() => handleDeleteFeature(feature)}
@@ -503,7 +503,7 @@ export default function RoomFeatureManage() {
                         name: e.target.value,
                       })
                     }
-                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                     required
                   />
                 </div>
@@ -524,7 +524,7 @@ export default function RoomFeatureManage() {
                         description: e.target.value,
                       })
                     }
-                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                     rows={3}
                   />
                 </div>
@@ -540,7 +540,7 @@ export default function RoomFeatureManage() {
                   <button
                     type="submit"
                     disabled={loadingAction}
-                    className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition duration-150 flex items-center"
+                    className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 flex items-center"
                   >
                     {loadingAction && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -602,7 +602,7 @@ export default function RoomFeatureManage() {
                         roomId: Number(e.target.value) || "",
                       })
                     }
-                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 appearance-none"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
                     required
                     disabled={editingFeature} // Prevent changing room on edit
                   >
@@ -636,7 +636,7 @@ export default function RoomFeatureManage() {
                         featureTypeId: Number(e.target.value) || "",
                       })
                     }
-                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 appearance-none"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
                     required
                     disabled={editingFeature} // Prevent changing feature type on edit
                   >
@@ -677,7 +677,7 @@ export default function RoomFeatureManage() {
                         count: Number(e.target.value || 1),
                       })
                     }
-                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 bg-white dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                     required
                   />
                 </div>
@@ -693,7 +693,7 @@ export default function RoomFeatureManage() {
                   <button
                     type="submit"
                     disabled={loadingAction}
-                    className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition duration-150 flex items-center"
+                    className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 flex items-center"
                   >
                     {loadingAction && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -106,7 +106,7 @@ const TenantMaintenance = () => {
           title="In Progress"
           value={requests.filter((r) => r.status === "In Progress").length}
           icon={Wrench}
-          color="bg-blue-500"
+          color="bg-indigo-500"
         />
         <StatsCard
           title="Completed"
@@ -127,7 +127,7 @@ const TenantMaintenance = () => {
           <select
             value={selectedRentId}
             onChange={(e) => setSelectedRentId(e.target.value)}
-            className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Rental</option>
             {rentals.map((r) => (
@@ -143,13 +143,13 @@ const TenantMaintenance = () => {
             value={newRequest}
             onChange={(e) => setNewRequest(e.target.value)}
             placeholder="Describe your issue..."
-            className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
 
           {/* Submit Button */}
           <button
             onClick={handleAddRequest}
-            className="px-4 py-2 flex items-center gap-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700"
+            className="px-4 py-2 flex items-center gap-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
           >
             <PlusCircle className="w-5 h-5" />
             Submit
@@ -198,7 +198,7 @@ const TenantMaintenance = () => {
                         req.status === "Pending"
                           ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
                           : req.status === "In Progress"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"
                           : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                       }`}
                     >

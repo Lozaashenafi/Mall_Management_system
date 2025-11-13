@@ -109,13 +109,13 @@ export default function RoomManage() {
         <div className="flex gap-2">
           <Link
             to="/manage-rooms/add"
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
           >
             <Plus className="w-4 h-4" /> Add Room
           </Link>
           <Link
             to="/floor-price"
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
           >
             <Plus className="w-4 h-4" /> Add Floor price
           </Link>
@@ -191,7 +191,7 @@ export default function RoomManage() {
                     onClick={() => navigate(`/room-detail/${room.roomId}`)}
                     className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    <FileText className="w-4 h-4 text-blue-600" />
+                    <FileText className="w-4 h-4 text-indigo-600" />
                   </button>
                 </td>
               </tr>
@@ -346,7 +346,7 @@ export default function RoomManage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded"
                 >
                   Save
                 </button>

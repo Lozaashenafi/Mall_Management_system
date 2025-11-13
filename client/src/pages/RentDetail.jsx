@@ -62,9 +62,9 @@ export default function RentDetail() {
       {/* Header */}
       <div className="border-b pb-4 border-gray-200 flex justify-between items-center mb-6 dark:border-gray-700">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
-          <FiCalendar className="text-purple-600" />
+          <FiCalendar className="text-indigo-600" />
           Rental Agreement for:{" "}
-          <span className="text-purple-600">
+          <span className="text-indigo-600">
             {rental.tenant?.contactPerson}
           </span>
         </h1>
@@ -72,7 +72,7 @@ export default function RentDetail() {
           {daysLeft <= 10 && daysLeft >= 0 && (
             <Link
               to={`/rent-renewal/${rental.rentId}`}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow transition duration-300"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow transition duration-300"
             >
               Renew Rent ({daysLeft} days left)
             </Link>
@@ -268,7 +268,7 @@ export default function RentDetail() {
 const InfoCard = ({ title, icon: Icon, children }) => (
   <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 h-full">
     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b pb-3 mb-4">
-      {Icon && <Icon className="text-purple-500 w-5 h-5" />}
+      {Icon && <Icon className="text-indigo-500 w-5 h-5" />}
       {title}
     </h2>
     <div className="space-y-2">{children}</div>
@@ -278,7 +278,7 @@ const InfoCard = ({ title, icon: Icon, children }) => (
 const SectionContainer = ({ title, icon: Icon, children }) => (
   <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 mb-6">
     <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2 border-b pb-3">
-      {Icon && <Icon className="text-purple-500 w-5 h-5" />}
+      {Icon && <Icon className="text-indigo-500 w-5 h-5" />}
       {title}
     </h2>
     {children}
@@ -293,7 +293,7 @@ const DetailItem = ({ label, value, highlight = false }) => (
     <span
       className={
         highlight
-          ? "font-extrabold text-lg text-purple-600 dark:text-purple-400"
+          ? "font-extrabold text-lg text-indigo-600 dark:text-indigo-400"
           : "font-semibold text-gray-800 dark:text-gray-200"
       }
     >
@@ -342,7 +342,7 @@ const StatusPill = ({ status }) => {
     colorClass = "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100";
   } else if (statusLower?.includes("in-progress")) {
     colorClass =
-      "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100";
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100";
   }
   return (
     <span

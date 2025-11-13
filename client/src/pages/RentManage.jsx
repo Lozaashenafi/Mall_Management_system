@@ -275,7 +275,7 @@ export default function RentManage() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors"
         >
           <PlusCircle className="w-4 h-4" />
           {showAddForm ? "Cancel" : "Add New Rental"}
@@ -522,7 +522,7 @@ export default function RentManage() {
 
             <button
               type="submit"
-              className="col-span-1 md:col-span-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+              className="col-span-1 md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
             >
               Register Rental
             </button>
@@ -577,7 +577,7 @@ export default function RentManage() {
                     <button
                       title="Edit Rental"
                       onClick={() => setEditingRental(rental)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -594,14 +594,14 @@ export default function RentManage() {
                     <button
                       title="Generate Agreement"
                       onClick={() => handleGenerateAgreement(rental)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600"
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
                     >
                       <FileText className="w-4 h-4" />
                     </button>
                     <button
                       title="Generate Agreement"
                       onClick={() => navigate(`/rent-detail/${rental.rentId}`)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600"
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
                     >
                       <ListPlus className="w-4 h-4" />
                     </button>
@@ -838,7 +838,7 @@ export default function RentManage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
                 >
                   Save Changes
                 </button>

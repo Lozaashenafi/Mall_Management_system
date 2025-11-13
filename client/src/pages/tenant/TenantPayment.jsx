@@ -38,7 +38,7 @@ const StatsCard = ({ title, value, description, icon: Icon, trend }) => (
       dark:border-gray-700 dark:bg-gray-800 flex flex-col space-y-2"
   >
     <div className="flex items-center space-x-3">
-      <div className="p-2 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-400">
+      <div className="p-2 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">
         <Icon className="w-6 h-6" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -349,7 +349,7 @@ const PaymentRequests = () => {
             className={`mt-4 px-4 py-2 rounded-lg font-medium ${
               nextPayment.isOverdue
                 ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-purple-600 hover:bg-purple-700 text-white"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"
             }`}
           >
             Pay Now

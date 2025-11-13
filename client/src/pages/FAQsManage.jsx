@@ -64,7 +64,7 @@ export default function FAQsManage() {
             Manage frequently asked questions and help content
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-md shadow-md transition">
+        <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-md shadow-md transition">
           <Plus className="h-5 w-5" />
           Add FAQ
         </button>
@@ -77,7 +77,7 @@ export default function FAQsManage() {
           <input
             type="text"
             placeholder="Search FAQs..."
-            className="pl-11 pr-4 py-2 w-full border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-purple-400 transition"
+            className="pl-11 pr-4 py-2 w-full border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-indigo-400 transition"
           />
         </div>
         <button className="flex items-center gap-2 border border-gray-300 rounded-md px-4 py-2 text-gray-900 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800 shadow-sm transition">
@@ -90,7 +90,7 @@ export default function FAQsManage() {
       <div className="grid gap-5 md:grid-cols-3">
         {[
           {
-            icon: <HelpCircle className="h-9 w-9 text-purple-600" />,
+            icon: <HelpCircle className="h-9 w-9 text-indigo-600" />,
             label: "Total FAQs",
             value: faqs.length,
           },
@@ -180,7 +180,7 @@ export default function FAQsManage() {
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
                         faq.status === "published"
-                          ? "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-200"
+                          ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-200"
                           : faq.status === "draft"
                           ? "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                           : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"

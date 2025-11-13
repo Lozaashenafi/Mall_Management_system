@@ -152,7 +152,7 @@ const ReportPage = () => {
             title="Avg Resolve Time"
             value={`${report.maintenance.avgResolveTime._avg.resolveTimeHours} hr`}
             icon={Clock}
-            color="bg-blue-600"
+            color="bg-indigo-600"
           />
         )}
       </div>

@@ -179,7 +179,7 @@ export default function Expenses() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors"
         >
           <PlusCircle className="w-4 h-4" />
           {showAddForm ? "Cancel" : "Add Expense"}
@@ -254,7 +254,7 @@ export default function Expenses() {
 
             <button
               type="submit"
-              className="col-span-1 md:col-span-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+              className="col-span-1 md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
             >
               Save Expense
             </button>
@@ -291,7 +291,7 @@ export default function Expenses() {
                   <td className="p-3 flex gap-2">
                     <button
                       onClick={() => handleEditClick(exp)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -305,7 +305,7 @@ export default function Expenses() {
                       onClick={() => handleViewDetail(exp)}
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-green-600"
                     >
-                      <Eye className="w-4 h-4 text-blue-600" />
+                      <Eye className="w-4 h-4 text-indigo-600" />
                     </button>
                   </td>
                 </tr>
@@ -420,7 +420,7 @@ export default function Expenses() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
                 >
                   Save
                 </button>
@@ -457,7 +457,7 @@ export default function Expenses() {
                     href={`http://localhost:3000/${detailExpense.invoice}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 underline ml-2"
+                    className="text-indigo-600 underline ml-2"
                   >
                     View PDF
                   </a>

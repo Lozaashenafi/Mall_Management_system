@@ -79,7 +79,7 @@ export default function BankManage() {
     setLoading(true);
     try {
       const accsData = await getBankAccounts();
-      setAccounts(accsData.accounts || []);
+      setAccounts(accsData || []);
       const transData = await getBankTransactions();
       setTransactions(transData.transactions || []);
     } catch (err) {
@@ -213,8 +213,8 @@ export default function BankManage() {
           onClick={() => setActiveTab("accounts")}
           className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition duration-200 ${
             activeTab === "accounts"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+              ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
+              : "text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
           }`}
         >
           <Landmark className="w-5 h-5" /> Bank Accounts
@@ -223,8 +223,8 @@ export default function BankManage() {
           onClick={() => setActiveTab("transactions")}
           className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition duration-200 ${
             activeTab === "transactions"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+              ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
+              : "text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
           }`}
         >
           <Banknote className="w-5 h-5" /> Transactions
@@ -240,7 +240,7 @@ export default function BankManage() {
             </h2>
             <button
               onClick={() => setShowAddAccount((prev) => !prev)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-150"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-150"
             >
               <PlusCircle className="w-4 h-4" />
               {showAddAccount ? "Close Form" : "Add Account"}
@@ -310,7 +310,7 @@ export default function BankManage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
                 >
                   {editingAccount ? "Save Changes" : "Add Account"}
                 </button>
@@ -353,28 +353,30 @@ export default function BankManage() {
                           {a.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="p-4 flex gap-2 justify-center">
-                        <button
-                          onClick={() => {
-                            setEditingAccount(a);
-                            setShowAddAccount(true);
-                          }}
-                          className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 transition duration-150"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeactivateAccount(a)}
-                          disabled={!a.isActive}
-                          className={`p-2 rounded-full ${
-                            a.isActive
-                              ? "hover:bg-red-50 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
-                              : "text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                          }`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+                      {a.isActive ? (
+                        <td className="p-4 flex gap-2 justify-center">
+                          <button
+                            onClick={() => {
+                              setEditingAccount(a);
+                              setShowAddAccount(true);
+                            }}
+                            className="p-2 rounded-full hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition duration-150"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeactivateAccount(a)}
+                            disabled={!a.isActive}
+                            className={`p-2 rounded-full ${
+                              a.isActive
+                                ? "hover:bg-red-50 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
+                                : "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                            }`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      ) : null}
                     </tr>
                   ))
                 ) : (
@@ -392,7 +394,6 @@ export default function BankManage() {
           </div>
         </section>
       )}
-
       {/* --- TRANSACTIONS SECTION --- */}
       {activeTab === "transactions" && (
         <section className="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
@@ -540,7 +541,7 @@ export default function BankManage() {
                               setEditingTransaction(t);
                               setShowAddTransaction(true);
                             }}
-                            className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 transition duration-150"
+                            className="p-2 rounded-full hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition duration-150"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>

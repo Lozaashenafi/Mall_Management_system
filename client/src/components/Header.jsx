@@ -118,7 +118,7 @@ function Header() {
         <input
           type="text"
           placeholder="Search anything..."
-          className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
 
@@ -147,7 +147,7 @@ function Header() {
         {/* User Menu */}
         <Dropdown
           trigger={
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold select-none">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold select-none">
               {initials}
             </div>
           }

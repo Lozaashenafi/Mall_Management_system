@@ -323,7 +323,7 @@ export default function Payments() {
                       <>
                         <Link
                           to={`/payments/add/${inv.invoiceId}`}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          className="text-indigo-600 hover:text-indigo-800 transition-colors"
                           title="Register Payment"
                         >
                           <FileText className="w-4 h-4" />
@@ -346,7 +346,7 @@ export default function Payments() {
                     </button>
                     <button
                       onClick={() => handleDownloadInvoice(inv.invoiceId)}
-                      className="p-1 rounded text-purple-600 hover:bg-purple-50 transition-colors"
+                      className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
                       title="Download Invoice PDF"
                     >
                       <Download className="w-4 h-4" />
@@ -541,7 +541,7 @@ export default function Payments() {
                       href={`http://localhost:3300${req.proofFilePath}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+                      className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
                     >
                       <FileText className="w-4 h-4" /> View Proof
                     </a>
@@ -588,7 +588,7 @@ export default function Payments() {
         </h1>
         <Link
           to="/payments/invoice"
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-medium"
         >
           <FileText className="w-5 h-5" /> Create Invoice
         </Link>
@@ -603,7 +603,7 @@ export default function Payments() {
             className={`px-6 py-3 text-lg font-semibold -mb-px transition-colors duration-200
               ${
                 activeTab === tab.id
-                  ? "border-b-4 border-purple-600 text-purple-600 dark:text-purple-400"
+                  ? "border-b-4 border-indigo-600 text-indigo-600 dark:text-indigo-400"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
           >
@@ -614,7 +614,7 @@ export default function Payments() {
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4">
         {loading ? (
-          <div className="text-center py-10 text-xl text-purple-600 dark:text-purple-400 font-medium">
+          <div className="text-center py-10 text-xl text-indigo-600 dark:text-indigo-400 font-medium">
             Loading payment data...
           </div>
         ) : (
@@ -658,7 +658,7 @@ export default function Payments() {
                     name="paperInvoiceNumber"
                     value={editData.paperInvoiceNumber || ""}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                    className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                     placeholder="Enter invoice number"
                     required
                   />
@@ -673,7 +673,7 @@ export default function Payments() {
                       name="method"
                       value={editData.method || ""}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                     >
                       <option value="Cash">Cash</option>
                       <option value="Mobile">Mobile</option>
@@ -691,7 +691,7 @@ export default function Payments() {
                       name="reference"
                       value={editData.reference || ""}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                       placeholder="Enter reference number"
                     />
                   </div>
@@ -713,7 +713,7 @@ export default function Payments() {
                       name="identificationDocument"
                       accept="image/*"
                       onChange={handleChange}
-                      className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900 dark:file:text-purple-300 dark:hover:file:bg-purple-800"
+                      className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Upload a new image to replace the current one.

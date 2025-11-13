@@ -144,7 +144,7 @@ export default function AdminMaintenance() {
       <div>
         <button
           onClick={() => setShowForm((prev) => !prev)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 mb-2"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500 mb-2"
         >
           <PlusCircle className="w-5 h-5" />
           {showForm ? "Close Form" : "Add Maintenance"}
@@ -201,7 +201,6 @@ export default function AdminMaintenance() {
                   className="w-full border p-2 rounded bg-white dark:bg-gray-800"
                 />
               </div>
-
               {/* Status Dropdown */}
               <div>
                 <label className="block mb-1 font-medium">Status</label>
@@ -295,7 +294,7 @@ export default function AdminMaintenance() {
           : req.status === "InProgress"
           ? "bg-yellow-100 text-yellow-800"
           : req.status === "Pending"
-          ? "bg-blue-100 text-blue-800"
+          ? "bg-indigo-100 text-indigo-800"
           : "bg-gray-100 text-gray-800"
       }`}
                   >
@@ -365,7 +364,7 @@ export default function AdminMaintenance() {
           : m.status === "InProgress"
           ? "bg-yellow-100 text-yellow-800"
           : m.status === "Pending"
-          ? "bg-blue-100 text-blue-800"
+          ? "bg-indigo-100 text-indigo-800"
           : "bg-gray-100 text-gray-800"
       }`}
                   >
@@ -376,7 +375,7 @@ export default function AdminMaintenance() {
                 <td className="p-2 flex gap-2">
                   <button
                     onClick={() => setEditItem(m)} // open popup
-                    className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+                    className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>

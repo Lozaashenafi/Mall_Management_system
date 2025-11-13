@@ -129,7 +129,7 @@ export default function Notifications() {
             const storedUser = JSON.parse(localStorage.getItem("user"));
             fetchNotifications(storedUser?.userId);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
         >
           <Send className="w-4 h-4" />
           Refresh
@@ -153,7 +153,7 @@ export default function Notifications() {
                     className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-800 rounded-lg flex items-center justify-center">
                         {getTypeIcon(n.type)}
                       </div>
                       <div>

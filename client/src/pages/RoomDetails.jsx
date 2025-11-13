@@ -29,7 +29,12 @@ const formatDate = (dateString) => {
 };
 
 // Reusable components
-const DetailCard = ({ icon: Icon, label, value, color = "text-blue-500" }) => (
+const DetailCard = ({
+  icon: Icon,
+  label,
+  value,
+  color = "text-indigo-500",
+}) => (
   <div className="flex items-start p-4 bg-white dark:bg-gray-700 rounded-xl shadow-md transition duration-300 hover:shadow-lg">
     <div className={`p-3 rounded-full bg-opacity-10 ${color}`}>
       <Icon className={`w-6 h-6 ${color}`} />
@@ -102,8 +107,8 @@ export default function RoomDetails() {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-lg font-medium text-purple-600 dark:text-purple-400">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-indigo-600 dark:text-indigo-400">
             Loading room details...
           </p>
         </div>
@@ -118,7 +123,7 @@ export default function RoomDetails() {
         </p>
         <Link
           to="/manage-rooms"
-          className="mt-6 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 transition duration-300"
+          className="mt-6 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 transition duration-300"
         >
           Go Back to Rooms
         </Link>
@@ -170,9 +175,9 @@ export default function RoomDetails() {
         {/* Status, Parking, and Price Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Current Status */}
-          <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
+          <div className="p-6 bg-indigo-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-indigo-200 dark:border-gray-600">
             <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-purple-600" /> Current Status
+              <Clock className="w-5 h-5 mr-2 text-indigo-600" /> Current Status
             </h2>
             <div className="flex justify-between items-center">
               <p className="text-lg font-medium text-gray-800 dark:text-gray-100">
@@ -188,9 +193,9 @@ export default function RoomDetails() {
           </div>
 
           {/* Parking */}
-          <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
+          <div className="p-6 bg-indigo-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-indigo-200 dark:border-gray-600">
             <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-              <Car className="w-5 h-5 mr-2 text-purple-600" /> Parking
+              <Car className="w-5 h-5 mr-2 text-indigo-600" /> Parking
             </h2>
             <div className="flex justify-between items-center">
               <p
@@ -206,9 +211,9 @@ export default function RoomDetails() {
           </div>
 
           {/* Room Price */}
-          <div className="p-6 bg-purple-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-purple-200 dark:border-gray-600">
+          <div className="p-6 bg-indigo-50 dark:bg-gray-700 rounded-2xl shadow-inner border border-indigo-200 dark:border-gray-600">
             <h2 className="text-2xl font-semibold mb-3 text-gray-700 dark:text-gray-200 flex items-center">
-              <DollarSign className="w-5 h-5 mr-2 text-purple-600" /> Room Price
+              <DollarSign className="w-5 h-5 mr-2 text-indigo-600" /> Room Price
             </h2>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               ${room.roomPrice?.toLocaleString() || "N/A"}
@@ -219,14 +224,14 @@ export default function RoomDetails() {
         {/* Features */}
         <div className="mb-10 p-6 bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-md">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center">
-            <Tag className="w-6 h-6 mr-2 text-purple-600" /> Room Features
+            <Tag className="w-6 h-6 mr-2 text-indigo-600" /> Room Features
           </h2>
           <div className="flex flex-wrap gap-3">
             {room.roomFeatures?.length ? (
               room.roomFeatures.map((f) => (
                 <div
                   key={f.roomFeatureId}
-                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium transition duration-200 hover:bg-purple-700 shadow-md"
+                  className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium transition duration-200 hover:bg-indigo-700 shadow-md"
                   title={f.featureType?.description || ""}
                 >
                   <CheckCircle className="w-4 h-4 mr-1.5" />
@@ -247,17 +252,17 @@ export default function RoomDetails() {
         {/* Rentals */}
         <div className="mb-8 p-6 bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-md">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center">
-            <Users className="w-6 h-6 mr-2 text-purple-600" /> Rental History
+            <Users className="w-6 h-6 mr-2 text-indigo-600" /> Rental History
           </h2>
           {room.rental?.length ? (
             <div className="space-y-4">
               {room.rental.map((r) => (
                 <div
                   key={r.rentId}
-                  className="p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border-l-4 border-purple-500 transition duration-300 hover:shadow-xl"
+                  className="p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border-l-4 border-indigo-500 transition duration-300 hover:shadow-xl"
                 >
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                    <div className="col-span-2 lg:col-span-1 flex items-center font-bold text-lg text-purple-600 dark:text-purple-400">
+                    <div className="col-span-2 lg:col-span-1 flex items-center font-bold text-lg text-indigo-600 dark:text-indigo-400">
                       <FileText className="w-4 h-4 mr-2" />
                       {r.tenant?.contactPerson || "Unknown Tenant"}
                     </div>
@@ -287,7 +292,7 @@ export default function RoomDetails() {
         <div className="flex justify-end pt-4">
           <Link
             to="/manage-rooms"
-            className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition duration-300 shadow-lg"
+            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition duration-300 shadow-lg"
           >
             Back to Rooms
           </Link>

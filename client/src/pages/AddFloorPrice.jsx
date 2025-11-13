@@ -145,7 +145,7 @@ export default function AddFloorPrice() {
           )}
           <button
             type="submit"
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
           >
             <Save className="w-4 h-4" />
             {editingId ? "Update Price" : "Add Price"}
@@ -183,7 +183,7 @@ export default function AddFloorPrice() {
                   <td className="px-4 py-2">
                     <button
                       onClick={() => handleEdit(price)}
-                      className="text-blue-600 hover:underline"
+                      className="text-indigo-600 hover:underline"
                     >
                       Edit
                     </button>

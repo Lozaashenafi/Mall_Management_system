@@ -96,9 +96,9 @@ export default function RentRenewal() {
       {/* Header */}
       <div className="flex justify-between items-center border-b pb-4 mb-6 dark:border-gray-700">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <FiCalendar className="text-purple-600" />
+          <FiCalendar className="text-indigo-600" />
           Renew Rental —{" "}
-          <span className="text-purple-600">
+          <span className="text-indigo-600">
             {rental.tenant?.contactPerson}
           </span>
         </h1>
@@ -136,7 +136,7 @@ export default function RentRenewal() {
       {/* Renewal Form */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2 border-b pb-3">
-          <FiCheckCircle className="text-purple-500" />
+          <FiCheckCircle className="text-indigo-500" />
           Renewal Details
         </h2>
 
@@ -173,7 +173,7 @@ export default function RentRenewal() {
               name="paymentInterval"
               value={form.paymentInterval}
               onChange={handleChange}
-              className="p-3 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+              className="p-3 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
               required
             >
               <option value="">Select Interval</option>
@@ -194,7 +194,7 @@ export default function RentRenewal() {
           <div className="md:col-span-2 flex justify-end mt-6">
             <button
               type="submit"
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition duration-300 flex items-center gap-2"
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300 flex items-center gap-2"
             >
               <FiClock className="w-5 h-5" />
               Renew Rental
@@ -210,7 +210,7 @@ export default function RentRenewal() {
 const InfoCard = ({ title, icon: Icon, children }) => (
   <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
     <h2 className="text-lg font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2 border-b pb-2">
-      {Icon && <Icon className="text-purple-500 w-5 h-5" />}
+      {Icon && <Icon className="text-indigo-500 w-5 h-5" />}
       {title}
     </h2>
     <div className="space-y-2">{children}</div>
@@ -238,7 +238,7 @@ const FormField = ({ label, type, name, value, onChange }) => (
       name={name}
       value={value}
       onChange={onChange}
-      className="p-3 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+      className="p-3 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
       required
     />
   </div>

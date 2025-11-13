@@ -23,7 +23,7 @@ import {
 const getUtilityIcon = (type) => {
   switch (type) {
     case "Water":
-      return <FiDroplet className="text-blue-500 w-5 h-5" />;
+      return <FiDroplet className="text-indigo-500 w-5 h-5" />;
     case "Electricity":
       return <FiZap className="text-yellow-500 w-5 h-5" />;
     case "Generator":
@@ -160,7 +160,7 @@ export default function UtilitySummary() {
       {/* 🌟 Header and Action */}
       <div className="flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3 mb-4 sm:mb-0">
-          <FiCalendar className="text-purple-600" />
+          <FiCalendar className="text-indigo-600" />
           Utility & Billing Dashboard
         </h1>
         <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
@@ -168,12 +168,12 @@ export default function UtilitySummary() {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-purple-500 focus:border-purple-500 text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 text-sm"
           />
           <button
             onClick={handleGenerateCharges}
             disabled={generating}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center gap-2"
           >
             {generating ? (
               <>
@@ -191,7 +191,7 @@ export default function UtilitySummary() {
         {/* Monthly Breakdown Table */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <FiDollarSign className="text-purple-500" /> Total Utility Expenses
+            <FiDollarSign className="text-indigo-500" /> Total Utility Expenses
             for {formattedMonth}
           </h2>
 
@@ -241,7 +241,7 @@ export default function UtilitySummary() {
         {/* Utility Charges List */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <FiCpu className="text-purple-500" /> Raw Utility Charges (
+            <FiCpu className="text-indigo-500" /> Raw Utility Charges (
             {charges.length})
           </h2>
 
@@ -250,7 +250,7 @@ export default function UtilitySummary() {
               {charges.map((item) => (
                 <li
                   key={item.utilityChargeId}
-                  className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 transition hover:border-purple-400"
+                  className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 transition hover:border-indigo-400"
                 >
                   <span className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     {getUtilityIcon(item.type)} {item.type}
@@ -274,7 +274,7 @@ export default function UtilitySummary() {
       {/* 📝 Tenant Invoices Section */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <FiDollarSign className="text-purple-500" /> Tenant Bills for
+          <FiDollarSign className="text-indigo-500" /> Tenant Bills for
           {formattedMonth}
         </h2>
 
@@ -347,7 +347,7 @@ export default function UtilitySummary() {
                           onClick={() =>
                             navigate(`/add-utility-payment/${invoice.id}`)
                           }
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition duration-150"
+                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition duration-150"
                           title="Record Payment"
                         >
                           Pay

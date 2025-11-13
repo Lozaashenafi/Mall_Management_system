@@ -80,40 +80,40 @@ const EditProfile = () => {
 
           {/* Full Name */}
           <div className="flex items-center space-x-3">
-            <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <input
               type="text"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
               placeholder="Full Name"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {/* Email */}
           <div className="flex items-center space-x-3">
-            <Mail className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <Mail className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="Email"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {/* Phone */}
           <div className="flex items-center space-x-3">
-            <Phone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <Phone className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <input
               type="text"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
               placeholder="Phone"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -130,7 +130,7 @@ const EditProfile = () => {
             </button>
             <button
               type="submit"
-              className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700"
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700"
             >
               <Save className="w-4 h-4 mr-2" /> Save Changes
             </button>

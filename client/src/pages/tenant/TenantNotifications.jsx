@@ -110,7 +110,7 @@ const TenantNotifications = () => {
       case "warning":
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
       case "info":
-        return <Info className="w-5 h-5 text-blue-500" />;
+        return <Info className="w-5 h-5 text-indigo-500" />;
       default:
         return <Mail className="w-5 h-5 text-gray-500" />;
     }
@@ -130,7 +130,7 @@ const TenantNotifications = () => {
         </div>
         <button
           onClick={markAllAsRead}
-          className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+          className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
         >
           Mark All as Read
         </button>
@@ -148,7 +148,7 @@ const TenantNotifications = () => {
           title="Total Notifications"
           value={notifications.length}
           icon={Mail}
-          color="bg-purple-500"
+          color="bg-indigo-500"
         />
       </div>
 
@@ -164,7 +164,7 @@ const TenantNotifications = () => {
               className={`flex items-start justify-between p-4 transition ${
                 n.status === "READ"
                   ? "bg-gray-50 dark:bg-gray-800/50"
-                  : "bg-purple-50 dark:bg-purple-900/30"
+                  : "bg-indigo-50 dark:bg-indigo-900/30"
               }`}
             >
               <div className="flex items-start space-x-3">

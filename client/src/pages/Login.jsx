@@ -28,7 +28,7 @@ const Login = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex flex-col items-center">
-          <div className="p-3 mb-4 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400">
+          <div className="p-3 mb-4 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400">
             <LogIn className="w-8 h-8" />
           </div>
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100">
@@ -50,7 +50,7 @@ const Login = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full px-4 py-2 rounded-md border focus:ring-purple-500 dark:bg-gray-700"
+              className="block w-full px-4 py-2 rounded-md border focus:ring-indigo-500 dark:bg-gray-700"
             />
           </div>
 
@@ -64,7 +64,7 @@ const Login = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full px-4 py-2 rounded-md border focus:ring-purple-500 dark:bg-gray-700"
+              className="block w-full px-4 py-2 rounded-md border focus:ring-indigo-500 dark:bg-gray-700"
             />
           </div>
 
@@ -73,7 +73,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

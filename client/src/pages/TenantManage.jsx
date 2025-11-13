@@ -39,7 +39,7 @@ const TenantManage = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Tenant Management</h2>
         <button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow"
           onClick={() => navigate("/add-tenant")}
         >
           Add Tenant

@@ -148,7 +148,7 @@ export default function AddTenant() {
                   const tinUrl = `https://etrade.gov.et/business-license-checker?tin=${formData.tinNumber}`;
                   window.open(tinUrl, "_blank");
                 }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
               >
                 Check
               </button>
@@ -208,7 +208,7 @@ export default function AddTenant() {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
           >
             <Save className="w-4 h-4" /> {loading ? "Saving..." : "Save Tenant"}
           </button>

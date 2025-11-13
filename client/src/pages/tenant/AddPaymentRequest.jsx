@@ -185,7 +185,7 @@ export default function AddPaymentRequest() {
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-purple-600 text-white rounded"
+            className="px-4 py-2 bg-indigo-600 text-white rounded"
           >
             Submit Request
           </button>

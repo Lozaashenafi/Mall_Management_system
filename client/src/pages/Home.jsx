@@ -60,7 +60,7 @@ const getStatusColorClass = (status) => {
 const StatsCard = ({ title, value, description, icon: Icon }) => (
   <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
     <div className="flex items-center space-x-3">
-      <div className="p-2 bg-purple-50 text-purple-600 rounded-md dark:bg-purple-900 dark:text-purple-400">
+      <div className="p-2 bg-indigo-50 text-indigo-600 rounded-md dark:bg-indigo-900 dark:text-indigo-400">
         <Icon className="w-6 h-6" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">

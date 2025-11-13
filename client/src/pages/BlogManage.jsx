@@ -70,7 +70,7 @@ export default function BlogManage() {
             Create and manage blog posts and articles
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md">
+        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md">
           <Plus className="h-4 w-4" />
           New Post
         </button>
@@ -83,7 +83,7 @@ export default function BlogManage() {
           <input
             type="text"
             placeholder="Search posts..."
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md  focus:outline-none focus:ring-2 focus:ring-purple-500  bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md  focus:outline-none focus:ring-2 focus:ring-indigo-500  bg-white text-black dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 bg-white text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-100">
@@ -98,7 +98,7 @@ export default function BlogManage() {
           className="flex items-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm 
                         dark:bg-gray-800 dark:border-gray-700"
         >
-          <FileText className="h-8 w-8 text-purple-500" />
+          <FileText className="h-8 w-8 text-indigo-500" />
           <div className="ml-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Total Posts
