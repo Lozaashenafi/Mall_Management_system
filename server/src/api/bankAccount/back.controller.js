@@ -5,9 +5,11 @@ import { createAuditLog } from "../../utils/audit.js";
 export const getBankAccounts = async (req, res) => {
   try {
     const accounts = await prisma.bankAccount.findMany({
+      where: { isActive: true },
       orderBy: { createdAt: "desc" },
       include: { transactions: true },
     });
+
     res.json({ success: true, accounts });
   } catch (err) {
     console.error("getBankAccounts error:", err);

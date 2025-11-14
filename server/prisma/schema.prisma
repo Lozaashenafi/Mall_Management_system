@@ -429,19 +429,23 @@ model BankAccount {
 }
 
 model BankTransaction {
-  transactionId  Int      @id @default(autoincrement())
-  bankAccountId  Int?
-  paymentId      Int?        // linked if this came from a tenant payment
-  receiptImage       String?
-  receiverAccountId String?
-  receiverAccount   String?    // receiver’s account number
-  receiverName      String?    // receiver’s name
-  type           BankTransactionType      // e.g., "Deposit", "Withdrawal", "Transfer"
-  amount         Float
-  description    String?
-  transactionDate DateTime   @default(now())
-  bankAccount    BankAccount? @relation(fields: [bankAccountId], references: [bankAccountId])
-  payment        Payment?    @relation(fields: [paymentId], references: [paymentId])
+  transactionId     Int                   @id @default(autoincrement())
+  bankAccountId     Int?                  // The account initiating the transaction
+  paymentId         Int?                  // Linked if this came from a tenant payment
+  type              BankTransactionType   // Deposit | Withdrawal | Transfer
+  amount            Float
+  description       String?
+  transactionDate   DateTime              @default(now())
+  receiptImage      String?               // 📸 Proof or receipt for any transaction
+
+  // 🔁 Transfer-specific fields
+  receiverAccountId Int?                  // ID of the receiving account (if internal transfer)
+  receiverAccount   String?               // Receiver’s account number
+  receiverName      String?               // Receiver’s name
+
+  // Relations
+  bankAccount       BankAccount?          @relation(fields: [bankAccountId], references: [bankAccountId])
+  payment           Payment?              @relation(fields: [paymentId], references: [paymentId])
 }
 model MaintenanceSchedule {
   scheduleId     Int       @id @default(autoincrement())
@@ -452,7 +456,6 @@ model MaintenanceSchedule {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
-
 
 model Budget {
   budgetId     Int      @id @default(autoincrement())

@@ -2,26 +2,34 @@ import prisma from "../../config/prismaClient.js";
 import bankTransactionSchema from "./bankaTransaction.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
 import fs from "fs";
-
 export const getBankTransactions = async (req, res) => {
   try {
     const transactions = await prisma.bankTransaction.findMany({
       orderBy: { transactionDate: "desc" },
-      include: { bankAccount: true, payment: true },
+      include: {
+        bankAccount: true,
+        payment: true,
+      },
     });
+
     res.json({ success: true, transactions });
   } catch (err) {
     console.error("getBankTransactions error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
-
 export const getBankTransactionById = async (req, res) => {
   try {
     const { id } = req.params;
     const transaction = await prisma.bankTransaction.findUnique({
       where: { transactionId: Number(id) },
-      include: { bankAccount: true, payment: true },
+      include: {
+        bankAccount: true,
+        payment: true,
+      },
     });
 
     if (!transaction)
@@ -30,7 +38,10 @@ export const getBankTransactionById = async (req, res) => {
     res.json({ success: true, transaction });
   } catch (err) {
     console.error("getBankTransactionById error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 export const createBankTransaction = async (req, res) => {
@@ -39,21 +50,21 @@ export const createBankTransaction = async (req, res) => {
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    // Handle receipt image
+    // Handle receipt image upload
     if (req.file) {
       value.receiptImage = req.file.path;
     }
 
-    // ✅ Transaction in DB: adjust account balance atomically
-    const transaction = await prisma.$transaction(async (prisma) => {
-      // 1️⃣ Create the bank transaction
-      const createdTransaction = await prisma.bankTransaction.create({
+    // Perform atomic DB transaction
+    const transaction = await prisma.$transaction(async (tx) => {
+      // 1️⃣ Create the transaction record
+      const createdTransaction = await tx.bankTransaction.create({
         data: value,
       });
 
-      // 2️⃣ Update the bank account balance if bankAccountId is provided
+      // 2️⃣ Update bank account balance if linked
       if (value.bankAccountId) {
-        const account = await prisma.bankAccount.findUnique({
+        const account = await tx.bankAccount.findUnique({
           where: { bankAccountId: value.bankAccountId },
         });
 
@@ -65,12 +76,12 @@ export const createBankTransaction = async (req, res) => {
           newBalance += value.amount;
         } else if (value.type === "Withdrawal") {
           if (value.amount > account.balance) {
-            throw new Error("Insufficient balance for this transaction");
+            throw new Error("Insufficient balance for withdrawal");
           }
           newBalance -= value.amount;
         }
 
-        await prisma.bankAccount.update({
+        await tx.bankAccount.update({
           where: { bankAccountId: value.bankAccountId },
           data: { balance: newBalance },
         });
@@ -79,10 +90,10 @@ export const createBankTransaction = async (req, res) => {
       return createdTransaction;
     });
 
-    // 3️⃣ Create audit log
+    // 3️⃣ Log the action
     await createAuditLog({
       userId: req.user.userId,
-      action: "created",
+      action: "create",
       tableName: "BankTransaction",
       recordId: transaction.transactionId,
       newValue: transaction,
@@ -96,14 +107,17 @@ export const createBankTransaction = async (req, res) => {
   } catch (err) {
     console.error("createBankTransaction error:", err);
 
+    // Remove uploaded file if DB operation fails
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
 
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
-
 export const transferBetweenAccounts = async (req, res) => {
   try {
     const { fromAccountId, toAccountId, amount, description } = req.body;
@@ -118,51 +132,56 @@ export const transferBetweenAccounts = async (req, res) => {
         .json({ message: "Cannot transfer to the same account" });
     }
 
+    // ✅ Handle receipt image upload
+    let receiptImage = null;
+    if (req.file) {
+      receiptImage = req.file.path;
+    }
+
     // ✅ Use a transaction for atomicity
-    const transfer = await prisma.$transaction(async (prisma) => {
+    const transfer = await prisma.$transaction(async (tx) => {
       // 1️⃣ Get both accounts
-      const sender = await prisma.bankAccount.findUnique({
+      const sender = await tx.bankAccount.findUnique({
         where: { bankAccountId: Number(fromAccountId) },
       });
-      const receiver = await prisma.bankAccount.findUnique({
+      const receiver = await tx.bankAccount.findUnique({
         where: { bankAccountId: Number(toAccountId) },
       });
 
       if (!sender) throw new Error("Sender account not found");
       if (!receiver) throw new Error("Receiver account not found");
-
       if (sender.balance < amount) throw new Error("Insufficient funds");
 
-      // 2️⃣ Update both balances
-      await prisma.bankAccount.update({
-        where: { bankAccountId: sender.bankAccountId },
-        data: { balance: sender.balance - Number(amount) },
-      });
-
-      await prisma.bankAccount.update({
-        where: { bankAccountId: receiver.bankAccountId },
-        data: { balance: receiver.balance + Number(amount) },
-      });
-
-      // 3️⃣ Record the transaction
-      const transaction = await prisma.bankTransaction.create({
+      // 3️⃣ Record the transaction with receipt image
+      const transaction = await tx.bankTransaction.create({
         data: {
           bankAccountId: sender.bankAccountId,
-          receiverAccountId: String(receiver.bankAccountId),
+          receiverAccountId: Number(receiver.bankAccountId),
           receiverAccount: receiver.accountNumber,
           receiverName: receiver.accountName,
           type: "Transfer",
           amount: Number(amount),
+          receiptImage, // ✅ added here
           description:
             description ||
             `Transfer from ${sender.accountName} to ${receiver.accountName}`,
         },
       });
 
+      await tx.bankAccount.update({
+        where: { bankAccountId: sender.bankAccountId },
+        data: { balance: sender.balance - Number(amount) },
+      });
+
+      await tx.bankAccount.update({
+        where: { bankAccountId: receiver.bankAccountId },
+        data: { balance: receiver.balance + Number(amount) },
+      });
+
       return transaction;
     });
 
-    // 4️⃣ Log the action
+    // 4️⃣ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "transfer",
@@ -178,6 +197,15 @@ export const transferBetweenAccounts = async (req, res) => {
     });
   } catch (err) {
     console.error("transferBetweenAccounts error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+
+    // Delete uploaded file if the transaction fails
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };

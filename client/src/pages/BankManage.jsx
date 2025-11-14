@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Pencil, Banknote, Landmark } from "lucide-react";
+import {
+  PlusCircle,
+  Trash2,
+  Pencil,
+  Banknote,
+  Landmark,
+  ListPlus,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   getBankAccounts,
@@ -10,6 +17,7 @@ import {
 import {
   getBankTransactions,
   createBankTransaction,
+  transferBetweenAccounts,
 } from "../services/transactionService";
 
 // Helper to format currency
@@ -34,7 +42,25 @@ export default function BankManage() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [editingTransaction, setEditingTransaction] = useState(null);
-
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [transferData, setTransferData] = useState({
+    fromAccountId: "",
+    toAccountId: "",
+    amount: 0,
+    description: "",
+    receiptImage: null,
+  });
+  const [newTransaction, setNewTransaction] = useState({
+    bankAccountId: "",
+    type: "Deposit",
+    amount: 0,
+    description: "",
+    receiverName: "",
+    receiverAccount: "",
+    receiptImage: null,
+    transactionDate: new Date().toISOString().split("T")[0],
+  });
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [newAccount, setNewAccount] = useState({
     accountName: "",
     accountNumber: "",
@@ -42,15 +68,183 @@ export default function BankManage() {
     balance: 0,
     currency: "ETB",
   });
+  const closeTransactionDetail = () => setSelectedTransaction(null);
 
-  const [newTransaction, setNewTransaction] = useState({
-    bankAccountId: "",
-    type: "Deposit",
-    amount: 0,
-    description: "",
-    transactionDate: new Date().toISOString().split("T")[0],
-  });
+  const handleTransferChange = (e) => {
+    const { name, value } = e.target;
+    setTransferData((prev) => ({ ...prev, [name]: value }));
+  };
 
+  const handleTransferBetweenAccounts = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await transferBetweenAccounts(transferData);
+      setTransactions((prev) => [result, ...prev]);
+      toast.success("Transfer successful!");
+      setShowTransferForm(false);
+      setTransferData({
+        fromAccountId: "",
+        toAccountId: "",
+        amount: 0,
+        description: "",
+        receiptImage: null,
+      });
+    } catch (err) {
+      toast.error(err.message || "Transfer failed");
+    }
+  };
+  const TransactionDetailPopup = ({ tx }) => {
+    if (!tx) return null;
+
+    const account = getAccountInfo(tx.bankAccountId);
+
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-full max-w-2xl shadow-lg border dark:border-gray-700 max-h-[70vh] flex flex-col">
+          {/* Header - Fixed */}
+          <div className="flex justify-between items-center mb-6 flex-shrink-0">
+            <h2 className="text-xl font-bold">Transaction Details</h2>
+            <button
+              className="text-gray-500 hover:text-red-500 text-lg"
+              onClick={closeTransactionDetail}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column - Basic Transaction Info */}
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Transaction Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Type
+                      </p>
+                      <p className="font-medium">{tx.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Amount
+                      </p>
+                      <p className="font-medium text-green-600 dark:text-green-400">
+                        {formatCurrency(tx.amount, account?.currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Date
+                      </p>
+                      <p className="font-medium">
+                        {new Date(tx.transactionDate).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Description
+                      </p>
+                      <p className="font-medium">{tx.description || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* From Account */}
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    From Account
+                  </h3>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Account Name
+                      </p>
+                      <p className="font-medium">
+                        {account?.accountName || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Account Number
+                      </p>
+                      <p className="font-medium">
+                        {account?.accountNumber || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Bank
+                      </p>
+                      <p className="font-medium">{account?.bankName || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Right Column - Receiver Info & Receipt */}
+              <div className="space-y-4">
+                {/* Receiver Information */}
+                {(tx.receiverName || tx.receiverAccount) && (
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Receiver Information
+                    </h3>
+                    <div className="space-y-3">
+                      {tx.receiverName && (
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receiver Name
+                          </p>
+                          <p className="font-medium">{tx.receiverName}</p>
+                        </div>
+                      )}
+                      {tx.receiverAccount && (
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receiver Account
+                          </p>
+                          <p className="font-medium">{tx.receiverAccount}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Receipt Image */}
+                {tx.receiptImage && (
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Receipt
+                    </h3>
+                    <div>
+                      <img
+                        src={`http://localhost:3300/${tx.receiptImage}`}
+                        alt="Receipt"
+                        className="w-full h-48 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer - Fixed */}
+          <div className="flex-shrink-0 mt-6">
+            <button
+              onClick={closeTransactionDetail}
+              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200 font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
   const resetAccountForm = () => {
     setNewAccount({
       accountName: "",
@@ -178,15 +372,6 @@ export default function BankManage() {
     e.preventDefault();
     toast.error("Transaction editing is not yet implemented.");
     resetTransactionForm();
-  };
-
-  const handleDeleteTransaction = async (transactionId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this transaction?"
-    );
-    if (!confirmDelete) return;
-
-    toast.error("Transaction deletion is not yet implemented.");
   };
 
   const getAccountInfo = (accountId) =>
@@ -325,6 +510,7 @@ export default function BankManage() {
                 <tr className="text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
                   <th className="p-4 font-semibold">Name</th>
                   <th className="p-4 font-semibold">Number</th>
+                  <th className="p-4 font-semibold text-right">Bank</th>
                   <th className="p-4 font-semibold text-right">Balance</th>
                   <th className="p-4 font-semibold">Status</th>
                   <th className="p-4 font-semibold text-center">Actions</th>
@@ -394,23 +580,37 @@ export default function BankManage() {
           </div>
         </section>
       )}
-      {/* --- TRANSACTIONS SECTION --- */}
       {activeTab === "transactions" && (
         <section className="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
               Transaction History
             </h2>
-            <button
-              onClick={() => setShowAddTransaction((prev) => !prev)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150"
-            >
-              <PlusCircle className="w-4 h-4" />
-              {showAddTransaction ? "Close Form" : "Add Transaction"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowAddTransaction((prev) => !prev);
+                  setShowTransferForm(false);
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150"
+              >
+                <PlusCircle className="w-4 h-4" />
+                {showAddTransaction ? "Close Form" : "Add Transaction"}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowTransferForm((prev) => !prev);
+                  setShowAddTransaction(false);
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-150"
+              >
+                <Landmark className="w-4 h-4" />
+                {showTransferForm ? "Close Form" : "Self Transfer"}
+              </button>
+            </div>
           </div>
 
-          {/* Add/Edit Transaction Form */}
           {showAddTransaction && (
             <form
               onSubmit={
@@ -418,8 +618,9 @@ export default function BankManage() {
                   ? handleUpdateTransaction
                   : handleAddTransaction
               }
-              className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4"
+              className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4"
             >
+              {/* Select Account */}
               <div className="flex flex-col">
                 <label className="text-sm font-medium mb-1">Account</label>
                 <select
@@ -427,7 +628,7 @@ export default function BankManage() {
                   value={newTransaction.bankAccountId}
                   onChange={handleTransactionChange}
                   required
-                  className="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 >
                   <option value="">Select Account</option>
                   {accounts.map((a) => (
@@ -438,6 +639,7 @@ export default function BankManage() {
                 </select>
               </div>
 
+              {/* Type */}
               <div className="flex flex-col">
                 <label className="text-sm font-medium mb-1">Type</label>
                 <select
@@ -445,13 +647,14 @@ export default function BankManage() {
                   value={newTransaction.type}
                   onChange={handleTransactionChange}
                   required
-                  className="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 >
                   <option value="Deposit">Deposit</option>
                   <option value="Withdrawal">Withdrawal</option>
                 </select>
               </div>
 
+              {/* Amount */}
               <div className="flex flex-col">
                 <label className="text-sm font-medium mb-1">Amount</label>
                 <input
@@ -460,22 +663,58 @@ export default function BankManage() {
                   value={newTransaction.amount}
                   onChange={handleTransactionChange}
                   required
-                  className="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
 
+              {/* Receipt Image */}
               <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1">Date</label>
+                <label className="text-sm font-medium mb-1">
+                  Receipt Image
+                </label>
                 <input
-                  type="date"
-                  name="transactionDate"
-                  value={newTransaction.transactionDate}
-                  onChange={handleTransactionChange}
-                  required
-                  className="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  type="file"
+                  name="receiptImage"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setNewTransaction((prev) => ({
+                      ...prev,
+                      receiptImage: e.target.files[0],
+                    }))
+                  }
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
 
+              {/* Receiver Name */}
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">
+                  Receiver Name
+                </label>
+                <input
+                  type="text"
+                  name="receiverName"
+                  value={newTransaction.receiverName || ""}
+                  onChange={handleTransactionChange}
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                />
+              </div>
+
+              {/* Receiver Account */}
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">
+                  Receiver Account
+                </label>
+                <input
+                  type="text"
+                  name="receiverAccount"
+                  value={newTransaction.receiverAccount || ""}
+                  onChange={handleTransactionChange}
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                />
+              </div>
+
+              {/* Description */}
               <div className="flex flex-col md:col-span-2">
                 <label className="text-sm font-medium mb-1">Description</label>
                 <input
@@ -483,15 +722,16 @@ export default function BankManage() {
                   name="description"
                   value={newTransaction.description}
                   onChange={handleTransactionChange}
-                  className="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
 
+              {/* Buttons */}
               <div className="md:col-span-2 flex justify-end gap-3 mt-2">
                 <button
                   type="button"
                   onClick={resetTransactionForm}
-                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400  dark:hover:bg-gray-500 transition"
                 >
                   Cancel
                 </button>
@@ -505,13 +745,114 @@ export default function BankManage() {
             </form>
           )}
 
+          {/* 🔁 Self Transfer Form */}
+          {showTransferForm && (
+            <form
+              onSubmit={handleTransferBetweenAccounts}
+              className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">From Account</label>
+                <select
+                  name="fromAccountId"
+                  value={transferData.fromAccountId}
+                  onChange={handleTransferChange}
+                  required
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                >
+                  <option value="">Select Source</option>
+                  {accounts.map((a) => (
+                    <option key={a.bankAccountId} value={a.bankAccountId}>
+                      {a.accountName} ({a.accountNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">To Account</label>
+                <select
+                  name="toAccountId"
+                  value={transferData.toAccountId}
+                  onChange={handleTransferChange}
+                  required
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                >
+                  <option value="">Select Destination</option>
+                  {accounts.map((a) => (
+                    <option key={a.bankAccountId} value={a.bankAccountId}>
+                      {a.accountName} ({a.accountNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">Amount</label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={transferData.amount}
+                  onChange={handleTransferChange}
+                  required
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1">
+                  Receipt Image
+                </label>
+                <input
+                  type="file"
+                  name="receiptImage"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setTransferData((prev) => ({
+                      ...prev,
+                      receiptImage: e.target.files[0],
+                    }))
+                  }
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                />
+              </div>
+
+              <div className="flex flex-col md:col-span-2">
+                <label className="text-sm font-medium mb-1">Description</label>
+                <input
+                  type="text"
+                  name="description"
+                  value={transferData.description}
+                  onChange={handleTransferChange}
+                  className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                />
+              </div>
+
+              <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferForm(false)}
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                >
+                  Transfer
+                </button>
+              </div>
+            </form>
+          )}
           {/* Transactions Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr className="text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
                   <th className="p-4 font-semibold">Date</th>
-                  <th className="p-4 font-semibold">Account</th>
+                  <th className="p-4 font-semibold">From</th>
+                  <th className="p-4 font-semibold">To</th>
                   <th className="p-4 font-semibold">Type</th>
                   <th className="p-4 font-semibold text-right">Amount</th>
                   <th className="p-4 font-semibold">Description</th>
@@ -521,37 +862,28 @@ export default function BankManage() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {transactions.length > 0 ? (
                   transactions.map((t) => {
-                    const acc = getAccountInfo(t.bankAccountId);
                     return (
                       <tr key={t.transactionId}>
                         <td className="p-4">
                           {new Date(t.transactionDate).toLocaleDateString()}
                         </td>
-                        <td className="p-4">{acc?.accountName || "-"}</td>
+                        <td className="p-4">
+                          {t?.bankAccount?.accountName || "-"}
+                        </td>
+                        <td className="p-4">{t?.receiverName}</td>
                         <td className="p-4 font-medium">{t.type}</td>
                         <td className="p-4 text-right font-bold text-green-600 dark:text-green-400">
-                          {acc
-                            ? formatCurrency(t.amount, acc.currency)
-                            : t.amount}
+                          {formatCurrency(t.amount, t.currency)}
                         </td>
                         <td className="p-4">{t.description || "-"}</td>
-                        <td className="p-4 flex gap-2 justify-center">
+                        <td className="p-4 text-center">
                           <button
-                            onClick={() => {
-                              setEditingTransaction(t);
-                              setShowAddTransaction(true);
-                            }}
-                            className="p-2 rounded-full hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition duration-150"
+                            onClick={() => setSelectedTransaction(t)}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg 
+            bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-800"
                           >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDeleteTransaction(t.transactionId)
-                            }
-                            className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 transition duration-150"
-                          >
-                            <Trash2 className="w-4 h-4" />
+                            <ListPlus className="w-4 h-4 mr-1" />
+                            Details
                           </button>
                         </td>
                       </tr>
@@ -571,6 +903,10 @@ export default function BankManage() {
             </table>
           </div>
         </section>
+      )}
+
+      {selectedTransaction && (
+        <TransactionDetailPopup tx={selectedTransaction} />
       )}
     </div>
   );

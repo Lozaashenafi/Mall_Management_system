@@ -125,7 +125,7 @@ export default function AddRoom() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Size (sqm)</label>
+            <label className="block text-sm font-medium mb-1">Care</label>
             <input
               type="number"
               name="size"
