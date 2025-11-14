@@ -8,6 +8,7 @@ import {
   updateExpense,
   getUtilityTypes,
 } from "../services/expenseService";
+import { getBankAccounts } from "../services/bankService";
 import { useAuth } from "../context/AuthContext";
 
 export default function Expenses() {
@@ -18,24 +19,36 @@ export default function Expenses() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showDetailPopup, setShowDetailPopup] = useState(false);
-
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [newExpense, setNewExpense] = useState({
     utilityTypeId: "",
     description: "",
     amount: "",
     date: "",
     invoice: null,
+    bankAccountId: "",
+    receiverName: "",
+    receiverAccount: "",
   });
 
-  const [editExpense, setEditExpense] = useState(null);
   const [detailExpense, setDetailExpense] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const expensesPerPage = 5;
+  const fetchBankAccounts = async () => {
+    try {
+      const res = await getBankAccounts(); // call your API
+      setBankAccounts(res || []);
+    } catch (err) {
+      toast.error("Failed to fetch bank accounts");
+      console.error(err);
+    }
+  };
 
   // Fetch expenses and utility types
   useEffect(() => {
     fetchUtilityTypes();
+    fetchBankAccounts();
     fetchExpenses();
   }, []);
 
@@ -60,23 +73,6 @@ export default function Expenses() {
       console.error(err);
     }
   };
-
-  // Input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewExpense((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e) => {
-    setNewExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
-  };
-
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditExpense((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Add expense
   const handleAddExpense = async (e) => {
     e.preventDefault();
     try {
@@ -86,6 +82,9 @@ export default function Expenses() {
       formData.append("amount", parseFloat(newExpense.amount) || 0);
       formData.append("date", new Date(newExpense.date).toISOString());
       formData.append("createdBy", user.userId);
+      formData.append("bankAccountId", newExpense.bankAccountId); // <-- add this
+      formData.append("receiverName", newExpense.receiverName || "");
+      formData.append("receiverAccount", newExpense.receiverAccount || "");
       if (newExpense.invoice) formData.append("invoice", newExpense.invoice);
 
       const res = await createExpense(formData);
@@ -96,6 +95,9 @@ export default function Expenses() {
         amount: "",
         date: "",
         invoice: null,
+        bankAccountId: "", // reset after submit
+        receiverName: "",
+        receiverAccount: "",
       });
       setShowAddForm(false);
       toast.success(res.message || "Expense added!");
@@ -105,54 +107,14 @@ export default function Expenses() {
     }
   };
 
-  // Edit expense
-  const handleEditClick = (expense) => {
-    setEditExpense({
-      ...expense,
-      date: expense.date.split("T")[0],
-      invoice: null,
-    });
-    setShowEditPopup(true);
+  // Input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewExpense((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditSave = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append("utilityTypeId", editExpense.utilityTypeId);
-      formData.append("description", editExpense.description);
-      formData.append("amount", parseFloat(editExpense.amount) || 0);
-      formData.append("date", new Date(editExpense.date).toISOString());
-      if (editExpense.invoice) formData.append("invoice", editExpense.invoice);
-
-      const res = await updateExpense(editExpense.expenseId, formData);
-      setExpenses((prev) =>
-        prev.map((exp) =>
-          exp.expenseId === editExpense.expenseId ? res.expense : exp
-        )
-      );
-      setShowEditPopup(false);
-      toast.success(res.message || "Expense updated!");
-    } catch (err) {
-      toast.error(err.message || "Failed to update expense");
-      console.error(err);
-    }
-  };
-
-  // Delete expense
-  const handleDeleteExpense = async (id) => {
-    const confirm = window.confirm(
-      "Are you sure you want to delete this expense?"
-    );
-    if (!confirm) return;
-    try {
-      await deleteExpense(id);
-      setExpenses((prev) => prev.filter((e) => e.expenseId !== id));
-      toast.success("Expense deleted!");
-    } catch (err) {
-      toast.error("Failed to delete expense");
-      console.error(err);
-    }
+  const handleFileChange = (e) => {
+    setNewExpense((prev) => ({ ...prev, invoice: e.target.files[0] }));
   };
 
   // View details
@@ -235,6 +197,39 @@ export default function Expenses() {
               required
               className="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
             />
+            <select
+              name="bankAccountId"
+              value={newExpense.bankAccountId}
+              onChange={handleInputChange} // use the same handler
+              required
+              className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+            >
+              <option value="">Select Bank Account</option>
+              {bankAccounts.map((acc) => (
+                <option key={acc.bankAccountId} value={acc.bankAccountId}>
+                  {acc.bankName} - {acc.accountNumber}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              name="receiverName"
+              placeholder="Receiver Name"
+              value={newExpense.receiverName || ""}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+            />
+
+            <input
+              type="text"
+              name="receiverAccount"
+              placeholder="Receiver Account"
+              value={newExpense.receiverAccount || ""}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+            />
+
             <div>
               <label className="block text-sm font-medium mb-1">Invoice</label>
               <label className="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -290,18 +285,6 @@ export default function Expenses() {
                   </td>
                   <td className="p-3 flex gap-2">
                     <button
-                      onClick={() => handleEditClick(exp)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-indigo-600"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteExpense(exp.expenseId)}
-                      className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <button
                       onClick={() => handleViewDetail(exp)}
                       className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-green-600"
                     >
@@ -337,144 +320,65 @@ export default function Expenses() {
           </div>
         </div>
       </div>
-
-      {/* Edit & Detail Popups */}
-      {showEditPopup && editExpense && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 z-50">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
-            <h2 className="text-lg font-semibold mb-4">Edit Expense</h2>
-            <form onSubmit={handleEditSave} className="space-y-4">
-              <select
-                name="utilityTypeId"
-                value={editExpense.utilityTypeId}
-                onChange={handleEditChange}
-                required
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              >
-                <option value="">Select Type</option>
-                {utilityTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                name="description"
-                value={editExpense.description}
-                onChange={handleEditChange}
-                placeholder="Description"
-                required
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              />
-              <input
-                type="number"
-                name="amount"
-                value={editExpense.amount}
-                onChange={handleEditChange}
-                placeholder="Amount"
-                required
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              />
-              <input
-                type="date"
-                name="date"
-                value={editExpense.date}
-                onChange={handleEditChange}
-                required
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-              />
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Invoice
-                </label>
-                <label className="flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
-                  📎{" "}
-                  {editExpense.invoice
-                    ? editExpense.invoice.name
-                    : "Choose Invoice"}
-                  <input
-                    type="file"
-                    name="invoice"
-                    accept="image/*,application/pdf"
-                    onChange={(e) =>
-                      setEditExpense((prev) => ({
-                        ...prev,
-                        invoice: e.target.files[0],
-                      }))
-                    }
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditPopup(false)}
-                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {showDetailPopup && detailExpense && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 z-50">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-96">
-            <h2 className="text-lg font-semibold mb-4">Expense Details</h2>
-            <p>
-              <strong>Type:</strong>{" "}
-              {detailExpense.utilityType?.name || detailExpense.type}
-            </p>
-            <p>
-              <strong>Description:</strong> {detailExpense.description}
-            </p>
-            <p>
-              <strong>Amount:</strong> ${detailExpense.amount.toFixed(2)}
-            </p>
-            <p>
-              <strong>Date:</strong>{" "}
-              {new Date(detailExpense.date).toLocaleDateString()}
-            </p>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 z-50 p-4">
+          {/* SMALL MODAL */}
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-xl w-full max-w-2xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-6 text-center">
+              Expense Details
+            </h2>
 
-            {detailExpense.invoice && (
-              <div className="mt-3">
-                <strong>Invoice:</strong>
-                {detailExpense.invoice.endsWith(".pdf") ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* LEFT COLUMN */}
+              <div className="space-y-3 text-gray-100">
+                <div>
+                  <p className="font-semibold text-gray-400">Type:</p>
+                  <p>{detailExpense.utilityType?.name || detailExpense.type}</p>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-gray-400">Description:</p>
+                  <p>{detailExpense.description}</p>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-gray-400">Amount:</p>
+                  <p>${detailExpense.amount.toFixed(2)}</p>
+                </div>
+
+                <div>
+                  <p className="font-semibold text-gray-400">Date:</p>
+                  <p>{new Date(detailExpense.date).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN */}
+              <div className="flex flex-col items-center">
+                <p className="font-semibold text-gray-400 mb-2">Invoice:</p>
+
+                {detailExpense.invoice &&
+                !detailExpense.invoice.endsWith(".pdf") ? (
+                  <img
+                    src={`http://localhost:3300/${detailExpense.invoice}`}
+                    alt="Invoice"
+                    className="max-h-[40vh] w-auto rounded-lg object-contain shadow-md"
+                  />
+                ) : (
                   <a
-                    href={`http://localhost:3000/${detailExpense.invoice}`}
+                    href={`http://localhost:3300/${detailExpense.invoice}`}
                     target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 underline ml-2"
+                    className="text-indigo-500 underline"
                   >
                     View PDF
                   </a>
-                ) : (
-                  <img
-                    src={`http://localhost:3000/${detailExpense.invoice}`}
-                    alt="Invoice"
-                    className="w-full mt-2 rounded border"
-                  />
                 )}
               </div>
-            )}
+            </div>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-center mt-6">
               <button
                 onClick={() => setShowDetailPopup(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
               >
                 Close
               </button>

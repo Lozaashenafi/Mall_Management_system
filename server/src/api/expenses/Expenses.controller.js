@@ -18,49 +18,100 @@ export const getUtilityTypes = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-// Create a new utility expense with optional file
 export const createUtilityExpense = async (req, res) => {
   try {
     const { error, value } = utilityExpenseSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { utilityTypeId, description, amount, date, createdBy } = value;
+    const {
+      utilityTypeId,
+      description,
+      amount,
+      date,
+      createdBy,
+      bankAccountId,
+      receiverAccount,
+      receiverName,
+    } = value;
 
-    let invoicePath = null;
-    if (req.file) {
-      invoicePath = req.file.path;
-    }
+    if (!bankAccountId)
+      return res.status(400).json({ message: "Bank account is required" });
 
-    const expense = await prisma.utilityExpense.create({
-      data: {
-        utilityTypeId,
-        description,
-        amount,
-        date: date ? new Date(date) : new Date(),
-        createdBy,
-        invoice: invoicePath,
-      },
+    const bankAccount = await prisma.bankAccount.findUnique({
+      where: { bankAccountId },
     });
 
-    // Audit log
+    if (!bankAccount)
+      return res.status(404).json({ message: "Bank account not found" });
+    if (bankAccount.balance < amount)
+      return res.status(400).json({ message: "Insufficient balance" });
+
+    // Use the uploaded file path for both expense invoice and bank transaction receipt
+    let invoicePath = req.file ? req.file.path : null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1️⃣ Create utility expense
+      const expense = await tx.utilityExpense.create({
+        data: {
+          utilityTypeId,
+          description,
+          amount,
+          date: date ? new Date(date) : new Date(),
+          createdBy,
+          invoice: invoicePath,
+        },
+      });
+
+      // 2️⃣ Create bank transaction using the same invoice as receiptImage
+      const bankTransaction = await tx.bankTransaction.create({
+        data: {
+          bankAccountId,
+          type: "Withdrawal",
+          amount,
+          description: `Utility Expense: ${description}`,
+          receiverAccount: receiverAccount || null,
+          receiverName: receiverName || null,
+          receiptImage: invoicePath, // reuse invoice
+        },
+      });
+
+      // 3️⃣ Deduct balance
+      await tx.bankAccount.update({
+        where: { bankAccountId },
+        data: { balance: bankAccount.balance - amount },
+      });
+
+      return { expense, bankTransaction };
+    });
+
+    // 4️⃣ Audit log
     await createAuditLog({
       userId: createdBy,
       action: "created",
       tableName: "UtilityExpense",
-      recordId: expense.expenseId,
-      newValue: expense,
+      recordId: result.expense.expenseId,
+      newValue: result.expense,
     });
 
     res.status(201).json({
       success: true,
-      message: "Utility expense recorded",
-      expense,
+      message: "Utility expense and bank transaction recorded",
+      expense: result.expense,
+      transaction: result.bankTransaction,
     });
   } catch (err) {
     console.error("createUtilityExpense error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+
+    // Delete uploaded file if DB operation fails
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 

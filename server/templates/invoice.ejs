@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Invoice <%= invoice.invoiceId %></title>
+
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -39,7 +40,6 @@
       table td {
         border: 1px solid #ccc;
         padding: 8px;
-        text-align: left;
       }
       table th {
         background-color: #f2f2f2;
@@ -57,6 +57,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="header">
       <div>
@@ -67,16 +68,34 @@
       <div class="logo">LOGO</div>
     </div>
 
+    <!-- Invoice Header Section -->
     <div class="section">
       <h3>Invoice</h3>
-      <p><strong>Invoice No:</strong> <%= invoice.invoiceId %></p>
+
+      <p><strong>System Invoice No:</strong> <%= invoice.invoiceId %></p>
+
       <p>
-        <strong>Date:</strong> <%= new
-        Date(invoice.invoiceDate).toLocaleDateString() %>
+        <strong>Paper Invoice No:</strong>
+        <%= invoice.paperInvoiceNumber || "N/A" %>
       </p>
-      <p><strong>Payment Terms:</strong> Due on receipt</p>
+
+      <p>
+        <strong>Date:</strong>
+        <%= new Date(invoice.invoiceDate).toLocaleDateString() %>
+      </p>
+
+      <p>
+        <strong>Due Date:</strong>
+        <%= new Date(invoice.dueDate).toLocaleDateString() %>
+      </p>
+
+      <p>
+        <strong>Status:</strong>
+        <%= invoice.status %>
+      </p>
     </div>
 
+    <!-- Bill To -->
     <div class="section" style="display: flex; justify-content: space-between">
       <div>
         <h3>Bill To</h3>
@@ -86,6 +105,7 @@
         <p><%= invoice.rental?.tenant?.phone || "N/A" %></p>
         <p><%= invoice.rental?.tenant?.email || "N/A" %></p>
       </div>
+
       <div>
         <h3>Ship To</h3>
         <p><%= invoice.rental?.tenant?.contactPerson || "N/A" %></p>
@@ -95,6 +115,7 @@
       </div>
     </div>
 
+    <!-- Items Table -->
     <table>
       <tr>
         <th>Description</th>
@@ -102,40 +123,64 @@
         <th>Unit Price (ETB)</th>
         <th>Total (ETB)</th>
       </tr>
+
       <tr>
         <td>Base Rent</td>
         <td>1</td>
-        <td><%= invoice.baseRent.toFixed(2) %></td>
-        <td><%= invoice.baseRent.toFixed(2) %></td>
+        <td><%= invoice.baseRent?.toFixed(2) || "0.00" %></td>
+        <td><%= invoice.baseRent?.toFixed(2) || "0.00" %></td>
       </tr>
+
       <tr>
-        <td>Tax (<%= invoice.taxPercentage %>%)</td>
+        <td>Tax (<%= invoice.taxPercentage || 0 %>%)</td>
         <td>1</td>
-        <td><%= invoice.taxAmount.toFixed(2) %></td>
-        <td><%= invoice.taxAmount.toFixed(2) %></td>
+        <td><%= invoice.taxAmount?.toFixed(2) || "0.00" %></td>
+        <td><%= invoice.taxAmount?.toFixed(2) || "0.00" %></td>
       </tr>
-      <!-- Add more items if needed -->
+
+      <% if (invoice.withholdingRate) { %>
+      <tr>
+        <td>Withholding (<%= invoice.withholdingRate %>%)</td>
+        <td>1</td>
+        <td>-<%= invoice.withholdingAmount?.toFixed(2) || "0.00" %></td>
+        <td>-<%= invoice.withholdingAmount?.toFixed(2) || "0.00" %></td>
+      </tr>
+      <% } %>
     </table>
 
+    <!-- Totals Section -->
     <div class="section text-right">
-      <p>Subtotal: <%= (invoice.baseRent).toFixed(2) %> ETB</p>
-      <p>Discount: <%= invoice.discount?.toFixed(2) || 0 %> ETB</p>
+      <p>Subtotal: <%= invoice.baseRent?.toFixed(2) || "0.00" %> ETB</p>
+
+      <p>Tax: <%= invoice.taxAmount?.toFixed(2) || "0.00" %> ETB</p>
+
+      <% if (invoice.withholdingRate) { %>
+      <p>Withholding: -<%= invoice.withholdingAmount?.toFixed(2) %> ETB</p>
+      <% } %>
+
       <p>
-        Subtotal after Discount: <%= ((invoice.baseRent - (invoice.discount ||
-        0))).toFixed(2) %> ETB
+        <strong>Grand Total:</strong> <%= invoice.totalAmount.toFixed(2) %> ETB
       </p>
-      <p>Tax Rate: <%= invoice.taxPercentage %>%</p>
-      <p>Total Tax: <%= invoice.taxAmount.toFixed(2) %> ETB</p>
-      <p>Shipping/Handling: 0.00 ETB</p>
     </div>
 
     <div class="balance-due">
       Balance Due: <%= invoice.totalAmount.toFixed(2) %> ETB
     </div>
 
+    <!-- Remarks -->
     <div class="section">
       <p><strong>Remarks / Payment Instructions:</strong></p>
       <p><%= invoice.remarks || "N/A" %></p>
     </div>
+
+    <!-- PDF Link -->
+    <% if (invoice.pdfUrl) { %>
+    <div class="section">
+      <p>
+        <strong>Download PDF:</strong>
+        <a href="<%= invoice.pdfUrl %>" target="_blank">Click here</a>
+      </p>
+    </div>
+    <% } %>
   </body>
 </html>

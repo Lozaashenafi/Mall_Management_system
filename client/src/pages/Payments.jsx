@@ -42,6 +42,7 @@ export default function Payments() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8; // Increased page size for a slightly better view
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const [editingItem, setEditingItem] = useState(null);
   const [editData, setEditData] = useState({});
@@ -249,18 +250,6 @@ export default function Payments() {
     }
   };
 
-  const handleDelete = async (paymentId) => {
-    if (!window.confirm("Are you sure you want to delete this payment?"))
-      return;
-    try {
-      await deletePayment(paymentId);
-      setPayments((prev) => prev.filter((p) => p.id !== paymentId));
-      toast.success("Payment deleted successfully");
-    } catch (err) {
-      toast.error(err.message || "Failed to delete payment");
-    }
-  };
-
   // --- Render Functions for Tabs ---
 
   const renderInvoicesTable = () => (
@@ -326,7 +315,7 @@ export default function Payments() {
                           className="text-indigo-600 hover:text-indigo-800 transition-colors"
                           title="Register Payment"
                         >
-                          <FileText className="w-4 h-4" />
+                          pay
                         </Link>
                         <button
                           onClick={() => handleDeleteInvoice(inv.invoiceId)}
@@ -436,13 +425,12 @@ export default function Payments() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => handleEdit("payment", p)}
-                      className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors ml-2"
-                      title="Edit Payment"
+                      onClick={() => setSelectedPayment(p)}
+                      className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      title="View Details"
                     >
-                      <Edit className="w-4 h-4" />
+                      <FileText className="w-4 h-4" />
                     </button>
-                    {/* Add delete button if logic allows */}
                   </td>
                 </tr>
               ))
@@ -663,64 +651,7 @@ export default function Payments() {
                     required
                   />
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Payment Method
-                    </label>
-                    <select
-                      name="method"
-                      value={editData.method || ""}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                    >
-                      <option value="Cash">Cash</option>
-                      <option value="Mobile">Mobile</option>
-                      <option value="Bank">Bank</option>
-                      <option value="TeleBirr">TeleBirr</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Reference (Transaction ID, etc.)
-                    </label>
-                    <input
-                      type="text"
-                      name="reference"
-                      value={editData.reference || ""}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                      placeholder="Enter reference number"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                      Receipt/Proof (Image Upload)
-                    </label>
-                    {editData?.receiptFilePath &&
-                      !(editData.identificationDocument instanceof File) && (
-                        <img
-                          src={`http://localhost:3000${editData.receiptFilePath}`}
-                          alt="Current Receipt"
-                          className="w-full h-32 object-contain border border-gray-300 dark:border-gray-700 rounded-lg p-2 mb-2"
-                        />
-                      )}
-                    <input
-                      type="file"
-                      name="identificationDocument"
-                      accept="image/*"
-                      onChange={handleChange}
-                      className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Upload a new image to replace the current one.
-                    </p>
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
@@ -738,6 +669,96 @@ export default function Payments() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {selectedPayment && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl p-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedPayment(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Title */}
+            <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
+              Payment Details
+            </h2>
+
+            {/* 2 Column Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* LEFT SIDE DETAILS */}
+              <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div>
+                  <strong>Tenant:</strong>{" "}
+                  {selectedPayment.invoice
+                    ? selectedPayment.invoice.rental?.tenant?.contactPerson
+                    : selectedPayment.utilityInvoice.rental?.tenant
+                        ?.contactPerson}
+                </div>
+
+                <div>
+                  <strong>Unit:</strong>{" "}
+                  {selectedPayment.invoice
+                    ? selectedPayment.invoice.rental?.room?.unitNumber
+                    : selectedPayment.utilityInvoice.rental?.room?.unitNumber}
+                </div>
+
+                <div>
+                  <strong>Type:</strong>{" "}
+                  {selectedPayment.invoice
+                    ? "Rental Payment"
+                    : "Utility Payment"}
+                </div>
+
+                <div>
+                  <strong>Amount:</strong> {selectedPayment.amount} ETB
+                </div>
+
+                <div>
+                  <strong>Method:</strong> {selectedPayment.method}
+                </div>
+
+                <div>
+                  <strong>Reference:</strong>{" "}
+                  {selectedPayment.reference || "N/A"}
+                </div>
+
+                <div>
+                  <strong>Date:</strong>{" "}
+                  {new Date(selectedPayment.paymentDate).toLocaleDateString()}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <strong>Status:</strong>{" "}
+                  <StatusBadge status={selectedPayment.status} />
+                </div>
+              </div>
+
+              {/* RIGHT SIDE RECEIPT */}
+              <div className="border rounded-lg p-4 dark:border-gray-700">
+                <h3 className="text-md font-semibold mb-3 text-gray-900 dark:text-white">
+                  Receipt
+                </h3>
+
+                {selectedPayment.receipt ? (
+                  <a
+                    href={`http://localhost:3300${selectedPayment.receipt}`}
+                    target="_blank"
+                    className="text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    View Receipt
+                  </a>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-400">
+                    No file uploaded
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

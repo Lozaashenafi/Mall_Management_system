@@ -7,6 +7,9 @@ export default {
     amount: Joi.number().precision(2).required(),
     date: Joi.date().required(),
     createdBy: Joi.number().integer().required(),
+    bankAccountId: Joi.number().integer().required(),
+    receiverAccount: Joi.string().optional(),
+    receiverName: Joi.string().optional(),
   }),
 
   update: Joi.object({
