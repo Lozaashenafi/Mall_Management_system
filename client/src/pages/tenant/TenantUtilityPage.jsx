@@ -27,6 +27,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import {
   DownloadUtilityInvoice,
+  payAllUtilityInvoices,
   utilityForTenant,
 } from "../../services/utilityService";
 import toast from "react-hot-toast";
@@ -58,6 +59,7 @@ const UtilityPage = () => {
     const fetchTenantUtilities = async () => {
       try {
         const data = await utilityForTenant(user.userId);
+        console.log("Tenant utility data:", data);
         setTenantData(data);
         if (data.tenant?.rental?.length > 0) {
           setSelectedRentId(data.tenant.rental[0].rentId);
@@ -416,12 +418,35 @@ const InvoiceTable = ({
       month: "short",
       day: "numeric",
     });
+  const handlePayAllUtilities = async () => {
+    const toastId = toast.loading("Preparing combined utility invoice...");
+
+    try {
+      const response = await payAllUtilityInvoices(user.userId, selectedRentId);
+
+      toast.success("Combined invoice ready!", { id: toastId });
+
+      setSelectedInvoice(response); // { mergedUtilityInvoiceId, totalAmount }
+      setShowPaymentModal(true);
+    } catch (err) {
+      toast.error("Failed to create merged utility invoice", { id: toastId });
+      console.error(err);
+    }
+  };
 
   return (
     <div className="p-5 rounded-xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
       <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
         {title}
       </h2>
+      {isRent ? null : (
+        <button
+          onClick={handlePayAllUtilities}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          Pay All Unpaid Utilities
+        </button>
+      )}
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-gray-100 dark:bg-gray-700 text-left text-gray-700 dark:text-gray-200">
@@ -505,7 +530,7 @@ const InvoiceTable = ({
                   <>
                     <td className="p-2 flex items-center gap-2">
                       {Icon && <Icon className="w-4 h-4 text-indigo-500" />}
-                      {inv.utilityCharge?.type}
+                      {inv.utilityCharge?.utilityType?.name}
                     </td>
                     <td className="p-2">{inv.utilityCharge?.month}</td>
                     <td className="p-2">ETB {inv.amount.toLocaleString()}</td>

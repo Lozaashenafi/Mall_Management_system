@@ -75,6 +75,13 @@ export const getUtilityChargesByMonth = async (month) => {
     );
   }
 };
+export const payAllUtilityInvoices = async (tenantId, rentId) => {
+  const res = await api.post(`/utility/pay-all`, {
+    tenantId,
+    rentId,
+  });
+  return res.data;
+};
 
 export const getUtilityInvoiceById = async (id) => {
   try {

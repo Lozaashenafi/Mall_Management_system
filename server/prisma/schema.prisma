@@ -204,7 +204,7 @@ model Rental {
   paymentInterval  String // e.g., "Monthly", "Quarterly" "Yearly"
   status           RentalStatus
   selfManagedElectricity Boolean @default(false) 
-  utilityShare     Float? 
+  utilityShare     Float? // e.g., 0.5 for 50%
   includeWater     Boolean @default(true) 
   includeElectricity Boolean @default(true)
   includeGenerator Boolean @default(true) 
@@ -346,6 +346,7 @@ model UtilityInvoice {
   rentId          Int
   amount          Float
   paperInvoiceNumber String? 
+  description     String?
   status          String        @default("UNPAID")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

@@ -16,9 +16,7 @@ export default function AddRoom() {
     parkingType: "",
     parkingSpaces: "",
   });
-
   const [roomTypes, setRoomTypes] = useState([]);
-
   // ✅ Fetch room types
   useEffect(() => {
     const fetchRoomTypes = async () => {
@@ -71,8 +69,9 @@ export default function AddRoom() {
     try {
       const payload = {
         ...formData,
+        parkingType: formData.hasParking ? formData.parkingType || null : null,
         parkingSpaces:
-          formData.parkingType === "Limited"
+          formData.hasParking && formData.parkingType === "Limited"
             ? Number(formData.parkingSpaces)
             : null,
       };
@@ -84,7 +83,6 @@ export default function AddRoom() {
       toast.error(error.message || "Failed to add room");
     }
   };
-
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-6">
@@ -123,7 +121,6 @@ export default function AddRoom() {
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-1">Care</label>
             <input
@@ -204,7 +201,6 @@ export default function AddRoom() {
             </>
           )}
         </div>
-
         {/* Buttons */}
         <div className="flex justify-end gap-3">
           <button

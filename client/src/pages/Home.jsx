@@ -201,7 +201,9 @@ const Dashboard = () => {
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen dark:bg-gray-900 dark:text-gray-100">
       {/* Header */}
       <header className="mb-4 border-b border-gray-200 pb-4 dark:border-gray-700">
-        <h1 className="text-3xl font-bold">Mall Management Dashboard</h1>
+        <h1 className="text-3xl text-gray-800 dark:text-white  font-bold">
+          Mall Management Dashboard
+        </h1>
         <p className="text-gray-600 dark:text-gray-400">
           A unified view of key financial and operational metrics.
         </p>

@@ -145,7 +145,6 @@ export default function UtilitySummary() {
     fetchSummary();
     fetchCharges();
     fetchTenantInvoices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month]); // Dependency array to re-run when month changes
 
   // --- Render ---

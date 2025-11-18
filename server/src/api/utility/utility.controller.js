@@ -89,99 +89,261 @@ export const generateUtilityCharge = async (req, res) => {
     if (!month)
       return res.status(400).json({ message: "Month is required (YYYY-MM)" });
 
-    // Prevent duplicate generation
-    const existingCharges = await prisma.utilityCharge.findMany({
-      where: { month },
+    // Prevent duplicate generation (any charges for this month)
+    const existing = await prisma.utilityCharge.findMany({ where: { month } });
+    if (existing.length > 0) {
+      return res
+        .status(200)
+        .json({ message: `Utility charges for ${month} already generated.` });
+    }
+    const ALLOWED_TYPES = ["Water", "Generator", "Electricity"];
+
+    const allUtilityTypes = await prisma.utilityType.findMany({
+      select: { id: true, name: true },
     });
-    if (existingCharges.length > 0) {
-      return res.status(200).json({
-        message: `Utility charges for ${month} have already been generated.`,
+
+    const utilityTypes = allUtilityTypes.filter((u) =>
+      ALLOWED_TYPES.includes(u.name)
+    );
+
+    if (utilityTypes.length === 0) {
+      return res.status(400).json({
+        message:
+          "No allowed utility types found (Water, Generator, Electricity).",
       });
     }
+    // Build maps
+    const utilityById = Object.fromEntries(
+      utilityTypes.map((u) => [u.id, u.name])
+    ); // { id: name }
+    // map utilityTypeId -> rental boolean field name (include{UtilityName})
+    const includeFieldByTypeId = {};
+    for (const u of utilityTypes) {
+      // e.g. "Water" -> "includeWater"
+      includeFieldByTypeId[u.id] = `include${u.name}`;
+    }
 
-    // Step 1: Fetch all utility types dynamically
-    const utilityTypes = await prisma.utilityType.findMany({
-      select: { id: true, name: true, key: true }, // key should match rental boolean field, e.g., 'includeWater'
-    });
-    const typeMap = utilityTypes.reduce((acc, ut) => {
-      acc[ut.name] = ut.key;
-      return acc;
-    }, {});
-
-    // Step 2: Group expenses by type
+    // Date range for month
     const start = dayjs(`${month}-01`).startOf("month").toDate();
     const end = dayjs(start).endOf("month").toDate();
 
+    // Group expenses by utilityTypeId
     const expenses = await prisma.utilityExpense.groupBy({
-      by: ["type"],
+      by: ["utilityTypeId"],
       _sum: { amount: true },
       where: { date: { gte: start, lte: end } },
     });
 
-    if (expenses.length === 0)
+    if (!expenses || expenses.length === 0) {
       return res
         .status(400)
         .json({ message: "No utility expenses found for this month" });
+    }
 
-    // Step 3: Get active rentals
+    // Get active rentals with tenant and room (room.size)
     const rentals = await prisma.rental.findMany({
       where: { status: "Active" },
-      include: { tenant: { include: { user: true } }, room: true },
+      include: {
+        tenant: { include: { user: true } },
+        room: true,
+      },
     });
-    if (rentals.length === 0)
+    if (!rentals || rentals.length === 0) {
       return res.status(400).json({ message: "No active rentals found" });
+    }
 
-    // Step 4: Create utility charges, invoices & notifications
-    for (const expense of expenses) {
-      const utilityType = expense.type;
-      const totalCost = expense._sum.amount || 0;
+    const tenantCharges = {};
+    const allowedExpenses = expenses.filter((e) =>
+      ALLOWED_TYPES.includes(utilityById[e.utilityTypeId])
+    );
 
-      // Create utility charge
+    // For each expense (per utility type) compute shares and accumulate
+    for (const exp of allowedExpenses) {
+      const utilityTypeId = exp.utilityTypeId;
+      const utilityName = utilityById[utilityTypeId] || `Type-${utilityTypeId}`;
+      const totalCost = Number(exp._sum.amount || 0);
+
+      // create utilityCharge record
       const charge = await prisma.utilityCharge.create({
         data: {
-          type: utilityType,
+          utilityTypeId,
           month,
           totalCost,
-          description: `Utility charge for ${utilityType} (${month})`,
+          description: `Utility charge for ${utilityName} (${month})`,
           generated: true,
         },
       });
 
-      // Find eligible rentals dynamically
-      const rentalKey = typeMap[utilityType];
-      const eligibleRentals = rentals.filter((r) =>
-        rentalKey ? r[rentalKey] : true
-      );
-      const share =
-        eligibleRentals.length > 0 ? totalCost / eligibleRentals.length : 0;
+      // eligible rentals: those with rental[includeField] === true (default true if field missing)
+      const includeField = includeFieldByTypeId[utilityTypeId];
+      const eligible = rentals.filter((r) => {
+        // if includeField doesn't exist on rental, assume true
+        if (!(includeField in r)) return true;
+        return Boolean(r[includeField]);
+      });
 
-      // Create invoices & notifications
-      for (const rental of eligibleRentals) {
-        const utilityInvoice = await prisma.utilityInvoice.create({
+      if (eligible.length === 0) {
+        // nothing to allocate; continue
+        continue;
+      }
+
+      // Partition eligible into with utilityShare and without
+      const withShare = eligible.filter(
+        (r) =>
+          typeof r.utilityShare === "number" && !Number.isNaN(r.utilityShare)
+      );
+      const withoutShare = eligible.filter(
+        (r) =>
+          !(typeof r.utilityShare === "number" && !Number.isNaN(r.utilityShare))
+      );
+
+      // Sum of explicit shares
+      const sumShares = withShare.reduce(
+        (s, r) => s + (r.utilityShare || 0),
+        0
+      );
+
+      // If sumShares >= 1, normalize shares among withShare and set remaining = 0
+      let remaining = totalCost;
+      const allocations = []; // interim: { rentId, amount }
+
+      if (withShare.length > 0) {
+        if (sumShares >= 1) {
+          // normalize: proportionally divide totalCost among withShare by their share weights
+          const totalWeight = withShare.reduce(
+            (s, r) => s + (r.utilityShare || 0),
+            0
+          );
+          for (const r of withShare) {
+            const weight = r.utilityShare || 0;
+            const amt = Number((totalCost * (weight / totalWeight)).toFixed(2));
+            allocations.push({ rentId: r.rentId, amount: amt });
+            remaining -= amt;
+          }
+        } else {
+          // allocate explicit shares first
+          for (const r of withShare) {
+            const amt = Number((totalCost * (r.utilityShare || 0)).toFixed(2));
+            allocations.push({ rentId: r.rentId, amount: amt });
+            remaining -= amt;
+          }
+        }
+      }
+      // Now distribute remaining among withoutShare using room.size or equal fallback
+      if (remaining > 0 && withoutShare.length > 0) {
+        // Check if any sizes available among withoutShare
+        const totalSize = withoutShare.reduce((s, r) => {
+          const sz =
+            r.room && typeof r.room.size === "number" ? Number(r.room.size) : 0;
+          return s + sz;
+        }, 0);
+
+        if (totalSize > 0) {
+          // distribute by size
+          for (const r of withoutShare) {
+            const sz =
+              r.room && typeof r.room.size === "number"
+                ? Number(r.room.size)
+                : 0;
+            const amt = Number((remaining * (sz / totalSize)).toFixed(2));
+            allocations.push({ rentId: r.rentId, amount: amt });
+          }
+        } else {
+          // equal split among withoutShare
+          const per = Number((remaining / withoutShare.length).toFixed(2));
+          for (const r of withoutShare) {
+            allocations.push({ rentId: r.rentId, amount: per });
+          }
+        }
+      }
+
+      // Adjust rounding: ensure allocations sum equals totalCost
+      const sumAllocated = allocations.reduce((s, a) => s + a.amount, 0);
+      const roundingDiff = Number((totalCost - sumAllocated).toFixed(2));
+      if (Math.abs(roundingDiff) >= 0.01) {
+        // apply roundingDiff to last allocation (or add one if none)
+        if (allocations.length > 0) {
+          allocations[allocations.length - 1].amount = Number(
+            (allocations[allocations.length - 1].amount + roundingDiff).toFixed(
+              2
+            )
+          );
+        } else {
+          // no allocations? skip
+        }
+      }
+
+      // Append allocations to tenantCharges
+      for (const a of allocations) {
+        const rentId = Number(a.rentId);
+        const amount = Number(a.amount);
+
+        if (!tenantCharges[rentId]) {
+          tenantCharges[rentId] = {
+            details: [],
+            total: 0,
+            chargeIds: new Set(),
+          };
+        }
+        tenantCharges[rentId].details.push({
+          type: utilityName,
+          amount,
+          chargeId: charge.utilityChargeId,
+        });
+        tenantCharges[rentId].total = Number(
+          (tenantCharges[rentId].total + amount).toFixed(2)
+        );
+        tenantCharges[rentId].chargeIds.add(charge.utilityChargeId);
+      }
+    } // end for each expense
+
+    for (const rentIdStr of Object.keys(tenantCharges)) {
+      const rentId = Number(rentIdStr);
+      const data = tenantCharges[rentId];
+
+      // Build correct perType mapping
+      const perType = {};
+      for (const d of data.details) {
+        if (!perType[d.type]) {
+          perType[d.type] = { amount: 0, chargeId: d.chargeId };
+        }
+        perType[d.type].amount += d.amount;
+      }
+
+      // Create correct invoices
+      for (const [type, info] of Object.entries(perType)) {
+        const { amount, chargeId } = info;
+
+        if (amount <= 0) continue;
+
+        await prisma.utilityInvoice.create({
           data: {
-            utilityChargeId: charge.utilityChargeId,
-            rentId: rental.rentId,
-            amount: parseFloat(share.toFixed(2)),
+            rentId,
+            utilityChargeId: chargeId, // <-- correct chargeId
+            amount: Number(amount.toFixed(2)),
+            description: `${type} charge for ${month}: ${amount.toFixed(
+              2
+            )} ETB`,
             status: "UNPAID",
           },
         });
+      }
 
-        const message = `A new ${utilityType} utility invoice for ${month} has been generated. Your share is ${share.toFixed(
-          2
-        )} ETB.`;
+      // Send notification once
+      const rental = rentals.find((r) => r.rentId === rentId);
+      if (rental && rental.tenant) {
         await createNotification({
           tenantId: rental.tenant.tenantId,
           userId: rental.tenant.userId,
           type: "UtilityAlert",
-          message,
+          message: `Your utility invoices for ${month} are generated.`,
           sentVia: "System",
         });
       }
     }
 
     return res.status(201).json({
-      message:
-        "Utility charges, invoices, and notifications generated successfully",
+      message: "Utility invoices generated successfully (combined per tenant).",
     });
   } catch (err) {
     console.error("Error generating utility charges:", err);
@@ -191,6 +353,7 @@ export const generateUtilityCharge = async (req, res) => {
     });
   }
 };
+
 export const getUtilityCharges = async (req, res) => {
   try {
     const charges = await prisma.utilityCharge.findMany({
@@ -345,9 +508,20 @@ export const getInvoicesByUserId = async (req, res) => {
                 utilityCharge: {
                   select: {
                     utilityChargeId: true,
-                    type: true,
+                    utilityTypeId: true,
                     month: true,
                     totalCost: true,
+                    description: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    generated: true,
+                    utilityType: {
+                      select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                      },
+                    },
                   },
                 },
                 payments: {
@@ -375,8 +549,6 @@ export const getInvoicesByUserId = async (req, res) => {
         .json({ message: "Tenant not found for the provided userId" });
     }
 
-    // Optionally: transform / flatten response if you prefer a different shape
-    // For now we return the tenant with rentals, each containing invoices & utility invoices
     return res.json({ tenant });
   } catch (error) {
     console.error("getInvoicesByUserId error:", error);
