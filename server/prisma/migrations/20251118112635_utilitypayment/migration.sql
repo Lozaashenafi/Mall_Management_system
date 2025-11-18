@@ -1,3 +1,9 @@
+/*
+  Warnings:
+
+  - You are about to drop the column `utilityInvoiceId` on the `payment` table. All the data in the column will be lost.
+
+*/
 -- DropIndex
 DROP INDEX `AgreementDocument_rentId_fkey` ON `agreementdocument`;
 
@@ -83,7 +89,10 @@ DROP INDEX `UtilityInvoice_rentId_fkey` ON `utilityinvoice`;
 DROP INDEX `UtilityInvoice_utilityChargeId_fkey` ON `utilityinvoice`;
 
 -- AlterTable
-ALTER TABLE `banktransaction` ADD COLUMN `accountId` INTEGER NULL;
+ALTER TABLE `payment` DROP COLUMN `utilityInvoiceId`;
+
+-- AlterTable
+ALTER TABLE `utilityinvoice` ADD COLUMN `paymentId` INTEGER NULL;
 
 -- AddForeignKey
 ALTER TABLE `AuditLog` ADD CONSTRAINT `AuditLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -149,10 +158,10 @@ ALTER TABLE `UtilityInvoice` ADD CONSTRAINT `UtilityInvoice_utilityChargeId_fkey
 ALTER TABLE `UtilityInvoice` ADD CONSTRAINT `UtilityInvoice_rentId_fkey` FOREIGN KEY (`rentId`) REFERENCES `Rental`(`rentId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Payment` ADD CONSTRAINT `Payment_invoiceId_fkey` FOREIGN KEY (`invoiceId`) REFERENCES `Invoice`(`invoiceId`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `UtilityInvoice` ADD CONSTRAINT `UtilityInvoice_paymentId_fkey` FOREIGN KEY (`paymentId`) REFERENCES `Payment`(`paymentId`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Payment` ADD CONSTRAINT `Payment_utilityInvoiceId_fkey` FOREIGN KEY (`utilityInvoiceId`) REFERENCES `UtilityInvoice`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `Payment` ADD CONSTRAINT `Payment_invoiceId_fkey` FOREIGN KEY (`invoiceId`) REFERENCES `Invoice`(`invoiceId`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `TerminateRequest` ADD CONSTRAINT `TerminateRequest_rentId_fkey` FOREIGN KEY (`rentId`) REFERENCES `Rental`(`rentId`) ON DELETE RESTRICT ON UPDATE CASCADE;

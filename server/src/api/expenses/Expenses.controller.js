@@ -31,8 +31,8 @@ export const createUtilityExpense = async (req, res) => {
       date,
       createdBy,
       bankAccountId,
-      receiverAccount,
-      receiverName,
+      account,
+      Name,
     } = value;
 
     if (!bankAccountId)
@@ -70,8 +70,8 @@ export const createUtilityExpense = async (req, res) => {
           type: "Withdrawal",
           amount,
           description: `Utility Expense: ${description}`,
-          receiverAccount: receiverAccount || null,
-          receiverName: receiverName || null,
+          account: account || null,
+          Name: Name || null,
           receiptImage: invoicePath, // reuse invoice
         },
       });

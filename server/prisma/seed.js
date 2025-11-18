@@ -5,12 +5,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   const email = "lozaashenafi@gmail.com";
-  const password = "loza123"; // ⚠️ change this later for security
+  const passwordHash = await bcrypt.hash("loza123", 10);
 
-  // Hash the password
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  // Check if SuperAdmin already exists
   const existing = await prisma.user.findFirst({
     where: { role: "SuperAdmin" },
   });
@@ -25,12 +21,31 @@ async function main() {
         status: "Active",
       },
     });
-    console.log("✅ SuperAdmin user created:");
-    console.log(`Email: ${email}`);
-    console.log(`Password: ${password}`);
-  } else {
-    console.log("⚙️ SuperAdmin already exists. Skipping creation.");
+    console.log("Super Admin created");
   }
+
+  // -------------------------------------------------------
+  // ROOM TYPES
+  // -------------------------------------------------------
+  await prisma.roomType.createMany({
+    data: roomTypes,
+  });
+
+  // -------------------------------------------------------
+  // ROOMS
+  // -------------------------------------------------------
+  await prisma.room.createMany({
+    data: rooms,
+  });
+
+  // -------------------------------------------------------
+  // PRICE OF CARE
+  // -------------------------------------------------------
+  await prisma.priceofCare.createMany({
+    data: priceOfCare,
+  });
+
+  console.log("Seed completed ✔");
 }
 
 main()
@@ -39,3 +54,64 @@ main()
     console.error(e);
     prisma.$disconnect();
   });
+
+// Seed data arrays
+const roomTypes = [
+  { typeName: "Retail Shop", description: "Standard shop for retail tenants" },
+  { typeName: "Premium Retail Shop", description: "High-traffic area shop" },
+  {
+    typeName: "Food Court Stall",
+    description: "Small kitchen-ready food vendor space",
+  },
+  {
+    typeName: "Restaurant Space",
+    description: "Full dine-in restaurant space",
+  },
+  { typeName: "Office Space", description: "Quiet office space for tenants" },
+  { typeName: "Storage Room", description: "Secure storage room for goods" },
+  { typeName: "Kiosk", description: "Small open-area selling spot" },
+  {
+    typeName: "Entertainment Zone",
+    description: "VR, playground or gaming area",
+  },
+  { typeName: "Cinema Hall", description: "Large entertainment hall" },
+  { typeName: "Anchor Store", description: "Large brand retail space" },
+];
+
+const rooms = [
+  {
+    unitNumber: "R101",
+    floor: 1,
+    size: 40,
+    roomTypeId: 1,
+    roomPrice: 8000,
+    status: "Vacant",
+    hasParking: false,
+  },
+  {
+    unitNumber: "R102",
+    floor: 1,
+    size: 45,
+    roomTypeId: 1,
+    roomPrice: 8500,
+    status: "Vacant",
+    hasParking: false,
+  },
+  {
+    unitNumber: "R103",
+    floor: 1,
+    size: 60,
+    roomTypeId: 2,
+    roomPrice: 12000,
+    status: "Vacant",
+    hasParking: false,
+  },
+];
+
+const priceOfCare = [
+  { floor: 1, basePrice: 500 },
+  { floor: 2, basePrice: 450 },
+  { floor: 3, basePrice: 400 },
+  { floor: 4, basePrice: 350 },
+  { floor: 5, basePrice: 300 },
+];

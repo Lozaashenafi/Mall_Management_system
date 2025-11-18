@@ -8,8 +8,8 @@ export default {
     date: Joi.date().required(),
     createdBy: Joi.number().integer().required(),
     bankAccountId: Joi.number().integer().required(),
-    receiverAccount: Joi.string().optional(),
-    receiverName: Joi.string().optional(),
+    account: Joi.string().optional(),
+    Name: Joi.string().optional(),
   }),
 
   update: Joi.object({

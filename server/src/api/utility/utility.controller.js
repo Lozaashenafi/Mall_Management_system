@@ -557,3 +557,105 @@ export const getInvoicesByUserId = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+export const payUtilityInvoices = async (req, res) => {
+  try {
+    const {
+      invoiceIds,
+      amount,
+      method,
+      payerId,
+      bankAccountId,
+      name,
+      account,
+    } = req.body;
+
+    if (!invoiceIds?.length)
+      return res.status(400).json({ message: "invoiceIds required." });
+
+    // Fetch invoices
+    const invoices = await prisma.utilityInvoice.findMany({
+      where: { id: { in: invoiceIds } },
+      include: { rental: { include: { tenant: true } } },
+    });
+
+    if (invoices.some((i) => i.paymentId)) {
+      return res
+        .status(400)
+        .json({ message: "One or more invoices already paid." });
+    }
+
+    // Compute total amount if not provided
+    const totalAmount =
+      amount ?? invoices.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+    // Create payment
+    const payment = await prisma.payment.create({
+      data: {
+        amount: totalAmount,
+        paymentDate: new Date(),
+        method,
+        status: "Confirmed",
+      },
+    });
+
+    // Update invoices with payment info
+    await prisma.utilityInvoice.updateMany({
+      where: { id: { in: invoiceIds } },
+      data: {
+        paymentId: payment.paymentId,
+        status: "PAID",
+        updatedAt: new Date(),
+      },
+    });
+    // Record bank transaction if bankAccountId provided
+    if (bankAccountId) {
+      await prisma.bankTransaction.create({
+        data: {
+          bankAccountId,
+          paymentId: payment.paymentId,
+          type: "deposit", // or "Transfer" if you prefer
+          amount: totalAmount,
+          description: `Payment for utility invoices: [${invoiceIds.join(
+            ", "
+          )}]`,
+          transactionDate: new Date(),
+          name: name || null,
+          account: account || null,
+        },
+      });
+    }
+
+    // Optional: notify tenants
+    for (const invoice of invoices) {
+      const tenant = invoice.rental?.tenant;
+      if (tenant) {
+        await createNotification({
+          tenantId: tenant.tenantId,
+          userId: tenant.user?.userId || null,
+          type: "PaymentReminder",
+          message: `Your utility invoice of ${invoice.amount} ETB has been paid successfully.`,
+          sentVia: "System",
+        });
+      }
+    }
+
+    // Audit log
+    await createAuditLog({
+      userId: payerId || req.user.userId,
+      action: "created",
+      tableName: "Payment",
+      recordId: payment.paymentId,
+      newValue: payment,
+    });
+
+    return res.json({
+      message: "Invoices paid successfully.",
+      paymentId: payment.paymentId,
+    });
+  } catch (err) {
+    console.error("payUtilityInvoices error:", err);
+    return res
+      .status(500)
+      .json({ message: "Error paying invoices", error: err.message });
+  }
+};

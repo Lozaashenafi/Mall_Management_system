@@ -343,6 +343,8 @@ model UtilityCharge {
 model UtilityInvoice {
   id              Int           @id @default(autoincrement())
   utilityChargeId Int
+  paymentId       Int?   
+  paymentRequestId Int?     
   rentId          Int
   amount          Float
   paperInvoiceNumber String? 
@@ -353,14 +355,13 @@ model UtilityInvoice {
 
   utilityCharge   UtilityCharge @relation(fields: [utilityChargeId], references: [utilityChargeId])
   rental          Rental        @relation(fields: [rentId], references: [rentId])
-  payments        Payment[]
-  paymentRequest  PaymentRequest[]
+  payment         Payment?    @relation(fields: [paymentId], references: [paymentId])
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references:[requestId])
 }
 
 model Payment {
   paymentId               Int            @id @default(autoincrement())
   invoiceId        Int?           
-  utilityInvoiceId Int?           // for utility payment
   amount           Float
   paymentDate      DateTime       @default(now())
   method           String?        // Cash, Bank, Mobile, etc.
@@ -370,9 +371,8 @@ model Payment {
   status           PaymentStatus  @default(Confirmed)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-
   invoice          Invoice?        @relation(fields: [invoiceId], references: [invoiceId])
-  utilityInvoice   UtilityInvoice? @relation(fields: [utilityInvoiceId], references: [id])
+  utilityInvoices UtilityInvoice[]
   bankTransactions BankTransaction[]
 }
 
@@ -391,7 +391,6 @@ model PaymentRequest {
   requestId        Int                  @id @default(autoincrement())
   tenantId         Int
   invoiceId        Int?                 // For rent payments
-  utilityInvoiceId Int?                 // For utility payments
   amount           Float
   paymentDate      DateTime             @default(now())
   method           String?              // e.g., "Bank Transfer", "Mobile Money"
@@ -404,7 +403,7 @@ model PaymentRequest {
 
   tenant           Tenant               @relation(fields: [tenantId], references: [tenantId])
   invoice          Invoice?             @relation(fields: [invoiceId], references: [invoiceId])
-  utilityInvoice   UtilityInvoice?      @relation(fields: [utilityInvoiceId], references: [id])
+   utilityInvoices  UtilityInvoice[]
 }
 
 model AgreementTemplate {
@@ -440,9 +439,9 @@ model BankTransaction {
   receiptImage      String?               // 📸 Proof or receipt for any transaction
 
   // 🔁 Transfer-specific fields
-  receiverAccountId Int?                  // ID of the receiving account (if internal transfer)
-  receiverAccount   String?               // Receiver’s account number
-  receiverName      String?               // Receiver’s name
+  accountId Int?                  // ID of the receiving account (if internal transfer)
+  account   String?               // Receiver’s account number
+  name      String?               // Receiver’s name
 
   // Relations
   bankAccount       BankAccount?          @relation(fields: [bankAccountId], references: [bankAccountId])

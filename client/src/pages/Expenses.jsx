@@ -27,8 +27,8 @@ export default function Expenses() {
     date: "",
     invoice: null,
     bankAccountId: "",
-    receiverName: "",
-    receiverAccount: "",
+    Name: "",
+    account: "",
   });
 
   const [detailExpense, setDetailExpense] = useState(null);
@@ -83,8 +83,8 @@ export default function Expenses() {
       formData.append("date", new Date(newExpense.date).toISOString());
       formData.append("createdBy", user.userId);
       formData.append("bankAccountId", newExpense.bankAccountId); // <-- add this
-      formData.append("receiverName", newExpense.receiverName || "");
-      formData.append("receiverAccount", newExpense.receiverAccount || "");
+      formData.append("Name", newExpense.Name || "");
+      formData.append("account", newExpense.account || "");
       if (newExpense.invoice) formData.append("invoice", newExpense.invoice);
 
       const res = await createExpense(formData);
@@ -96,8 +96,8 @@ export default function Expenses() {
         date: "",
         invoice: null,
         bankAccountId: "", // reset after submit
-        receiverName: "",
-        receiverAccount: "",
+        Name: "",
+        account: "",
       });
       setShowAddForm(false);
       toast.success(res.message || "Expense added!");
@@ -214,18 +214,18 @@ export default function Expenses() {
 
             <input
               type="text"
-              name="receiverName"
+              name="Name"
               placeholder="Receiver Name"
-              value={newExpense.receiverName || ""}
+              value={newExpense.Name || ""}
               onChange={handleInputChange}
               className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
             />
 
             <input
               type="text"
-              name="receiverAccount"
+              name="account"
               placeholder="Receiver Account"
-              value={newExpense.receiverAccount || ""}
+              value={newExpense.account || ""}
               onChange={handleInputChange}
               className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
             />

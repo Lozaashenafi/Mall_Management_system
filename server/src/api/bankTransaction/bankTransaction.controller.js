@@ -156,9 +156,9 @@ export const transferBetweenAccounts = async (req, res) => {
       const transaction = await tx.bankTransaction.create({
         data: {
           bankAccountId: sender.bankAccountId,
-          receiverAccountId: Number(receiver.bankAccountId),
-          receiverAccount: receiver.accountNumber,
-          receiverName: receiver.accountName,
+          accountId: Number(receiver.bankAccountId),
+          account: receiver.accountNumber,
+          name: receiver.accountName,
           type: "Transfer",
           amount: Number(amount),
           receiptImage, // ✅ added here

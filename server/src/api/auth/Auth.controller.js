@@ -154,12 +154,6 @@ export const login = async (req, res) => {
                 paymentRequest: true,
               },
             },
-            utilityInvoices: {
-              include: {
-                payments: true,
-                paymentRequest: true,
-              },
-            },
           },
         });
       }

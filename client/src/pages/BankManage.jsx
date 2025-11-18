@@ -55,8 +55,8 @@ export default function BankManage() {
     type: "Deposit",
     amount: 0,
     description: "",
-    receiverName: "",
-    receiverAccount: "",
+    name: "",
+    account: "",
     receiptImage: null,
     transactionDate: new Date().toISOString().split("T")[0],
   });
@@ -187,26 +187,26 @@ export default function BankManage() {
               {/* Right Column - Receiver Info & Receipt */}
               <div className="space-y-4">
                 {/* Receiver Information */}
-                {(tx.receiverName || tx.receiverAccount) && (
+                {(tx.name || tx.account) && (
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">
                       Receiver Information
                     </h3>
                     <div className="space-y-3">
-                      {tx.receiverName && (
+                      {tx.name && (
                         <div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Receiver Name
                           </p>
-                          <p className="font-medium">{tx.receiverName}</p>
+                          <p className="font-medium">{tx.Name}</p>
                         </div>
                       )}
-                      {tx.receiverAccount && (
+                      {tx.account && (
                         <div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Receiver Account
                           </p>
-                          <p className="font-medium">{tx.receiverAccount}</p>
+                          <p className="font-medium">{tx.account}</p>
                         </div>
                       )}
                     </div>
@@ -693,8 +693,8 @@ export default function BankManage() {
                 </label>
                 <input
                   type="text"
-                  name="receiverName"
-                  value={newTransaction.receiverName || ""}
+                  name="name"
+                  value={newTransaction.name || ""}
                   onChange={handleTransactionChange}
                   className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
@@ -707,8 +707,8 @@ export default function BankManage() {
                 </label>
                 <input
                   type="text"
-                  name="receiverAccount"
-                  value={newTransaction.receiverAccount || ""}
+                  name="account"
+                  value={newTransaction.account || ""}
                   onChange={handleTransactionChange}
                   className="p-2 rounded border bg-gray-50 text-gray-800 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
@@ -870,7 +870,7 @@ export default function BankManage() {
                         <td className="p-4">
                           {t?.bankAccount?.accountName || "-"}
                         </td>
-                        <td className="p-4">{t?.receiverName}</td>
+                        <td className="p-4">{t?.name}</td>
                         <td className="p-4 font-medium">{t.type}</td>
                         <td className="p-4 text-right font-bold text-green-600 dark:text-green-400">
                           {formatCurrency(t.amount, t.currency)}

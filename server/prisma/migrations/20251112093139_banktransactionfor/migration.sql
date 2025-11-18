@@ -91,8 +91,8 @@ DROP INDEX `UtilityInvoice_utilityChargeId_fkey` ON `utilityinvoice`;
 -- AlterTable
 ALTER TABLE `banktransaction` DROP COLUMN `attachment`,
     ADD COLUMN `receiptImage` VARCHAR(191) NULL,
-    ADD COLUMN `receiverAccount` VARCHAR(191) NULL,
-    ADD COLUMN `receiverName` VARCHAR(191) NULL;
+    ADD COLUMN `account` VARCHAR(191) NULL,
+    ADD COLUMN `Name` VARCHAR(191) NULL;
 
 -- AddForeignKey
 ALTER TABLE `AuditLog` ADD CONSTRAINT `AuditLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE RESTRICT ON UPDATE CASCADE;
