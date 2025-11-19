@@ -3,7 +3,7 @@ import { Save, X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getTenantById, updateTenant } from "../services/tenantService";
 import toast from "react-hot-toast";
-
+import { BASE_URL } from "../config";
 export default function EditTenant() {
   const navigate = useNavigate();
   const { id: tenantId } = useParams();
@@ -208,7 +208,7 @@ export default function EditTenant() {
             {initialData?.identificationDocument &&
               !(formData.identificationDocument instanceof File) && (
                 <img
-                  src={`http://localhost:3000${initialData.identificationDocument}`}
+                  src={`${BASE_URL}${initialData.identificationDocument}`}
                   alt="ID"
                   className="w-full h-48 object-cover border rounded-md mb-2"
                 />
@@ -231,7 +231,7 @@ export default function EditTenant() {
               !(formData.businessLicense instanceof File) &&
               (initialData.businessLicense.toLowerCase().endsWith(".pdf") ? (
                 <a
-                  href={`http://localhost:3000${initialData.businessLicense}`}
+                  href={`${BASE_URL}${initialData.businessLicense}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-indigo-500 underline mb-2 block"
@@ -240,7 +240,7 @@ export default function EditTenant() {
                 </a>
               ) : (
                 <img
-                  src={`http://localhost:3000${initialData.businessLicense}`}
+                  src={`${BASE_URL}${initialData.businessLicense}`}
                   alt="Business License"
                   className="w-full h-48 object-cover border rounded-md mb-2"
                 />

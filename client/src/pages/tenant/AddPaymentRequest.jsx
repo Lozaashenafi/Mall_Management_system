@@ -7,6 +7,8 @@ import {
   getInvoiceById,
   getUtilityInvoiceById,
 } from "../../services/paymentRequestService";
+
+import { getBankAccounts } from "../../services/bankService";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AddPaymentRequest() {
@@ -16,32 +18,39 @@ export default function AddPaymentRequest() {
 
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState(null);
+  const [accounts, setAccounts] = useState([]);
   const [proofFile, setProofFile] = useState(null);
+
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split("T")[0],
     amount: "",
     method: "Mobile",
     reference: "",
+    bankAccountId: "",
+    name: "",
+    account: "",
   });
 
-  // Load invoice or utility invoice
+  // Load invoice + bank accounts
   useEffect(() => {
     const fetchData = async () => {
       try {
         let data;
+
         if (type === "invoice") {
           data = await getInvoiceById(id);
           setFormData((prev) => ({
             ...prev,
-            amount: data.totalAmount ? data.totalAmount.toString() : "0",
+            amount: data.totalAmount?.toString() || "0",
           }));
         } else if (type === "utility") {
           data = await getUtilityInvoiceById(id);
           setFormData((prev) => ({
             ...prev,
-            amount: data.amount ? data.amount.toString() : "0",
+            amount: data.amount?.toString() || "0",
           }));
         }
+
         setInvoice(data);
       } catch (error) {
         toast.error(error.message || "Failed to load invoice");
@@ -49,7 +58,19 @@ export default function AddPaymentRequest() {
         setLoading(false);
       }
     };
+
+    const loadBankAccounts = async () => {
+      try {
+        const accountsData = await getBankAccounts();
+        console.log(accountsData);
+        setAccounts(accountsData);
+      } catch {
+        toast.error("Failed to load bank accounts");
+      }
+    };
+
     if (id && type) fetchData();
+    loadBankAccounts();
   }, [id, type]);
 
   const handleChange = (e) => {
@@ -64,9 +85,9 @@ export default function AddPaymentRequest() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Create FormData for multipart/form-data
     const payload = new FormData();
     payload.append("userId", user.userId);
+
     if (type === "invoice") payload.append("invoiceId", id);
     if (type === "utility") payload.append("utilityInvoiceId", id);
 
@@ -74,19 +95,22 @@ export default function AddPaymentRequest() {
     payload.append("method", formData.method);
     payload.append("reference", formData.reference);
     payload.append("paymentDate", formData.paymentDate);
-    if (proofFile) payload.append("proofFile", proofFile, proofFile.name);
 
-    // Debug: log FormData content
-    for (let pair of payload.entries()) {
-      console.log(pair[0], pair[1]);
-    }
+    payload.append("bankAccountId", formData.bankAccountId);
+    payload.append("name", formData.name);
+    payload.append("account", formData.account);
+
+    if (proofFile) payload.append("proofFile", proofFile);
 
     try {
+      // console.log("FormData content:");
+      // for (let [key, value] of payload.entries()) {
+      //   console.log(key, value);
+      // }
       await createPaymentRequest(payload);
       toast.success("Payment request submitted successfully!");
       navigate("/tenant/payment-requests");
     } catch (err) {
-      console.error("Error submitting payment request:", err);
       toast.error(err.message || "Failed to submit payment request");
     }
   };
@@ -101,12 +125,14 @@ export default function AddPaymentRequest() {
   return (
     <div className="max-w-3xl mx-auto bg-gray-50 dark:bg-gray-900 p-6 rounded-lg shadow-md">
       <h1 className="text-2xl font-bold mb-2">Request Payment Approval</h1>
+
       <p className="text-gray-600 dark:text-gray-400 mb-6">
         Invoice: {invoice?.rental?.tenant?.contactPerson || "Unknown"} -{" "}
         {invoice?.rental?.room?.unitNumber || "N/A"}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Payment and amount */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block mb-1">Payment Date</label>
@@ -119,6 +145,7 @@ export default function AddPaymentRequest() {
               className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-800"
             />
           </div>
+
           <div>
             <label className="block mb-1">Amount</label>
             <input
@@ -134,6 +161,7 @@ export default function AddPaymentRequest() {
           </div>
         </div>
 
+        {/* Method + Reference */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block mb-1">Payment Method</label>
@@ -145,13 +173,11 @@ export default function AddPaymentRequest() {
             >
               <option value="Mobile">Mobile</option>
               <option value="Bank">Bank</option>
-              <option value="Cash">Cash</option>
-              <option value="Other">Other</option>
             </select>
           </div>
 
           <div>
-            <label className="block mb-1">Reference (optional)</label>
+            <label className="block mb-1">Reference </label>
             <input
               type="text"
               name="reference"
@@ -164,7 +190,49 @@ export default function AddPaymentRequest() {
         </div>
 
         <div>
-          <label className="block mb-1 flex items-center gap-2">
+          <label className="block mb-1">Bank Account</label>
+          <select
+            name="bankAccountId"
+            value={formData.bankAccountId}
+            onChange={handleChange}
+            required
+            className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-800"
+          >
+            <option value="">Select Bank Account</option>
+            {accounts.map((acc) => (
+              <option key={acc.bankAccountId} value={acc.bankAccountId}>
+                {acc.bankName} ({acc.accountNumber})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1">Your Account Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-800"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1">Your Account Number</label>
+          <input
+            type="text"
+            name="account"
+            value={formData.account}
+            onChange={handleChange}
+            required
+            className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-800"
+          />
+        </div>
+
+        <div>
+          <label className=" mb-1 flex items-center gap-2">
             <ImageIcon className="w-4 h-4" /> Upload Proof (optional)
           </label>
           <input
@@ -175,6 +243,7 @@ export default function AddPaymentRequest() {
           />
         </div>
 
+        {/* Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"

@@ -19,6 +19,7 @@ import {
   createBankTransaction,
   transferBetweenAccounts,
 } from "../services/transactionService";
+import { BASE_URL } from "../config";
 
 // Helper to format currency
 const formatCurrency = (amount, currency = "ETB") => {
@@ -221,7 +222,7 @@ export default function BankManage() {
                     </h3>
                     <div>
                       <img
-                        src={`http://localhost:3300/${tx.receiptImage}`}
+                        src={`${BASE_URL}${tx.receiptImage}`}
                         alt="Receipt"
                         className="w-full h-48 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
                       />

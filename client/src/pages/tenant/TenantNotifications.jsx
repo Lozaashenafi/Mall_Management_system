@@ -6,6 +6,7 @@ import {
   getNotifications,
   markNotificationAsRead,
 } from "../../services/notificationService";
+import { BASE_URL } from "../../config";
 
 // Reusable StatsCard
 const StatsCard = ({ title, value, icon: Icon, color }) => (
@@ -28,8 +29,6 @@ const TenantNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
 
-  const SOCKET_URL = "http://localhost:3300";
-
   // Fetch notifications from backend
   const fetchNotifications = async () => {
     if (!user?.userId) return;
@@ -45,7 +44,7 @@ const TenantNotifications = () => {
   useEffect(() => {
     if (!user?.userId) return;
 
-    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    const socket = io(BASE_URL, { transports: ["websocket"] });
     socket.emit("register", user.userId); // register tenant user on socket
 
     // Listen for incoming notifications

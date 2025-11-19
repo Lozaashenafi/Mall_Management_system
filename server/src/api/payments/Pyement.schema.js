@@ -5,9 +5,12 @@ export default {
     invoiceId: Joi.number().integer().optional(),
     utilityInvoiceId: Joi.number().integer().optional(),
     amount: Joi.number().required(),
-    method: Joi.string().valid("Cash", "Bank", "Mobile", "TeleBirr").optional(),
+    method: Joi.string().valid("Bank", "Mobile", "TeleBirr").optional(),
     paymentDate: Joi.date(),
     reference: Joi.string().optional(),
+    name: Joi.string().optional(),
+    account: Joi.string().optional(),
+    bankAccountId: Joi.number().integer().optional(),
   }),
 
   update: Joi.object({

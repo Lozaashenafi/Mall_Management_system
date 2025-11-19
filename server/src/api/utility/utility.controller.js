@@ -495,48 +495,6 @@ export const getInvoicesByUserId = async (req, res) => {
               },
               orderBy: { invoiceDate: "desc" },
             },
-            // utility invoices and their payments + the utilityCharge
-            utilityInvoices: {
-              select: {
-                id: true,
-                utilityChargeId: true,
-                amount: true,
-                paperInvoiceNumber: true,
-                status: true,
-                createdAt: true,
-                updatedAt: true,
-                utilityCharge: {
-                  select: {
-                    utilityChargeId: true,
-                    utilityTypeId: true,
-                    month: true,
-                    totalCost: true,
-                    description: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    generated: true,
-                    utilityType: {
-                      select: {
-                        id: true,
-                        name: true,
-                        description: true,
-                      },
-                    },
-                  },
-                },
-                payments: {
-                  select: {
-                    paymentId: true,
-                    amount: true,
-                    paymentDate: true,
-                    method: true,
-                    reference: true,
-                    status: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-            },
           },
           orderBy: { startDate: "desc" }, // newest rental first
         },

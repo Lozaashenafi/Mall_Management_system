@@ -27,6 +27,7 @@ import {
   getPaymentRequests,
   updatePaymentRequestStatus,
 } from "../services/paymentRequestService";
+import { BASE_URL } from "../config";
 
 // Define the tabs for navigation
 const tabs = [
@@ -526,7 +527,7 @@ export default function Payments() {
                 <td className="px-4 py-3 whitespace-nowrap">
                   {req.proofFilePath ? (
                     <a
-                      href={`http://localhost:3300${req.proofFilePath}`}
+                      href={`${BASE_URL}${req.proofFilePath}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
@@ -746,7 +747,7 @@ export default function Payments() {
 
                 {selectedPayment.receipt ? (
                   <a
-                    href={`http://localhost:3300${selectedPayment.receipt}`}
+                    href={`${BASE_URL}${selectedPayment.receipt}`}
                     target="_blank"
                     className="text-indigo-600 hover:text-indigo-800 underline"
                   >

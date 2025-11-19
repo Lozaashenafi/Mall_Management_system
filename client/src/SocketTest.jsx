@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3300"); // match your server port
+import { BASE_URL } from "../src/config";
+const socket = io(BASE_URL); // match your server port
 
 const SocketTest = () => {
   const [userId, setUserId] = useState("");

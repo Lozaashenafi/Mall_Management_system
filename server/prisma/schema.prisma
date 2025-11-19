@@ -58,6 +58,7 @@ enum InvoiceStatus {
   Paid
   Unpaid
   Overdue
+  Pending
 }
 
 enum PaymentStatus {
@@ -391,6 +392,7 @@ model PaymentRequest {
   requestId        Int                  @id @default(autoincrement())
   tenantId         Int
   invoiceId        Int?                 // For rent payments
+  bankAccountId    Int? 
   amount           Float
   paymentDate      DateTime             @default(now())
   method           String?              // e.g., "Bank Transfer", "Mobile Money"
@@ -400,7 +402,9 @@ model PaymentRequest {
   adminNote        String?              // Admin comment on approval/rejection
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
-
+  account          String?               // Receiver’s account number
+  name             String?
+bankAccount       BankAccount?          @relation(fields: [bankAccountId], references: [bankAccountId])
   tenant           Tenant               @relation(fields: [tenantId], references: [tenantId])
   invoice          Invoice?             @relation(fields: [invoiceId], references: [invoiceId])
    utilityInvoices  UtilityInvoice[]
@@ -426,6 +430,7 @@ model BankAccount {
   updatedAt     DateTime @updatedAt
   // One-to-many relationship with bank transactions
   transactions  BankTransaction[]
+  paymentRequests PaymentRequest[]
 }
 
 model BankTransaction {
@@ -446,6 +451,7 @@ model BankTransaction {
   // Relations
   bankAccount       BankAccount?          @relation(fields: [bankAccountId], references: [bankAccountId])
   payment           Payment?              @relation(fields: [paymentId], references: [paymentId])
+  
 }
 model MaintenanceSchedule {
   scheduleId     Int       @id @default(autoincrement())

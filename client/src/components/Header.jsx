@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { getNotifications } from "../services/notificationService.jsx";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
-
-const SOCKET_URL = "http://localhost:3300";
+import { BASE_URL } from "../config";
+const SOCKET_URL = BASE_URL;
 
 function Dropdown({ trigger, children }) {
   const [open, setOpen] = useState(false);

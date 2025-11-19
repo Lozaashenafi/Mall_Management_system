@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { User, Mail, Phone, Save, ArrowLeft, Upload } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
+import { BASE_URL } from "../config";
 const EditProfile = () => {
   const { user, editProfile, isTenant } = useAuth(); // ✅ use from context
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const EditProfile = () => {
 
   const [preview, setPreview] = useState(
     user?.profilePicture
-      ? `http://localhost:3000${user.profilePicture}`
+      ? `${BASE_URL}${user.profilePicture}`
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(
           user?.fullName || user?.email || "User"
         )}`

@@ -66,12 +66,14 @@ export const createUtilityExpense = async (req, res) => {
       // 2️⃣ Create bank transaction using the same invoice as receiptImage
       const bankTransaction = await tx.bankTransaction.create({
         data: {
-          bankAccountId,
+          bankAccount: {
+            connect: { bankAccountId },
+          },
           type: "Withdrawal",
           amount,
           description: `Utility Expense: ${description}`,
           account: account || null,
-          Name: Name || null,
+          name: Name || null,
           receiptImage: invoicePath, // reuse invoice
         },
       });

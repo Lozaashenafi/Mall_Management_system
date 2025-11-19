@@ -514,7 +514,7 @@ const InvoiceTable = ({
                         </button>
                       ) : (
                         <span className="text-sm text-gray-500 flex items-center">
-                          Paid
+                          {inv.status}
                         </span>
                       )}
 

@@ -10,6 +10,7 @@ import {
 } from "../services/expenseService";
 import { getBankAccounts } from "../services/bankService";
 import { useAuth } from "../context/AuthContext";
+import { BASE_URL } from "../config";
 
 export default function Expenses() {
   const { user } = useAuth();
@@ -359,13 +360,13 @@ export default function Expenses() {
                 {detailExpense.invoice &&
                 !detailExpense.invoice.endsWith(".pdf") ? (
                   <img
-                    src={`http://localhost:3300/${detailExpense.invoice}`}
+                    src={`${BASE_URL}/${detailExpense.invoice}`}
                     alt="Invoice"
                     className="max-h-[40vh] w-auto rounded-lg object-contain shadow-md"
                   />
                 ) : (
                   <a
-                    href={`http://localhost:3300/${detailExpense.invoice}`}
+                    href={`${BASE_URL}/${detailExpense.invoice}`}
                     target="_blank"
                     className="text-indigo-500 underline"
                   >

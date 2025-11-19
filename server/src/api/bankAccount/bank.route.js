@@ -12,7 +12,7 @@ import { userAuth, isAdmin } from "../../middleware/auth.js";
 const router = express.Router();
 
 // Bank Accounts Routes
-router.get("/", userAuth, isAdmin, getBankAccounts);
+router.get("/", userAuth, getBankAccounts);
 router.get("/:id", userAuth, isAdmin, getBankAccountById);
 router.post("/", userAuth, isAdmin, createBankAccount);
 router.put("/:id", userAuth, isAdmin, updateBankAccount);

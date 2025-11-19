@@ -16,11 +16,10 @@ import {
   getNotifications,
   markNotificationAsRead,
 } from "../services/notificationService.jsx";
-
+import { BASE_URL } from "../config";
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
-  const SOCKET_URL = "http://localhost:3300";
-  const API_URL = `${SOCKET_URL}/api/notifications`;
+  const API_URL = `${BASE_URL}/api/notifications`;
 
   const fetchNotifications = async (id) => {
     try {
@@ -33,7 +32,7 @@ export default function Notifications() {
 
   // Socket connection
   useEffect(() => {
-    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    const socket = io(BASE_URL, { transports: ["websocket"] });
 
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser?.userId) {

@@ -45,6 +45,10 @@ async function main() {
     data: priceOfCare,
   });
 
+  await prisma.utilityType.createMany({
+    data: utilityTypes,
+  });
+
   console.log("Seed completed ✔");
 }
 
@@ -54,6 +58,28 @@ main()
     console.error(e);
     prisma.$disconnect();
   });
+const utilityTypes = [
+  {
+    name: "Water",
+    description: "Monthly water consumption charges",
+  },
+  {
+    name: "Electricity",
+    description: "Electric power usage charges",
+  },
+  {
+    name: "Parking",
+    description: "Parking space fees for tenants",
+  },
+  {
+    name: "Service",
+    description: "General building maintenance fee",
+  },
+  {
+    name: "Generator",
+    description: "Backup power supply charges",
+  },
+];
 
 // Seed data arrays
 const roomTypes = [

@@ -3,14 +3,22 @@ import paymentSchema from "./Pyement.schema.js";
 import fs from "fs";
 import { createAuditLog } from "../../utils/audit.js";
 import { createNotification } from "../notification/notification.service.js";
-
 export const createPayment = async (req, res) => {
   try {
     const { error, value } = paymentSchema.create.validate(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { invoiceId, amount, method, reference, paymentDate } = value;
+    const {
+      invoiceId,
+      amount,
+      method,
+      reference,
+      paymentDate,
+      name,
+      account,
+      bankAccountId,
+    } = value;
     let receiptFilePath = null;
     if (req.file) {
       receiptFilePath = `/uploads/${req.file.filename}`;
@@ -18,13 +26,18 @@ export const createPayment = async (req, res) => {
 
     let rentalId = null;
     let tenantId = null;
+    let invoice = null;
+
     // --- If invoice payment
     if (invoiceId) {
-      const invoice = await prisma.invoice.findUnique({
+      invoice = await prisma.invoice.findUnique({
         where: { invoiceId },
         include: {
           rental: {
-            include: { tenant: true },
+            include: {
+              tenant: true,
+              room: true,
+            },
           },
         },
       });
@@ -47,7 +60,7 @@ export const createPayment = async (req, res) => {
 
         const lastPayment = await prisma.payment.findFirst({
           where: {
-            invoice: { rentId: rentalId }, // filter via invoice relation
+            invoice: { rentId: rentalId },
           },
           orderBy: { endDate: "desc" },
         });
@@ -56,7 +69,7 @@ export const createPayment = async (req, res) => {
           : new Date(rental.startDate);
       }
     } else {
-      baseDate = new Date(paymentDate); // fallback if no rental found
+      baseDate = new Date(paymentDate);
     }
 
     // --- Calculate new endDate based on interval
@@ -68,27 +81,74 @@ export const createPayment = async (req, res) => {
       endDate.setMonth(endDate.getMonth() + 12);
     else endDate.setMonth(endDate.getMonth() + 1);
 
-    // --- Create payment
-    const payment = await prisma.payment.create({
-      data: {
-        invoiceId,
-        amount,
-        method,
-        reference,
-        receiptFilePath,
-        paymentDate,
-        endDate,
-        status: "Confirmed",
-      },
+    // Use transaction to ensure both payment and bank transaction are created together
+    const result = await prisma.$transaction(async (tx) => {
+      // --- Create payment
+      const payment = await tx.payment.create({
+        data: {
+          invoiceId,
+          amount,
+          method,
+          reference,
+          receiptFilePath,
+          paymentDate,
+          endDate,
+          status: "Confirmed",
+        },
+      });
+
+      // Generate meaningful description
+      let description = `Payment received`;
+
+      if (invoice) {
+        const tenantName = invoice.rental.tenant.contactPerson;
+        const roomNumber = invoice.rental.room.unitNumber;
+        description = `Payment received from ${tenantName} for Room ${roomNumber} - ${
+          reference || "Rent payment"
+        }`;
+      } else {
+        description = `Payment received from ${name} - ${
+          reference || "Utility payment"
+        }`;
+      }
+
+      // --- Create bank transaction for the payment
+      const bankTransaction = await tx.bankTransaction.create({
+        data: {
+          bankAccountId: bankAccountId,
+          paymentId: payment.paymentId,
+          type: "Deposit",
+          amount: amount,
+          description: description,
+          transactionDate: new Date(paymentDate),
+          receiptImage: receiptFilePath,
+          account: account,
+          name: name,
+        },
+      });
+
+      // --- Update bank account balance
+      await tx.bankAccount.update({
+        where: { bankAccountId: bankAccountId },
+        data: {
+          balance: {
+            increment: amount,
+          },
+        },
+      });
+
+      // --- Mark invoice as paid
+      if (invoiceId) {
+        await tx.invoice.update({
+          where: { invoiceId },
+          data: { status: "Paid" },
+        });
+      }
+
+      return { payment, bankTransaction };
     });
 
-    // --- Mark invoice as paid
-    if (invoiceId) {
-      await prisma.invoice.update({
-        where: { invoiceId },
-        data: { status: "Paid" },
-      });
-    }
+    const { payment, bankTransaction } = result;
 
     // --- Log audit
     await createAuditLog({
@@ -98,6 +158,16 @@ export const createPayment = async (req, res) => {
       recordId: payment.paymentId,
       newValue: payment,
     });
+
+    // Log bank transaction audit
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "created",
+      tableName: "BankTransaction",
+      recordId: bankTransaction.transactionId,
+      newValue: bankTransaction,
+    });
+
     if (tenantId) {
       const tenant = await prisma.tenant.findUnique({
         where: { tenantId },
@@ -109,12 +179,17 @@ export const createPayment = async (req, res) => {
       await createNotification({
         tenantId,
         userId: tenant.user ? tenant.user.userId : null,
-        type: "PaymentReminder",
+        type: "PaymentConfirmation", // Changed from PaymentReminder to PaymentConfirmation
         message,
         sentVia: "System",
       });
     }
-    res.status(201).json({ success: true, payment });
+
+    res.status(201).json({
+      success: true,
+      payment,
+      bankTransaction,
+    });
   } catch (err) {
     console.error("createPayment error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -215,187 +290,6 @@ export const updatePayment = async (req, res) => {
   }
 };
 
-// payment request
-// ✅ Create Payment Request (Tenant)
-export const createPaymentRequest = async (req, res) => {
-  try {
-    const { userId, invoiceId, amount, method, reference, paymentDate } =
-      req.body;
-
-    // ✅ Handle proof file if uploaded
-    let proofFilePath = null;
-    if (req.file) {
-      proofFilePath = `/uploads/${req.file.filename}`;
-    }
-
-    // ✅ Validate tenant exists using userId
-    const tenant = await prisma.tenant.findFirst({
-      where: { userId: Number(userId) },
-      include: { user: true },
-    });
-    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
-
-    // ✅ Create payment request
-    const paymentRequest = await prisma.paymentRequest.create({
-      data: {
-        tenantId: tenant.tenantId,
-        invoiceId: invoiceId ? Number(invoiceId) : null,
-        amount: Number(amount),
-        method,
-        reference,
-        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-        proofFilePath,
-        status: "Pending",
-      },
-    });
-
-    // ✅ Log audit trail
-    if (req.user && req.user.userId) {
-      await createAuditLog({
-        userId: req.user.userId,
-        action: "created",
-        tableName: "PaymentRequest",
-        recordId: paymentRequest.id,
-        newValue: paymentRequest,
-      });
-    }
-
-    // ✅ Notify all Admins and SuperAdmins
-    const admins = await prisma.user.findMany({
-      where: { role: { in: ["Admin", "SuperAdmin"] } },
-    });
-
-    const adminNotifications = admins.map((admin) =>
-      createNotification({
-        userId: admin.userId,
-        tenantId: tenant.tenantId,
-        type: "PaymentRequest",
-        message: `Tenant ${
-          tenant.user?.username || tenant.tenantId
-        } requested a payment of ${amount} ETB.`,
-        sentVia: "System",
-      })
-    );
-
-    await Promise.all(adminNotifications);
-
-    res.status(201).json({
-      success: true,
-      message: "Payment request created successfully",
-      paymentRequest,
-    });
-  } catch (err) {
-    console.error("createPaymentRequest error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-export const handlePaymentRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, adminNote } = req.body;
-
-    // ✅ Fetch existing payment request
-    const paymentRequest = await prisma.paymentRequest.findUnique({
-      where: { requestId: Number(id) },
-      include: {
-        tenant: { include: { user: true } },
-      },
-    });
-
-    if (!paymentRequest)
-      return res.status(404).json({ message: "Payment Request not found" });
-
-    // ✅ Update status and admin note
-    const updatedRequest = await prisma.paymentRequest.update({
-      where: { requestId: Number(id) },
-      data: { status, adminNote },
-    });
-
-    // ✅ Log audit for update
-    await createAuditLog({
-      userId: req.user.userId,
-      action: "updated",
-      tableName: "PaymentRequest",
-      recordId: Number(id),
-      oldValue: paymentRequest,
-      newValue: updatedRequest,
-    });
-
-    // ✅ If approved, create a new Payment
-    if (status === "Approved") {
-      const { invoiceId, amount, method, tenantId, reference } = paymentRequest;
-
-      // Create Payment record
-      const payment = await prisma.payment.create({
-        data: {
-          invoiceId,
-          amount,
-          method,
-          reference,
-          status: "Confirmed",
-          paymentDate: new Date(),
-        },
-      });
-
-      // Update related invoice/utility invoice
-      if (invoiceId) {
-        await prisma.invoice.update({
-          where: { invoiceId },
-          data: { status: "Paid" },
-        });
-      }
-
-      // Log audit for payment creation
-      await createAuditLog({
-        userId: req.user.userId,
-        action: "created",
-        tableName: "Payment",
-        recordId: payment.paymentId,
-        newValue: payment,
-      });
-
-      // ✅ Notify Tenant about approval
-      await createNotification({
-        tenantId,
-        userId: paymentRequest?.tenant?.user?.userId || null,
-        type: "PaymentConfirmation",
-        message: `Your payment request of ${amount} ETB has been approved and recorded as a payment.`,
-        sentVia: "System",
-      });
-
-      return res.json({
-        success: true,
-        message: "Payment request approved and payment created.",
-        paymentRequest: updatedRequest,
-        payment,
-      });
-    }
-
-    // ✅ If declined
-    if (status === "Declined") {
-      await createNotification({
-        tenantId: paymentRequest.tenantId,
-        userId: paymentRequest.tenant.user?.userId || null,
-        type: "PaymentDeclined",
-        message: `Your payment request of ${paymentRequest.amount} ETB has been declined by admin.`,
-        sentVia: "System",
-      });
-    }
-
-    res.json({
-      success: true,
-      message: `Payment request ${status.toLowerCase()} successfully.`,
-      paymentRequest: updatedRequest,
-    });
-  } catch (err) {
-    console.error("handlePaymentRequest error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-/**
- * Get All Payment Requests
- */
 export const getPaymentRequests = async (req, res) => {
   try {
     const requests = await prisma.paymentRequest.findMany({
@@ -432,3 +326,357 @@ export const getPaymentRequestById = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+// ✅ Create Payment Request (Tenant)
+export const createPaymentRequest = async (req, res) => {
+  try {
+    const {
+      userId,
+      invoiceId,
+      amount,
+      method,
+      reference,
+      paymentDate,
+      bankAccountId,
+      account,
+      name,
+    } = req.body;
+
+    // ✅ Handle proof file if uploaded
+    let proofFilePath = null;
+    if (req.file) {
+      proofFilePath = `/uploads/${req.file.filename}`;
+    }
+
+    // ✅ Validate required fields for bank transactions
+    if (method === "Bank" && (!bankAccountId || !account || !name)) {
+      return res.status(400).json({
+        message:
+          "Bank account ID, account number, and account name are required for bank payments",
+      });
+    }
+    // update the invoice  status to pending
+    if (invoiceId) {
+      await prisma.invoice.update({
+        where: { invoiceId: Number(invoiceId) },
+        data: { status: "Pending" },
+      });
+    }
+
+    // ✅ Validate tenant exists using userId
+    const tenant = await prisma.tenant.findFirst({
+      where: { userId: Number(userId) },
+      include: { user: true },
+    });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    // ✅ Validate bank account exists and is active
+    if (bankAccountId) {
+      const bankAccount = await prisma.bankAccount.findFirst({
+        where: {
+          bankAccountId: Number(bankAccountId),
+          isActive: true,
+        },
+      });
+      if (!bankAccount) {
+        return res
+          .status(404)
+          .json({ message: "Bank account not found or inactive" });
+      }
+    }
+
+    // ✅ Create payment request
+    const paymentRequest = await prisma.paymentRequest.create({
+      data: {
+        tenantId: tenant.tenantId,
+        invoiceId: invoiceId ? Number(invoiceId) : null,
+        amount: Number(amount),
+        method,
+        reference,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        proofFilePath,
+        status: "Pending",
+        bankAccountId: bankAccountId ? Number(bankAccountId) : null,
+        account: account || null,
+        name: name || null,
+      },
+    });
+
+    // ✅ Log audit trail
+    if (req.user && req.user.userId) {
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "PaymentRequest",
+        recordId: paymentRequest.requestId,
+        newValue: paymentRequest,
+      });
+    }
+
+    // ✅ Notify all Admins and SuperAdmins
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["Admin", "SuperAdmin"] } },
+    });
+
+    const adminNotifications = admins.map((admin) =>
+      createNotification({
+        userId: admin.userId,
+        tenantId: tenant.tenantId,
+        type: "PaymentRequest",
+        message: `Tenant ${tenant.contactPerson} requested a payment of ${amount} ETB via ${method}.`,
+        sentVia: "System",
+      })
+    );
+
+    await Promise.all(adminNotifications);
+
+    res.status(201).json({
+      success: true,
+      message: "Payment request created successfully",
+      paymentRequest,
+    });
+  } catch (err) {
+    console.error("createPaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const handlePaymentRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+
+    // ✅ Fetch existing payment request with bank account info
+    const paymentRequest = await prisma.paymentRequest.findUnique({
+      where: { requestId: Number(id) },
+      include: {
+        tenant: {
+          include: {
+            user: true,
+            rental: {
+              include: {
+                room: true,
+              },
+            },
+          },
+        },
+        invoice: {
+          include: {
+            rental: {
+              include: {
+                room: true,
+                tenant: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!paymentRequest)
+      return res.status(404).json({ message: "Payment Request not found" });
+
+    // ✅ Update status and admin note
+    const updatedRequest = await prisma.paymentRequest.update({
+      where: { requestId: Number(id) },
+      data: { status, adminNote },
+    });
+
+    // ✅ Log audit for update
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "updated",
+      tableName: "PaymentRequest",
+      recordId: Number(id),
+      oldValue: paymentRequest,
+      newValue: updatedRequest,
+    });
+
+    // ✅ If approved, create a new Payment and Bank Transaction
+    if (status === "Approved") {
+      const {
+        invoiceId,
+        amount,
+        method,
+        tenantId,
+        reference,
+        bankAccountId,
+        account,
+        name,
+      } = paymentRequest;
+
+      // Use transaction to ensure both payment and bank transaction are created together
+      const result = await prisma.$transaction(async (tx) => {
+        // Create Payment record
+        const payment = await tx.payment.create({
+          data: {
+            invoiceId,
+            amount,
+            method,
+            reference,
+            status: "Confirmed",
+            paymentDate: new Date(),
+            // Calculate end date for rent payments
+            ...(invoiceId && (await calculateEndDate(invoiceId, tx))),
+          },
+        });
+        // change invoice status to paid
+        if (invoiceId) {
+          await prisma.invoice.update({
+            where: { invoiceId: Number(invoiceId) },
+            data: { status: "Paid" },
+          });
+        }
+        // Create Bank Transaction for approved payment
+        if (bankAccountId) {
+          // Generate meaningful description
+          let description = `Payment received from ${paymentRequest.tenant.contactPerson}`;
+
+          if (paymentRequest.invoice) {
+            const roomNumber = paymentRequest.invoice.rental.room.unitNumber;
+            description = `Payment received from ${
+              paymentRequest.tenant.contactPerson
+            } for Room ${roomNumber} - ${reference || "Rent payment"}`;
+          } else {
+            description = `Payment received from ${name} (${account}) - ${
+              reference || "Utility payment"
+            }`;
+          }
+
+          const bankTransaction = await tx.bankTransaction.create({
+            data: {
+              bankAccountId: Number(bankAccountId),
+              paymentId: payment.paymentId,
+              type: "Deposit",
+              amount: amount,
+              description: description,
+              transactionDate: new Date(),
+              receiptImage: paymentRequest.proofFilePath,
+              account: account,
+              name: name,
+            },
+          });
+
+          // Update bank account balance
+          await tx.bankAccount.update({
+            where: { bankAccountId: Number(bankAccountId) },
+            data: {
+              balance: {
+                increment: amount,
+              },
+            },
+          });
+
+          // Log bank transaction audit
+          await createAuditLog({
+            userId: req.user.userId,
+            action: "created",
+            tableName: "BankTransaction",
+            recordId: bankTransaction.transactionId,
+            newValue: bankTransaction,
+          });
+        }
+
+        // Update related invoice status
+        if (invoiceId) {
+          await tx.invoice.update({
+            where: { invoiceId },
+            data: { status: "Paid" },
+          });
+        }
+
+        return { payment };
+      });
+
+      const { payment } = result;
+
+      // Log audit for payment creation
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "Payment",
+        recordId: payment.paymentId,
+        newValue: payment,
+      });
+
+      // ✅ Notify Tenant about approval
+      await createNotification({
+        tenantId,
+        userId: paymentRequest.tenant?.user?.userId || null,
+        type: "PaymentConfirmation",
+        message: `Your payment request of ${amount} ETB has been approved and recorded as a payment.`,
+        sentVia: "System",
+      });
+
+      return res.json({
+        success: true,
+        message: "Payment request approved and payment created.",
+        paymentRequest: updatedRequest,
+        payment,
+      });
+    }
+
+    // ✅ If declined
+    if (status === "Declined") {
+      await createNotification({
+        tenantId: paymentRequest.tenantId,
+        userId: paymentRequest.tenant.user?.userId || null,
+        type: "PaymentDeclined",
+        message: `Your payment request of ${
+          paymentRequest.amount
+        } ETB has been declined by admin. Reason: ${
+          adminNote || "No reason provided"
+        }`,
+        sentVia: "System",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Payment request ${status.toLowerCase()} successfully.`,
+      paymentRequest: updatedRequest,
+    });
+  } catch (err) {
+    console.error("handlePaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Helper function to calculate end date for rent payments
+async function calculateEndDate(invoiceId, tx) {
+  const invoice = await tx.invoice.findUnique({
+    where: { invoiceId },
+    include: {
+      rental: true,
+    },
+  });
+
+  if (!invoice) return {};
+
+  const rental = invoice.rental;
+  let baseDate = new Date(rental.startDate);
+
+  // Find last payment to determine base date
+  const lastPayment = await tx.payment.findFirst({
+    where: {
+      invoice: { rentId: rental.rentId },
+    },
+    orderBy: { endDate: "desc" },
+  });
+
+  if (lastPayment) {
+    baseDate = new Date(lastPayment.endDate);
+  }
+
+  // Calculate new end date based on payment interval
+  const endDate = new Date(baseDate);
+  const paymentInterval = rental.paymentInterval || "Monthly";
+
+  if (paymentInterval === "Monthly") endDate.setMonth(endDate.getMonth() + 1);
+  else if (paymentInterval === "Quarterly")
+    endDate.setMonth(endDate.getMonth() + 3);
+  else if (paymentInterval === "Yearly")
+    endDate.setMonth(endDate.getMonth() + 12);
+  else endDate.setMonth(endDate.getMonth() + 1);
+
+  return { endDate };
+}

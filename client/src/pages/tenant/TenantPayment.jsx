@@ -275,16 +275,13 @@ const PaymentRequests = () => {
     </div>
   );
   const TenantPaymentRequests = () => {
-    const tenantPaymentRequests = user.rentals.flatMap((rental) => {
-      const rentRequests = rental.invoices.flatMap(
-        (inv) => inv.paymentRequest || []
-      );
-      const utilityRequests = rental.utilityInvoices.flatMap(
-        (ui) => ui.paymentRequest || []
-      );
+    const tenantPaymentRequests = user?.rentals?.flatMap((rental) => {
+      const rentRequests =
+        rental.invoices?.flatMap((inv) => inv.paymentRequest || []) || [];
+      const utilityRequests =
+        rental.utilityInvoices?.flatMap((ui) => ui.paymentRequest || []) || [];
       return [...rentRequests, ...utilityRequests];
     });
-
     return (
       <div className="mt-6 p-5 rounded-xl border bg-white dark:bg-gray-800 shadow-md">
         <h2 className="text-lg font-semibold mb-4">Your Payment Requests</h2>

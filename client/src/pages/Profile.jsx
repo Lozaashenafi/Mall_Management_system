@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../config";
 
 const ProfileCard = ({ title, icon: Icon, children }) => {
   return (
@@ -66,7 +67,7 @@ const Profile = () => {
       <div className="p-8 rounded-xl border border-gray-200 bg-white shadow-md flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-8 dark:border-gray-700 dark:bg-gray-800">
         <img
           src={
-            `http://localhost:3000${user.profilePicture}` ||
+            `${BASE_URL}${user.profilePicture}` ||
             "https://ui-avatars.com/api/?name=" +
               encodeURIComponent(user.fullName || user.email)
           }
