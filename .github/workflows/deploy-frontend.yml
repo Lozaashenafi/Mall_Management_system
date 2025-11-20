@@ -36,5 +36,5 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: client/dist/ # ✅ Vite outputs to dist/
-          server-dir: /home/majesticdigital/mall.majesticdigitalsystems.com/
+          server-dir: /
           dangerous-clean-slate: true
