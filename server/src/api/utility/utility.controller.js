@@ -173,8 +173,6 @@ export const generateUtilityCharge = async (req, res) => {
           generated: true,
         },
       });
-
-      // eligible rentals: those with rental[includeField] === true (default true if field missing)
       const includeField = includeFieldByTypeId[utilityTypeId];
       const eligible = rentals.filter((r) => {
         // if includeField doesn't exist on rental, assume true
