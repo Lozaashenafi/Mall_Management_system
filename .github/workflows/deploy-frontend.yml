@@ -18,8 +18,6 @@ jobs:
       # 2️⃣ Install Node.js
       - name: ⚡️ Setup Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: 18
 
       # 3️⃣ Install dependencies & build Vite project
       - name: 🛠 Build React (Vite)
