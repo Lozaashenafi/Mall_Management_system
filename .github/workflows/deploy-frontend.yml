@@ -6,34 +6,18 @@ on:
       - main
 
 jobs:
-  deploy-frontend:
+  web-deploy:
+    name: 🎉 Deploy
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: 🚚 Get latest code
         uses: actions/checkout@v4
 
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm install
-
-      - name: Build project
-        run: |
-          cd frontend
-          npm run build
-
-      - name: Upload via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4
+      - name: 📂 Sync files
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: frontend/build
           server-dir: ${{ secrets.FTP_FRONTEND_PATH }}
-          dangerous-clean-slate: true
