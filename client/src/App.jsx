@@ -45,7 +45,7 @@ import RentRenewal from "./pages/RentRenewal";
 import UtiliySummary from "./pages/UtilitySummary";
 import AddUtilityPayment from "./pages/AddUtilityPayment";
 import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
-import AddFloorPrice from "./pages/addFloorPrice";
+import AddFloorPrice from "./pages/AddFloorPrice";
 import BankManage from "./pages/BankManage";
 
 function App() {
