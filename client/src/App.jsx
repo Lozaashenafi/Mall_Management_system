@@ -48,7 +48,6 @@ import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
 import AddFloorPrice from "./pages/AddFloorPrice";
 import BankManage from "./pages/BankManage";
 
-//test
 function App() {
   return (
     <>
