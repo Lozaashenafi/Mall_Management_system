@@ -21,6 +21,16 @@ export const createPayment = async (paymentData) => {
     throw error.response?.data || { message: "Failed to create payment" };
   }
 };
+export const createUtilityPayment = async (paymentData) => {
+  try {
+    const res = await api.post("/payments/utility", paymentData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to create payment" };
+  }
+};
 
 export const updatePayment = async (id, data) => {
   try {

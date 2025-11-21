@@ -148,6 +148,7 @@ export const generateUtilityCharge = async (req, res) => {
         room: true,
       },
     });
+
     if (!rentals || rentals.length === 0) {
       return res.status(400).json({ message: "No active rentals found" });
     }
@@ -351,6 +352,34 @@ export const generateUtilityCharge = async (req, res) => {
     });
   }
 };
+export const getPayedUtilityInvoices = async (req, res) => {
+  try {
+    const invoices = await prisma.utilityInvoice.findMany({
+      where: { paymentId: { not: null } },
+      include: {
+        rental: {
+          include: {
+            tenant: true,
+            room: true,
+          },
+        },
+        utilityCharge: {
+          include: {
+            utilityType: true,
+          },
+        },
+        payment: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.json(invoices);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Error fetching paid utility invoices" });
+  }
+};
 
 export const getUtilityCharges = async (req, res) => {
   try {
@@ -511,6 +540,45 @@ export const getInvoicesByUserId = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Internal server error", error: error.message });
+  }
+};
+export const getUtilityInvoicesByUserId = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const tenant = await prisma.tenant.findFirst({
+      where: { userId },
+      select: { tenantId: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    const invoices = await prisma.utilityInvoice.findMany({
+      where: { rental: { tenantId: tenant.tenantId } },
+      include: {
+        utilityCharge: {
+          include: {
+            utilityType: true,
+          },
+        },
+        payment: true,
+        rental: { include: { room: true } },
+      },
+      orderBy: { createdAt: "desc" }, // ✅ FIXED
+    });
+
+    return res.json({ invoices });
+  } catch (err) {
+    console.error("getUtilityInvoicesByUserId error:", err);
+    return res.status(500).json({
+      message: "Error fetching utility invoices",
+      error: err.message,
+    });
   }
 };
 export const payUtilityInvoices = async (req, res) => {

@@ -17,7 +17,18 @@ export default {
     amount: Joi.number().optional(),
     method: Joi.string().valid("Cash", "Bank", "Mobile", "TeleBirr").optional(),
     reference: Joi.string().optional(),
-
     paymentDate: Joi.date().optional(),
+  }),
+
+  // 🔥 Add this
+  createUtility: Joi.object({
+    utilityInvoiceId: Joi.number().integer().required(),
+    amount: Joi.number().required(),
+    method: Joi.string().valid("Bank", "Mobile", "TeleBirr").optional(),
+    paymentDate: Joi.date().required(),
+    name: Joi.string().optional(),
+    reference: Joi.string().optional(),
+    account: Joi.string().optional(),
+    bankAccountId: Joi.number().integer().required(),
   }),
 };

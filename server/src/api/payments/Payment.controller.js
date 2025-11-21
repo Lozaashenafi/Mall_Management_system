@@ -195,22 +195,123 @@ export const createPayment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+export const createUtilityPayment = async (req, res) => {
+  try {
+    const { error, value } = paymentSchema.createUtility.validate(req.body);
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
 
+    const {
+      utilityInvoiceId,
+      amount,
+      method,
+      reference,
+      paymentDate,
+      name,
+      account,
+      bankAccountId,
+    } = value;
+
+    let receiptFilePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          amount,
+          method,
+          reference,
+          receiptFilePath,
+          paymentDate,
+          status: "Confirmed",
+        },
+      });
+
+      const description = `Utility payment received from ${name} - ${
+        reference || "Utility payment"
+      }`;
+
+      const bankTransaction = await tx.bankTransaction.create({
+        data: {
+          bankAccountId,
+          paymentId: payment.paymentId,
+          type: "Deposit",
+          amount,
+          description,
+          transactionDate: new Date(paymentDate),
+          receiptImage: receiptFilePath,
+          account,
+          name,
+        },
+      });
+
+      await tx.bankAccount.update({
+        where: { bankAccountId },
+        data: { balance: { increment: amount } },
+      });
+
+      return { payment, bankTransaction };
+    });
+
+    // Extract here ✔
+    const { payment, bankTransaction } = result;
+
+    await prisma.utilityInvoice.updateMany({
+      where: { id: Number(utilityInvoiceId) },
+      data: {
+        status: "Paid", // OR "UNPAID" → make consistent
+        paymentId: payment.paymentId,
+      },
+    });
+
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "created",
+      tableName: "Payment",
+      recordId: payment.paymentId,
+      newValue: payment,
+    });
+
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "created",
+      tableName: "BankTransaction",
+      recordId: bankTransaction.transactionId,
+      newValue: bankTransaction,
+    });
+
+    res.status(201).json({
+      success: true,
+      payment,
+      bankTransaction,
+    });
+  } catch (err) {
+    console.error("createUtilityPayment error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 // ✅ List Payments
 export const getPayments = async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
+      where: {
+        invoice: { isNot: null }, // Only include payments that have an invoice
+      },
       include: {
         invoice: {
           include: {
             rental: {
-              include: { tenant: true, room: true },
+              include: {
+                tenant: true,
+                room: true,
+              },
             },
           },
         },
       },
       orderBy: { createdAt: "desc" },
     });
+
     res.json({ success: true, payments });
   } catch (err) {
     console.error("getPayments error:", err);
@@ -234,7 +335,6 @@ export const getPaymentById = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 // ✅ Update Payment (ex: mark as completed)
 export const updatePayment = async (req, res) => {
   try {
@@ -289,7 +389,6 @@ export const updatePayment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 export const getPaymentRequests = async (req, res) => {
   try {
     const requests = await prisma.paymentRequest.findMany({
@@ -439,7 +538,141 @@ export const createPaymentRequest = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+export const createUtilityPaymentRequest = async (req, res) => {
+  try {
+    const {
+      userId,
+      utilityInvoiceIds, // This will be a JSON string like "[2]"
+      method,
+      reference,
+      paymentDate,
+      bankAccountId,
+      account,
+      name,
+    } = req.body;
 
+    console.log("Received utilityInvoiceIds:", utilityInvoiceIds);
+    console.log("Type of utilityInvoiceIds:", typeof utilityInvoiceIds);
+
+    let proofFilePath = null;
+    if (req.file) {
+      proofFilePath = `/uploads/${req.file.filename}`;
+    }
+
+    // ------------ PARSE utilityInvoiceIds ------------------
+    let invoiceIdsArray;
+
+    try {
+      // Parse the JSON string back to array
+      if (typeof utilityInvoiceIds === "string") {
+        invoiceIdsArray = JSON.parse(utilityInvoiceIds);
+      } else if (Array.isArray(utilityInvoiceIds)) {
+        invoiceIdsArray = utilityInvoiceIds;
+      } else {
+        invoiceIdsArray = [];
+      }
+    } catch (parseError) {
+      console.error("Error parsing utilityInvoiceIds:", parseError);
+      return res.status(400).json({
+        message: "Invalid utilityInvoiceIds format. Expected JSON array.",
+      });
+    }
+
+    // Convert to numbers and filter out invalid values
+    invoiceIdsArray = invoiceIdsArray
+      .map((id) => parseInt(id))
+      .filter((id) => !isNaN(id));
+
+    console.log("Parsed invoiceIdsArray:", invoiceIdsArray);
+
+    // ------------ VALIDATION ------------------
+    if (!Array.isArray(invoiceIdsArray) || invoiceIdsArray.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "utilityInvoiceIds must be a non-empty array." });
+    }
+
+    const tenant = await prisma.tenant.findFirst({
+      where: { userId: Number(userId) },
+      include: { user: true },
+    });
+
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    if (bankAccountId) {
+      const bankAccount = await prisma.bankAccount.findFirst({
+        where: { bankAccountId: Number(bankAccountId), isActive: true },
+      });
+
+      if (!bankAccount) {
+        return res
+          .status(404)
+          .json({ message: "Bank account not found or inactive" });
+      }
+    }
+
+    // ------------ FETCH ALL UTILITY INVOICES ------------
+    const invoices = await prisma.utilityInvoice.findMany({
+      where: {
+        id: { in: invoiceIdsArray },
+        paymentId: null,
+      },
+    });
+
+    if (invoices.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No unpaid utility invoices found." });
+    }
+
+    // Calculate total amount dynamically
+    const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+
+    // ------------ CREATE PAYMENT REQUEST ----------------
+    const paymentRequest = await prisma.paymentRequest.create({
+      data: {
+        tenantId: tenant.tenantId,
+        amount: Number(totalAmount),
+        method,
+        reference,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        proofFilePath,
+        status: "Pending",
+        bankAccountId: bankAccountId ? Number(bankAccountId) : null,
+        account: account || null,
+        name: name || null,
+      },
+    });
+
+    // ------------ UPDATE ALL UTILITY INVOICES --------
+    await prisma.utilityInvoice.updateMany({
+      where: { id: { in: invoices.map((inv) => inv.id) } },
+      data: { paymentRequestId: paymentRequest.requestId, status: "Pending" },
+    });
+
+    // ------------ AUDIT LOG ----------------------------
+    if (req.user && req.user.userId) {
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "PaymentRequest",
+        recordId: paymentRequest.requestId,
+        newValue: paymentRequest,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Utility payment request created successfully.",
+      totalInvoices: invoices.length,
+      totalAmount,
+      paymentRequest,
+    });
+  } catch (err) {
+    console.error("createUtilityPaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 export const handlePaymentRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -637,6 +870,204 @@ export const handlePaymentRequest = async (req, res) => {
     });
   } catch (err) {
     console.error("handlePaymentRequest error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const handleUtilityPaymentRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+
+    // ✅ Fetch existing payment request with related data
+    const paymentRequest = await prisma.paymentRequest.findUnique({
+      where: { requestId: Number(id) },
+      include: {
+        tenant: {
+          include: {
+            user: true,
+          },
+        },
+        utilityInvoices: true,
+        bankAccount: true,
+      },
+    });
+
+    if (!paymentRequest) {
+      return res.status(404).json({ message: "Payment Request not found" });
+    }
+
+    // ✅ Update status and admin note
+    const updatedRequest = await prisma.paymentRequest.update({
+      where: { requestId: Number(id) },
+      data: { status, adminNote },
+      include: {
+        tenant: {
+          include: {
+            user: true,
+          },
+        },
+        utilityInvoices: true,
+      },
+    });
+
+    // Get utility invoices associated with the payment request
+    const utilityInvoices = await prisma.utilityInvoice.findMany({
+      where: { paymentRequestId: Number(id) },
+      include: {
+        rental: {
+          include: {
+            tenant: true,
+          },
+        },
+      },
+    });
+
+    // Update all utility invoices status based on the payment request status
+    const utilityInvoiceStatus = status === "Approved" ? "Paid" : "Pending";
+
+    for (const invoice of utilityInvoices) {
+      await prisma.utilityInvoice.update({
+        where: { id: invoice.id },
+        data: { status: utilityInvoiceStatus },
+      });
+    }
+
+    // If approved, create a new Payment and Bank Transaction
+    if (status === "Approved") {
+      const {
+        amount,
+        method,
+        tenantId,
+        reference,
+        bankAccountId,
+        account,
+        name,
+      } = paymentRequest;
+
+      // Use transaction to ensure both payment and bank transaction are created together
+      const result = await prisma.$transaction(async (tx) => {
+        // Create Payment record
+        const payment = await tx.payment.create({
+          data: {
+            amount,
+            method,
+            reference,
+            status: "Confirmed",
+            paymentDate: new Date(),
+          },
+        });
+
+        // Update utility invoices with the payment ID
+        await tx.utilityInvoice.updateMany({
+          where: { paymentRequestId: Number(id) },
+          data: {
+            paymentId: payment.paymentId,
+            status: "Paid",
+          },
+        });
+
+        // Create Bank Transaction for approved payment
+        if (bankAccountId) {
+          const bankTransaction = await tx.bankTransaction.create({
+            data: {
+              bankAccountId: Number(bankAccountId),
+              paymentId: payment.paymentId,
+              type: "Deposit",
+              amount: amount,
+              description: `Utility payment received from ${name} (${account}) - ${
+                reference || "Utility payment"
+              }`,
+              transactionDate: new Date(),
+              receiptImage: paymentRequest.proofFilePath,
+              account: account,
+              name: name,
+            },
+          });
+
+          // Update bank account balance
+          await tx.bankAccount.update({
+            where: { bankAccountId: Number(bankAccountId) },
+            data: {
+              balance: {
+                increment: amount,
+              },
+            },
+          });
+
+          // Log bank transaction audit
+          await createAuditLog({
+            userId: req.user.userId,
+            action: "created",
+            tableName: "BankTransaction",
+            recordId: bankTransaction.transactionId,
+            newValue: bankTransaction,
+          });
+        }
+
+        return { payment };
+      });
+
+      const { payment } = result;
+
+      // Notify tenant about approval
+      await createNotification({
+        tenantId,
+        userId: paymentRequest.tenant?.userId || null, // Fixed: access userId directly from tenant
+        type: "PaymentConfirmation",
+        message: `Your utility payment request of ${amount} ETB has been approved and recorded as a payment.`,
+        sentVia: "System",
+      });
+
+      // Log audit for payment creation
+      await createAuditLog({
+        userId: req.user.userId,
+        action: "created",
+        tableName: "Payment",
+        recordId: payment.paymentId,
+        newValue: payment,
+      });
+
+      return res.json({
+        success: true,
+        message: "Utility payment request approved and payment created.",
+        paymentRequest: updatedRequest,
+        payment,
+      });
+    }
+
+    // If rejected (changed from "Declined" to "Rejected" to match enum)
+    if (status === "Rejected") {
+      await createNotification({
+        tenantId: paymentRequest.tenantId,
+        userId: paymentRequest.tenant?.userId || null, // Fixed: access userId directly
+        type: "PaymentDeclined",
+        message: `Your utility payment request of ${
+          paymentRequest.amount
+        } ETB has been rejected by admin. Reason: ${
+          adminNote || "No reason provided"
+        }`,
+        sentVia: "System",
+      });
+    }
+
+    // ✅ Log audit for update
+    await createAuditLog({
+      userId: req.user.userId,
+      action: "updated",
+      tableName: "PaymentRequest",
+      recordId: Number(id),
+      oldValue: paymentRequest,
+      newValue: updatedRequest,
+    });
+
+    res.json({
+      success: true,
+      message: `Utility payment request ${status.toLowerCase()} successfully.`,
+      paymentRequest: updatedRequest,
+    });
+  } catch (err) {
+    console.error("handleUtilityPaymentRequest error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

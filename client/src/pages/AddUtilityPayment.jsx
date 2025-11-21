@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Save, X, Image as ImageIcon } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { createPayment } from "../services/paymentService";
-import { getUtilityInvoiceById } from "../services/utilityService"; // new service
+import { createUtilityPayment } from "../services/paymentService";
+import { getUtilityInvoiceById } from "../services/utilityService";
+import { getBankAccounts } from "../services/bankService";
 
 export default function AddUtilityPayment() {
   const navigate = useNavigate();
@@ -12,31 +13,41 @@ export default function AddUtilityPayment() {
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState(null);
   const [receiptFile, setReceiptFile] = useState(null);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split("T")[0],
-    amountPaid: "",
-    method: "Cash",
+    amount: "",
+    method: "bank",
     reference: "",
+    bankAccountId: "",
+    account: "",
+    name: "",
   });
 
-  // Fetch utility invoice by ID
+  // Load invoice + bank accounts
   useEffect(() => {
-    const fetchInvoice = async () => {
+    const loadData = async () => {
       try {
         const data = await getUtilityInvoiceById(id);
+        const banks = await getBankAccounts();
+
         setInvoice(data);
+        setBankAccounts(banks);
+
         setFormData((prev) => ({
           ...prev,
-          amountPaid: Math.round(data.totalAmount || data.amount || 0),
+          amount: Math.round(data.totalAmount || data.amount || 0),
+          name: data?.rental?.tenant?.contactPerson || "",
         }));
       } catch (error) {
-        toast.error(error.message || "Failed to load utility invoice");
+        toast.error(error.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
     };
-    if (id) fetchInvoice();
+
+    loadData();
   }, [id]);
 
   const handleChange = (e) => {
@@ -53,14 +64,18 @@ export default function AddUtilityPayment() {
 
     const payload = new FormData();
     payload.append("utilityInvoiceId", Number(id));
-    payload.append("amount", Number(formData.amountPaid));
+    payload.append("amount", Number(formData.amount));
     payload.append("method", formData.method);
     payload.append("reference", formData.reference);
     payload.append("paymentDate", formData.paymentDate);
+    payload.append("bankAccountId", Number(formData.bankAccountId));
+    payload.append("account", formData.account);
+    payload.append("name", formData.name);
+
     if (receiptFile) payload.append("receipt", receiptFile);
 
     try {
-      await createPayment(payload);
+      await createUtilityPayment(payload);
       toast.success("Utility payment added successfully!");
       navigate("/utilities");
     } catch (err) {
@@ -71,7 +86,7 @@ export default function AddUtilityPayment() {
   if (loading)
     return (
       <div className="text-center text-gray-600 dark:text-gray-300 mt-10">
-        Loading utility invoice details...
+        Loading...
       </div>
     );
 
@@ -81,19 +96,22 @@ export default function AddUtilityPayment() {
         Utility invoice not found!
       </div>
     );
-
   return (
-    <div className="max-w-3xl mx-auto bg-gray-50 dark:bg-gray-900 p-6 text-gray-900 dark:text-gray-100">
+    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md text-gray-900 dark:text-gray-100">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Add Utility Payment</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Tenant: {invoice.rental.tenant.contactPerson} — Room:{" "}
-          {invoice.rental.room.unitNumber}
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Tenant:{" "}
+          <span className="font-medium">
+            {invoice.rental.tenant.contactPerson}
+          </span>{" "}
+          — Room{" "}
+          <span className="font-medium">{invoice.rental.room.unitNumber}</span>
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Payment Info */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Payment Date + Amount */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -105,23 +123,21 @@ export default function AddUtilityPayment() {
               value={formData.paymentDate}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Amount Paid
-            </label>
+            <label className="block text-sm font-medium mb-1">Amount</label>
             <input
               type="number"
-              name="amountPaid"
-              value={formData.amountPaid}
+              name="amount"
+              value={formData.amount}
               onChange={handleChange}
-              required
               min="0"
               step="0.01"
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              required
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             />
           </div>
         </div>
@@ -136,12 +152,10 @@ export default function AddUtilityPayment() {
               name="method"
               value={formData.method}
               onChange={handleChange}
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
             >
-              <option value="Cash">Cash</option>
               <option value="Mobile">Mobile</option>
               <option value="Bank">Bank</option>
-              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -154,37 +168,96 @@ export default function AddUtilityPayment() {
               name="reference"
               value={formData.reference}
               onChange={handleChange}
-              placeholder="Transaction ID or note"
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+            />
+          </div>
+        </div>
+
+        {/* Company Bank Account */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Company Account
+          </label>
+          <select
+            name="bankAccountId"
+            value={formData.bankAccountId}
+            onChange={(e) => {
+              const selected = bankAccounts.find(
+                (b) => b.bankAccountId === Number(e.target.value)
+              );
+              setFormData((prev) => ({
+                ...prev,
+                bankAccountId: e.target.value,
+              }));
+            }}
+            className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+          >
+            <option value="">Select account</option>
+            {bankAccounts.map((acc) => (
+              <option key={acc.bankAccountId} value={acc.bankAccountId}>
+                {acc.bankName} — {acc.accountNumber}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Payer Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Payer Name</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              placeholder="Enter payer name"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Payer Account Number
+            </label>
+            <input
+              type="text"
+              name="account"
+              value={formData.account}
+              onChange={handleChange}
+              className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+              placeholder="Enter account number"
+              required={formData.method === "Bank"}
             />
           </div>
         </div>
 
         {/* Receipt Upload */}
         <div>
-          <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+          <label className="text-sm font-medium mb-1 flex items-center gap-2">
             <ImageIcon className="w-4 h-4" /> Upload Receipt (optional)
           </label>
           <input
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            className="block w-full text-sm border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
+            className="w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-800"
           />
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
-            onClick={() => navigate("/payments")}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded hover:bg-gray-400 dark:hover:bg-gray-600"
+            onClick={() => navigate("/utilities")}
+            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-black dark:text-white rounded flex items-center gap-2"
           >
             <X className="w-4 h-4" /> Cancel
           </button>
+
           <button
             type="submit"
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"
+            className="px-4 py-2 bg-indigo-600 text-white rounded flex items-center gap-2"
           >
             <Save className="w-4 h-4" /> Add Payment
           </button>

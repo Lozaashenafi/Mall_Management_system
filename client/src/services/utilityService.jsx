@@ -94,12 +94,37 @@ export const getUtilityInvoiceById = async (id) => {
     );
   }
 };
-export const utilityForTenant = async (userId) => {
+export const InvoiceForTenant = async (userId) => {
   try {
     const res = await api.get(`/utilities/userinvoice/${userId}`);
     return res.data; // ✅ Return the actual data
   } catch (error) {
     console.error("Failed to fetch utility invoices:", error);
     throw error.response?.data || { message: "Failed to fetch invoice" };
+  }
+};
+
+export const UtilityInvoiceforTenant = async (userId) => {
+  // Make sure userId is defined as parameter
+  try {
+    const res = await api.get(`/utilities/userutilityinvoice/${userId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Failed to fetch utility invoices:", error);
+    throw error.response?.data || { message: "Failed to fetch invoice" };
+  }
+};
+
+export const getPayedUtilityInvoices = async () => {
+  try {
+    const res = await api.get(`/utilities/payment`);
+    console.log("Payed utility invoices response:", res);
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to fetch payed utility invoices",
+      }
+    );
   }
 };

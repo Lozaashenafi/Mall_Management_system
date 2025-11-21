@@ -47,6 +47,7 @@ import AddUtilityPayment from "./pages/AddUtilityPayment";
 import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
 import AddFloorPrice from "./pages/AddFloorPrice";
 import BankManage from "./pages/BankManage";
+import AddUtilityPaymentRequest from "./pages/tenant/AddUtilityPaymentRequest";
 
 function App() {
   return (
@@ -126,7 +127,11 @@ function App() {
             <Route path="invoice" element={<TenantUtilityPage />} />
             <Route path="maintenance" element={<TenantMaintenance />} />
             <Route path="notifications" element={<TenantNotifications />} />
-            <Route path="request/:type/:id" element={<AddPaymentRequest />} />
+            <Route path="request/invoice/:id" element={<AddPaymentRequest />} />
+            <Route
+              path="request/utility"
+              element={<AddUtilityPaymentRequest />}
+            />
 
             <Route
               path="terminate-request"

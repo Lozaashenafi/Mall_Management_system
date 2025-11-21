@@ -8,16 +8,21 @@ import {
   getUtilityInvoiceById,
   getInvoicesByUserId,
   downloadUtilityInvoicePdf,
+  getUtilityInvoicesByUserId,
+  getPayedUtilityInvoices,
 } from "./utility.controller.js";
 
 const router = express.Router();
 
 router.get("/summary", getMonthlyUtilitySummary);
 router.get("/userinvoice/:userId", getInvoicesByUserId);
+router.get("/userutilityinvoice/:userId", getUtilityInvoicesByUserId);
 router.post("/generate", generateUtilityCharge);
 router.get("/generate", getUtilityCharges);
 router.get("/invoice", TenantsInvoiceOfthisMonth);
 router.get("/invoice/:id", getUtilityInvoiceById);
 router.get("/invoice/:id/pdf", downloadUtilityInvoicePdf);
 router.get("/charges", getUtilityChargesByMonth);
+router.get("/payment", getPayedUtilityInvoices);
+
 export default router;

@@ -26,7 +26,10 @@ import UpdatePaymentStatus from "../components/UpdatePaymentStatus";
 import {
   getPaymentRequests,
   updatePaymentRequestStatus,
+  updateUtilityPaymentRequestStatus,
 } from "../services/paymentRequestService";
+
+import { getPayedUtilityInvoices } from "../services/utilityService.jsx";
 import { BASE_URL } from "../config";
 
 // Define the tabs for navigation
@@ -37,13 +40,15 @@ const tabs = [
 ];
 
 export default function Payments() {
-  const [activeTab, setActiveTab] = useState("invoices"); // New state for active tab
+  const [activeTab, setActiveTab] = useState("invoices");
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8; // Increased page size for a slightly better view
+  const [currentUtilityPage, setCurrentUtilityPage] = useState(1);
+  const pageSize = 8;
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [utilityPayments, setUtilityPayments] = useState([]);
 
   const [editingItem, setEditingItem] = useState(null);
   const [editData, setEditData] = useState({});
@@ -86,7 +91,7 @@ export default function Payments() {
     if (!window.confirm("Are you sure you want to delete this invoice?"))
       return;
     try {
-      await deleteInvoice(invoiceId); // make sure you have this service
+      await deleteInvoice(invoiceId);
       setInvoices((prev) => prev.filter((i) => i.invoiceId !== invoiceId));
       toast.success("Invoice deleted successfully");
     } catch (err) {
@@ -119,15 +124,19 @@ export default function Payments() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [invoiceData, paymentData, requestData] = await Promise.all([
-          getInvoices(),
-          getPayments(),
-          getPaymentRequests(),
-        ]);
+        const [invoiceData, paymentData, requestData, utilityPaymentData] =
+          await Promise.all([
+            getInvoices(),
+            getPayments(),
+            getPaymentRequests(),
+            getPayedUtilityInvoices(),
+          ]);
         setInvoices(invoiceData || []);
         setPayments(paymentData || []);
         console.log(requestData);
         setPaymentRequests(requestData || []);
+        setUtilityPayments(utilityPaymentData || []);
+        console.log("Utility Payments:", utilityPaymentData);
       } catch (error) {
         toast.error(error.message || "Failed to fetch data");
       } finally {
@@ -137,15 +146,33 @@ export default function Payments() {
     fetchData();
   }, []);
 
-  const handleStatusChange = async (paymentId, status, adminNote) => {
+  // UPDATED: Handle status change for both rental and utility payment requests
+  const handleStatusChange = async (
+    paymentId,
+    status,
+    adminNote,
+    isUtility = false
+  ) => {
     try {
-      const updated = await updatePaymentRequestStatus(paymentId, {
-        status,
-        adminNote,
-      });
+      let updated;
+
+      if (isUtility) {
+        // Use utility payment request service for utility payments
+        updated = await updateUtilityPaymentRequestStatus(paymentId, {
+          status,
+          adminNote,
+        });
+      } else {
+        // Use regular payment request service for rental payments
+        updated = await updatePaymentRequestStatus(paymentId, {
+          status,
+          adminNote,
+        });
+      }
+
       console.log(updated);
       setPaymentRequests((prev) =>
-        prev.map((r) => (r.id === updated.id ? updated : r))
+        prev.map((r) => (r.requestId === updated.requestId ? updated : r))
       );
       toast.success(`Payment request ${status.toLowerCase()} successfully`);
     } catch (err) {
@@ -153,20 +180,33 @@ export default function Payments() {
     }
   };
 
-  // Pagination logic remains the same but applied to payments array
+  // Pagination logic for rental payments
   const totalPages = Math.ceil(payments.length / pageSize);
   const paginatedPayments = payments.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
+  // Pagination logic for utility payments
+  const totalUtilityPages = Math.ceil(utilityPayments.length / pageSize);
+  const paginatedUtilityPayments = utilityPayments.slice(
+    (currentUtilityPage - 1) * pageSize,
+    currentUtilityPage * pageSize
+  );
+
   const goToPrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
   const goToNextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
+
+  const goToPrevUtilityPage = () =>
+    setCurrentUtilityPage((p) => Math.max(p - 1, 1));
+  const goToNextUtilityPage = () =>
+    setCurrentUtilityPage((p) => Math.min(p + 1, totalUtilityPages));
 
   // Reset page when switching to the payments tab
   useEffect(() => {
     if (activeTab === "payments") {
       setCurrentPage(1);
+      setCurrentUtilityPage(1);
     }
   }, [activeTab]);
 
@@ -252,7 +292,6 @@ export default function Payments() {
   };
 
   // --- Render Functions for Tabs ---
-
   const renderInvoicesTable = () => (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -289,8 +328,8 @@ export default function Payments() {
                 className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
               >
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {inv.rental.tenant.contactPerson}
-                  {inv.rental.room.unitNumber}
+                  {inv.rental?.tenant?.contactPerson || "Unknown"} /{" "}
+                  {inv.rental?.room?.unitNumber || "N/A"}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {new Date(inv.invoiceDate).toLocaleDateString()}
@@ -361,116 +400,225 @@ export default function Payments() {
   );
 
   const renderPaymentsTable = () => (
-    <>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payer / Unit
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type{" "}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Method
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {paginatedPayments.length ? (
-              paginatedPayments.map((p) => (
-                <tr
-                  key={p.paymentId}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
-                >
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {p.invoice ? (
-                      <>
-                        {p.invoice.rental?.tenant?.contactPerson}
-                        {p.invoice.rental?.room?.unitNumber}
-                      </>
-                    ) : (
-                      <>
-                        {p.utilityInvoice.rental?.tenant?.contactPerson}
-                        {p.utilityInvoice.rental?.room?.unitNumber}
-                      </>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {p.invoice ? "Rental" : "Utility"} Payment
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(p.paymentDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {p.amount}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {p.method}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                    <StatusBadge status={p.status} />
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedPayment(p)}
-                      className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
-                      title="View Details"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </button>
+    <div className="space-y-8">
+      {/* Rental Payments Table */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white border-b pb-2">
+          Rental Payments
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payer / Unit
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Method
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {paginatedPayments.length ? (
+                paginatedPayments.map((p) => (
+                  <tr
+                    key={p.paymentId}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {p.invoice?.rental?.tenant?.contactPerson || "Unknown"} /{" "}
+                      {p.invoice?.rental?.room?.unitNumber || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(p.paymentDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      {p.amount} ETB
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {p.method}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <StatusBadge status={p.status} />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() =>
+                          setSelectedPayment({ ...p, type: "rental" })
+                        }
+                        className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        title="View Details"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-6 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No rental payments found.
                   </td>
                 </tr>
-              ))
-            ) : (
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Rental Payments Pagination */}
+        {payments.length > 0 && (
+          <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </button>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Utility Payments Table */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white border-b pb-2">
+          Utility Payments
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-6 text-center text-gray-500 dark:text-gray-400"
-                >
-                  No payments found.
-                </td>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payer / Unit
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Utility Type
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Method
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {paginatedUtilityPayments.length ? (
+                paginatedUtilityPayments.map((util) => (
+                  <tr
+                    key={util.id || util.utilityInvoiceId}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {util.rental?.tenant?.contactPerson || "Unknown"} /{" "}
+                      {util.rental?.room?.unitNumber || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {util.utilityCharge?.utilityType?.name || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(
+                        util.payment?.paymentDate || util.createdAt
+                      ).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      {util.payment?.amount} ETB
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {util.payment?.method || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <StatusBadge status={util.payment?.status || "Paid"} />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() =>
+                          setSelectedPayment({ ...util, type: "utility" })
+                        }
+                        className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        title="View Details"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-6 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No utility payments found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Utility Payments Pagination */}
+        {utilityPayments.length > 0 && (
+          <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <button
+              onClick={goToPrevUtilityPage}
+              disabled={currentUtilityPage === 1}
+              className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </button>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Page {currentUtilityPage} of {totalUtilityPages || 1}
+            </span>
+            <button
+              onClick={goToNextUtilityPage}
+              disabled={
+                currentUtilityPage === totalUtilityPages ||
+                totalUtilityPages === 0
+              }
+              className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
-      {/* Pagination Controls */}
-      <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <button
-          onClick={goToPrevPage}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" /> Prev
-        </button>
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Page {currentPage} of {totalPages || 1}
-        </span>
-        <button
-          onClick={goToNextPage}
-          disabled={currentPage === totalPages || totalPages === 0}
-          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-        >
-          Next <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-    </>
+    </div>
   );
 
+  // UPDATED: Payment Requests Table with proper utility handling
   const renderRequestsTable = () => (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
@@ -504,55 +652,66 @@ export default function Payments() {
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
           {paymentRequests.length > 0 ? (
-            paymentRequests.map((req) => (
-              <tr
-                key={req.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-              >
-                <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                  {req.invoice ? "Rental" : "Utility"}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {req.tenant?.contactPerson || "Unknown"}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-700 dark:text-gray-300">
-                  {req.amount} ETB
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {req.method}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {req.reference || "N/A"}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {req.proofFilePath ? (
-                    <a
-                      href={`${BASE_URL}${req.proofFilePath}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
-                    >
-                      <FileText className="w-4 h-4" /> View Proof
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">No proof</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <StatusBadge status={req.status} />
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-right">
-                  {req.status === "Pending" ? (
-                    <UpdatePaymentStatus
-                      paymentId={req.requestId}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ) : (
-                    <span className="text-gray-500">—</span>
-                  )}
-                </td>
-              </tr>
-            ))
+            paymentRequests.map((req) => {
+              const isUtility = !req.invoice; // Utility requests don't have invoice relation
+              return (
+                <tr
+                  key={req.requestId}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                >
+                  <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                    {isUtility ? "Utility" : "Rental"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                    {req.tenant?.contactPerson || "Unknown"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-700 dark:text-gray-300">
+                    {req.amount} ETB
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                    {req.method}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                    {req.reference || "N/A"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {req.proofFilePath ? (
+                      <a
+                        href={`${BASE_URL}${req.proofFilePath}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
+                      >
+                        <FileText className="w-4 h-4" /> View Proof
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">No proof</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <StatusBadge status={req.status} />
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-right">
+                    {req.status === "Pending" ? (
+                      <UpdatePaymentStatus
+                        paymentId={req.requestId}
+                        onStatusChange={(paymentId, status, adminNote) =>
+                          handleStatusChange(
+                            paymentId,
+                            status,
+                            adminNote,
+                            isUtility
+                          )
+                        }
+                        isUtility={isUtility}
+                      />
+                    ) : (
+                      <span className="text-gray-500">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
               <td
@@ -697,15 +856,14 @@ export default function Payments() {
                   <strong>Tenant:</strong>{" "}
                   {selectedPayment.invoice
                     ? selectedPayment.invoice.rental?.tenant?.contactPerson
-                    : selectedPayment.utilityInvoice.rental?.tenant
-                        ?.contactPerson}
+                    : selectedPayment.rental?.tenant?.contactPerson}
                 </div>
 
                 <div>
                   <strong>Unit:</strong>{" "}
                   {selectedPayment.invoice
                     ? selectedPayment.invoice.rental?.room?.unitNumber
-                    : selectedPayment.utilityInvoice.rental?.room?.unitNumber}
+                    : selectedPayment.rental?.room?.unitNumber}
                 </div>
 
                 <div>
