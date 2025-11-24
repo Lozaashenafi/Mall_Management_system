@@ -4,8 +4,6 @@ import { toast } from "react-hot-toast";
 import {
   getExpenses,
   createExpense,
-  deleteExpense,
-  updateExpense,
   getUtilityTypes,
 } from "../services/expenseService";
 import { getBankAccounts } from "../services/bankService";

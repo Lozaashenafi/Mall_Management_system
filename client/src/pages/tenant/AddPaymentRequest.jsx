@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
 import { Save, X, Image as ImageIcon } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
   createPaymentRequest,
   getInvoiceById,
-  getUtilityInvoiceById,
 } from "../../services/paymentRequestService";
 
 import { getBankAccounts } from "../../services/bankService";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AddPaymentRequest() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { id, type } = useParams();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -36,22 +35,14 @@ export default function AddPaymentRequest() {
     const fetchData = async () => {
       try {
         let data;
-
-        if (type === "invoice") {
-          data = await getInvoiceById(id);
-          setFormData((prev) => ({
-            ...prev,
-            amount: data.totalAmount?.toString() || "0",
-          }));
-        } else if (type === "utility") {
-          data = await getUtilityInvoiceById(id);
-          setFormData((prev) => ({
-            ...prev,
-            amount: data.amount?.toString() || "0",
-          }));
-        }
-
+        data = await getInvoiceById(id);
+        setFormData((prev) => ({
+          ...prev,
+          amount: data.totalAmount || "",
+          reference: data.paperInvoiceNumber || "",
+        }));
         setInvoice(data);
+        console.log(data);
       } catch (error) {
         toast.error(error.message || "Failed to load invoice");
       } finally {
@@ -69,9 +60,9 @@ export default function AddPaymentRequest() {
       }
     };
 
-    if (id && type) fetchData();
+    if (id) fetchData();
     loadBankAccounts();
-  }, [id, type]);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -88,8 +79,7 @@ export default function AddPaymentRequest() {
     const payload = new FormData();
     payload.append("userId", user.userId);
 
-    if (type === "invoice") payload.append("invoiceId", id);
-    if (type === "utility") payload.append("utilityInvoiceId", id);
+    payload.append("invoiceId", id);
 
     payload.append("amount", formData.amount);
     payload.append("method", formData.method);
@@ -103,10 +93,6 @@ export default function AddPaymentRequest() {
     if (proofFile) payload.append("proofFile", proofFile);
 
     try {
-      // console.log("FormData content:");
-      // for (let [key, value] of payload.entries()) {
-      //   console.log(key, value);
-      // }
       await createPaymentRequest(payload);
       toast.success("Payment request submitted successfully!");
       navigate("/tenant/payment-requests");

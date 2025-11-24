@@ -323,16 +323,18 @@ export default function UtilitySummary() {
                     </td>
                     <td className="px-6 py-4 text-sm whitespace-nowrap">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium uppercase ${
-                          invoice.status.toLowerCase() === "paid"
-                            ? "bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300"
-                        }`}
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold uppercase
+      ${
+        invoice.status.toLowerCase() === "paid"
+          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+      }`}
                       >
                         {invoice.status.toLowerCase() === "paid" ? (
-                          <span className="flex items-center gap-1">
-                            <FiCheckCircle className="w-3 h-3" /> Paid
-                          </span>
+                          <>
+                            <FiCheckCircle className="w-4 h-4" />
+                            Paid
+                          </>
                         ) : (
                           "Unpaid"
                         )}

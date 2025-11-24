@@ -18,6 +18,7 @@ import utilityRoutes from "../api/utility/utility.route.js";
 import reportRoutes from "../api/report/report.routes.js";
 import bankAccountRoutes from "../api/bankAccount/bank.route.js";
 import bankTransactionRoutes from "../api/bankTransaction/bankTransaction.route.js";
+import schedullingRoutes from "../api/scheduling/scheduling.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -37,5 +38,6 @@ router.use("/utilities", utilityRoutes);
 router.use("/report", reportRoutes);
 router.use("/bank", bankAccountRoutes);
 router.use("/bank-transaction", bankTransactionRoutes);
+router.use("/scheduling", schedullingRoutes);
 
 export default router;

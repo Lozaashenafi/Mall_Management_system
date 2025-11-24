@@ -274,7 +274,6 @@ model UtilityType {
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   utilityCharges UtilityCharge[]
   utilityExpenses UtilityExpense[]
   budget  Budget[]
@@ -294,14 +293,14 @@ model UtilityExpense {
 
 model Maintenance {
   maintenanceId  Int      @id @default(autoincrement())
-  roomId         Int
+  roomId         Int?
   description    String
   cost           Float?
   maintenanceStartDate  DateTime
   maintenanceEndDate    DateTime?
   status        MaintenanceStatus @default(InProgress)
   recordedBy     Int?
-  room           Room     @relation(fields: [roomId], references: [roomId])
+  room           Room?     @relation(fields: [roomId], references: [roomId])
   user           User?    @relation(fields: [recordedBy], references: [userId])
 
 }
@@ -313,7 +312,6 @@ model MaintenanceRequest {
   status         MaintenanceRequestStatus @default(Pending) // enum
   requestDate    DateTime  @default(now())
   rental         Rental    @relation(fields: [rentId], references: [rentId])
- 
 }
 
 model Notification {
@@ -457,7 +455,12 @@ model MaintenanceSchedule {
   scheduleId     Int       @id @default(autoincrement())
   title          String
   description    String?
-  scheduledDate  DateTime
+  startDate  DateTime
+  duedate    DateTime?
+  recurrenceRule String?   // Yearly , Monthly, Weekly , Daily , Quarterly
+  category      String? // e.g., Electrical, Plumbing, HVAC
+  frequency  String?
+  priority    String? // Low, Medium, High
   status         String    @default("Upcoming") // Upcoming, Done, Cancelled
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

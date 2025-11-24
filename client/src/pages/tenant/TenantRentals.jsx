@@ -173,7 +173,6 @@ const TenantRentals = () => {
         />
       </div>
 
-      {/* --- */}
       {/* Active Rentals List */}
       <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Current Active Rentals
@@ -250,9 +249,6 @@ const TenantRentals = () => {
           </p>
         </div>
       )}
-
-      {/* ---------------------------------------------------------------------------------------------------- */}
-
       {/* All Rental History List */}
       <div className="mt-12">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">

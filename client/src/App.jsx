@@ -48,6 +48,7 @@ import AddPaymentRequest from "./pages/tenant/AddPaymentRequest";
 import AddFloorPrice from "./pages/AddFloorPrice";
 import BankManage from "./pages/BankManage";
 import AddUtilityPaymentRequest from "./pages/tenant/AddUtilityPaymentRequest";
+import MaintenanceSchedules from "./pages/MaintenanceSchedules";
 
 function App() {
   return (
@@ -102,6 +103,7 @@ function App() {
             <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/terminate" element={<AdminTerminateRequests />} />
+            <Route path="/schedules" element={<MaintenanceSchedules />} />
             <Route path="/test" element={<SocketTest />} />
             <Route path="*" element={<NotFound />} />
           </Route>

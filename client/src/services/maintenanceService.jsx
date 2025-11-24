@@ -107,3 +107,90 @@ export const deleteRequest = async (requestId) => {
     throw error.response?.data || { message: "Failed to delete request" };
   }
 };
+
+// maintenanse scheduling service
+export const createMaintenanceSchedule = async (scheduleData) => {
+  try {
+    const res = await api.post("/scheduling", scheduleData);
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to create maintenance schedule",
+      }
+    );
+  }
+};
+
+export const updateMaintenanceSchedule = async (scheduleId, scheduleData) => {
+  try {
+    const res = await api.put(`/scheduling/${scheduleId}`, scheduleData);
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to update maintenance schedule",
+      }
+    );
+  }
+};
+
+export const updateMaintenanceScheduleStatus = async (
+  scheduleId,
+  status,
+  cost
+) => {
+  try {
+    const res = await api.patch(`/scheduling/status/${scheduleId}`, {
+      status,
+      cost,
+    });
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to update maintenance schedule status",
+      }
+    );
+  }
+};
+export const deleteMaintenanceSchedule = async (scheduleId) => {
+  try {
+    const res = await api.delete(`/scheduling/${scheduleId}`);
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to delete maintenance schedule",
+      }
+    );
+  }
+};
+
+export const getMaintenanceSchedules = async () => {
+  try {
+    const res = await api.get("/scheduling");
+    console.log("Fetched maintenance schedules:", res.data);
+    return res.data.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to fetch maintenance schedules",
+      }
+    );
+  }
+};
+
+export const getThisWeekMaintenanceSchedules = async () => {
+  try {
+    const res = await api.get("/scheduling/week");
+    console.log("Fetched this week's maintenance schedules:", res.data);
+    return res.data.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to fetch this week's maintenance schedules",
+      }
+    );
+  }
+};

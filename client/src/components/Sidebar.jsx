@@ -67,6 +67,7 @@ export function Sidebar({ collapsed, onToggle }) {
         { title: "Payments", icon: DollarSign, url: "/payments" },
         { title: "Banks", icon: DollarSign, url: "/manage-bank" },
         { title: "Maintenance", icon: Wrench, url: "/maintenance" },
+        { title: "Schedules", icon: Wrench, url: "/schedules" },
         { title: "Expenses", icon: FileText, url: "/expenses" },
         { title: "Utilities", icon: Lightbulb, url: "/utilities" },
         { title: "Tenants", icon: Users, url: "/manage-tenants" },
