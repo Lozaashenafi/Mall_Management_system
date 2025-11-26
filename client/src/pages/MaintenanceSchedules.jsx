@@ -33,7 +33,10 @@ const getStatusStyles = (status) => {
       return "bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300";
     case "cancelled":
       return "bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300";
-    case "pending": // Your backend implies a status, so let's use 'Pending' as a default if not 'Done' or 'Cancelled'
+    case "pending":
+    case "postponed":
+      return "bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-300";
+
     default:
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-300";
   }
@@ -47,6 +50,9 @@ const getStatusIcon = (status) => {
       return <FiClock className="w-4 h-4" />;
     case "cancelled":
       return <FiXCircle className="w-4 h-4" />;
+    case "postponed":
+      return <FiClock className="w-4 h-4" />;
+
     default:
       return <FiLoader className="w-4 h-4" />;
   }
@@ -71,10 +77,54 @@ export default function MaintenanceSchedules() {
     priority: "",
     status: "Upcoming", // Default status for new schedules
   });
+  const [statusModal, setStatusModal] = useState({
+    open: false,
+    id: null,
+    action: null, // done | cancel | postpone
+    note: "",
+    cost: "",
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const openStatusModal = (id, action) => {
+    setStatusModal({ open: true, id, action, note: "", cost: "" });
+  };
 
   // --- Data Fetching ---
+  const canShowActions = (status) => {
+    const lower = status?.toLowerCase();
+    if (["done", "cancelled", "postponed"].includes(lower)) return false;
+    return true;
+  };
+  const isInProgress = (status) => status?.toLowerCase() === "pending";
+  const submitStatusChange = async () => {
+    try {
+      const payload = {
+        status: statusModal.action,
+        note: statusModal.note,
+        cost: statusModal.action === "done" ? Number(statusModal.cost) : 0,
+      };
+
+      if (statusModal.action === "done") {
+        payload.cost = Number(statusModal.cost);
+      }
+
+      await updateMaintenanceScheduleStatus(statusModal.id, payload);
+      toast.success("Status updated");
+
+      setStatusModal({
+        open: false,
+        id: null,
+        action: null,
+        note: "",
+        cost: "",
+      });
+      fetchSchedules();
+    } catch (err) {
+      toast.error("Failed to update status");
+    }
+  };
 
   const fetchSchedules = async () => {
     setLoading(true);
@@ -111,7 +161,6 @@ export default function MaintenanceSchedules() {
 
   const openModalForEdit = (schedule) => {
     setEditingScheduleId(schedule.scheduleId);
-    // Format dates back to YYYY-MM-DD for the input fields
     const formattedStartDate = schedule.startDate
       ? new Date(schedule.startDate).toISOString().split("T")[0]
       : "";
@@ -125,9 +174,9 @@ export default function MaintenanceSchedules() {
       startDate: formattedStartDate,
       duedate: formattedDuedate,
       recurrenceRule: schedule.recurrenceRule || "",
-      category: schedule.category || "", // Assuming category is part of the returned data
-      frequency: schedule.frequency || "", // Assuming frequency is part of the returned data
-      priority: schedule.priority || "", // Assuming priority is part of the returned data
+      category: schedule.category || "",
+      frequency: schedule.frequency || "",
+      priority: schedule.priority || "",
       status: schedule.status || "Upcoming",
     });
     setModalOpen(true);
@@ -159,8 +208,6 @@ export default function MaintenanceSchedules() {
     try {
       const payload = {
         ...scheduleForm,
-        // Backend expects ISO strings, but the form uses YYYY-MM-DD, which Date() handles.
-        // The backend expects all fields (title, description, etc.) so we send the whole form.
       };
 
       if (editingScheduleId) {
@@ -185,41 +232,41 @@ export default function MaintenanceSchedules() {
       setSubmitting(false);
     }
   };
-
   const handleUpdateStatus = async (scheduleId, newStatus) => {
     const originalSchedules = [...schedules];
 
-    // Get cost if status is 'Done'
-    let cost = 0;
-    if (newStatus === "Done") {
-      const costInput = prompt(
-        "Please enter the maintenance cost (optional, default 0):"
+    // Build payload depending on status
+    const statusLower = String(newStatus).toLowerCase();
+    const payload = { status: newStatus };
+
+    // If it's Pending — we don't need note or cost (send only status)
+    if (statusLower === "pending") {
+      // optimistic update
+      setSchedules(
+        schedules.map((s) =>
+          s.scheduleId === scheduleId ? { ...s, status: newStatus } : s
+        )
       );
-      cost = costInput ? Number(costInput) : 0;
-      if (isNaN(cost)) {
-        return toast.error("Invalid cost value.");
+      const toastId = toast.loading(`Updating status to ${newStatus}...`);
+
+      try {
+        await updateMaintenanceScheduleStatus(scheduleId, payload);
+        toast.success(`Schedule updated to ${newStatus}.`, { id: toastId });
+        fetchSchedules();
+      } catch (err) {
+        toast.error(
+          `Failed to update status: ${err?.message || "Server Error"}`,
+          {
+            id: toastId,
+          }
+        );
+        setSchedules(originalSchedules); // rollback
       }
+
+      return;
     }
 
-    // Optimistic update
-    setSchedules(
-      schedules.map((s) =>
-        s.scheduleId === scheduleId ? { ...s, status: newStatus } : s
-      )
-    );
-    const toastId = toast.loading(`Updating status to ${newStatus}...`);
-
-    try {
-      // Corrected service call
-      await updateMaintenanceScheduleStatus(scheduleId, newStatus, cost);
-      toast.success(`Schedule updated to ${newStatus}.`, { id: toastId });
-      fetchSchedules(); // Re-fetch to get the latest data including new maintenance record if status is Done
-    } catch (err) {
-      toast.error(`Failed to update status: ${err.message || "Server Error"}`, {
-        id: toastId,
-      });
-      setSchedules(originalSchedules); // Rollback on failure
-    }
+    openStatusModal(scheduleId, newStatus.toLowerCase()); // action string in your modal
   };
 
   const handleDeleteSchedule = async (scheduleId) => {
@@ -250,13 +297,7 @@ export default function MaintenanceSchedules() {
   useEffect(() => {
     fetchSchedules();
   }, []);
-
-  // --- Render Prep ---
-
-  // Sort schedules: Upcoming first, then by date ascending
   const sortedSchedules = schedules.sort((a, b) => {
-    // Note: The backend returns 'scheduleId', so we should use that key.
-    // The keys from the database are 'startDate', 'duedate'.
     const statusOrder = { Upcoming: 1, Done: 3, Cancelled: 4, Pending: 2 };
     const aStatus = statusOrder[a.status] || 99;
     const bStatus = statusOrder[b.status] || 99;
@@ -331,7 +372,7 @@ export default function MaintenanceSchedules() {
                         {schedule.description || "No description provided."}
                       </p>
                       <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
-                        Category: {schedule.category?.name || "N/A"} | Priority:{" "}
+                        Category: {schedule.category || "N/A"} | Priority:{" "}
                         {schedule.priority || "Low"}
                       </p>
                     </td>
@@ -352,40 +393,87 @@ export default function MaintenanceSchedules() {
                         {getStatusIcon(schedule.status)} {schedule.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm flex justify-end items-center gap-2">
-                      <select
-                        value={schedule.status || "Upcoming"}
-                        onChange={(e) =>
-                          handleUpdateStatus(
-                            schedule.scheduleId,
-                            e.target.value
-                          )
-                        }
-                        className="p-1 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white text-xs focus:ring-indigo-500 focus:border-indigo-500"
-                        title="Change Status"
-                      >
-                        <option value="Upcoming">Upcoming</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Done">Done</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
 
-                      <button
-                        onClick={() => openModalForEdit(schedule)}
-                        className="p-1.5 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200 transition duration-150"
-                        title="Edit Task"
-                      >
-                        <FiEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteSchedule(schedule.scheduleId)
-                        }
-                        className="p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition duration-150"
-                        title="Delete Task"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
+                    <td className="px-6 py-4 text-sm flex justify-end items-center gap-2">
+                      {canShowActions(schedule.status) && (
+                        <>
+                          <select
+                            value={schedule.status || "Upcoming"}
+                            onChange={(e) =>
+                              handleUpdateStatus(
+                                schedule.scheduleId,
+                                e.target.value
+                              )
+                            }
+                            className="p-1 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white text-xs focus:ring-indigo-500 focus:border-indigo-500"
+                            title="Change Status"
+                          >
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Pending">Pending</option>
+                          </select>
+                          <div className="flex gap-2">
+                            {!isInProgress(schedule.status) && (
+                              <>
+                                {/* Edit Button */}
+                                <button
+                                  onClick={() => openModalForEdit(schedule)}
+                                  className="text-blue-600"
+                                >
+                                  <FiEdit />
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  onClick={() => handleDeleteSchedule(schedule)}
+                                  className="text-red-600"
+                                >
+                                  <FiTrash2 />
+                                </button>
+                              </>
+                            )}
+
+                            {isInProgress(schedule.status) && (
+                              <>
+                                {/* Done */}
+                                <button
+                                  onClick={() =>
+                                    openStatusModal(schedule.scheduleId, "done")
+                                  }
+                                  className="text-green-600"
+                                >
+                                  <FiCheckCircle />
+                                </button>
+
+                                {/* Cancel */}
+                                <button
+                                  onClick={() =>
+                                    openStatusModal(
+                                      schedule.scheduleId,
+                                      "cancelled"
+                                    )
+                                  }
+                                  className="text-red-600"
+                                >
+                                  <FiXCircle />
+                                </button>
+
+                                {/* Postpone */}
+                                <button
+                                  onClick={() =>
+                                    openStatusModal(
+                                      schedule.scheduleId,
+                                      "postponed"
+                                    )
+                                  }
+                                  className="text-purple-600"
+                                >
+                                  <FiClock />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -398,7 +486,55 @@ export default function MaintenanceSchedules() {
           </p>
         )}
       </div>
+      {statusModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4 capitalize">
+              {statusModal.action} Maintenance
+            </h2>
 
+            <textarea
+              placeholder="Enter note..."
+              className="w-full p-2 border rounded mb-3"
+              value={statusModal.note}
+              onChange={(e) =>
+                setStatusModal({ ...statusModal, note: e.target.value })
+              }
+            />
+
+            {statusModal.action === "done" && (
+              <input
+                type="number"
+                placeholder="Enter cost"
+                className="w-full p-2 border rounded mb-3"
+                value={statusModal.cost}
+                onChange={(e) =>
+                  setStatusModal({ ...statusModal, cost: e.target.value })
+                }
+              />
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() =>
+                  setStatusModal({ open: false, id: null, action: null })
+                }
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={submitStatusChange}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 📅 This Week's Scheduled Tasks */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <FiCalendar className="text-indigo-500" /> This Week's Scheduled Tasks
@@ -437,7 +573,6 @@ export default function MaintenanceSchedules() {
           </p>
         )}
       </div>
-
       {/* --- Modal for Scheduling New/Edit Task --- */}
       {modalOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 z-50 flex justify-center items-center p-4 transition-opacity duration-300">
@@ -486,6 +621,7 @@ export default function MaintenanceSchedules() {
                   value={scheduleForm.startDate}
                   onChange={handleInputChange}
                   required
+                  disabled={isInProgress(scheduleForm.status)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
@@ -504,6 +640,7 @@ export default function MaintenanceSchedules() {
                   name="duedate"
                   value={scheduleForm.duedate}
                   onChange={handleInputChange}
+                  disabled={isInProgress(scheduleForm.status)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>

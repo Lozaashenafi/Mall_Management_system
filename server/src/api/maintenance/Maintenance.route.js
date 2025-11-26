@@ -9,6 +9,7 @@ import {
   getTenantRequests,
   updateRequestStatus,
   getTenantsRequests,
+  getGeneralMaintenances,
 } from "./Maintenance.controller.js";
 import { userAuth, isAdmin, isTenant } from "../../middleware/auth.js";
 
@@ -17,6 +18,7 @@ const router = express.Router();
 // Maintenance (Admin)
 router.post("/", userAuth, isAdmin, createMaintenance);
 router.get("/", userAuth, isAdmin, getAllMaintenances);
+router.get("/general/", userAuth, isAdmin, getGeneralMaintenances);
 router.put("/:id", userAuth, isAdmin, updateMaintenance);
 router.delete("/:id", userAuth, isAdmin, deleteMaintenance);
 router.get("/request", userAuth, isAdmin, getTenantsRequests);

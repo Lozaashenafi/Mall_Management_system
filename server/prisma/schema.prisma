@@ -302,7 +302,6 @@ model Maintenance {
   recordedBy     Int?
   room           Room?     @relation(fields: [roomId], references: [roomId])
   user           User?    @relation(fields: [recordedBy], references: [userId])
-
 }
 
 model MaintenanceRequest {
@@ -461,6 +460,7 @@ model MaintenanceSchedule {
   category      String? // e.g., Electrical, Plumbing, HVAC
   frequency  String?
   priority    String? // Low, Medium, High
+  adminNote   String?
   status         String    @default("Upcoming") // Upcoming, Done, Cancelled
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

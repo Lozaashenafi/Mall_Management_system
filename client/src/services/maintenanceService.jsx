@@ -65,6 +65,14 @@ export const getMaintenances = async () => {
     throw error.response?.data || { message: "Failed to fetch maintenances" };
   }
 };
+export const getGeneralMaintenances = async () => {
+  try {
+    const res = await api.get("/maintenance/general");
+    return res.data.maintenances;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to fetch maintenances" };
+  }
+};
 export const deleteMaintenance = async (maintenanceId) => {
   try {
     const res = await api.delete(`/maintenance/${maintenanceId}`);
@@ -137,13 +145,19 @@ export const updateMaintenanceSchedule = async (scheduleId, scheduleData) => {
 
 export const updateMaintenanceScheduleStatus = async (
   scheduleId,
-  status,
-  cost
+  { status, cost, note: adminNote }
 ) => {
+  console.log("Updating schedule status with:", {
+    scheduleId,
+    status,
+    cost,
+    adminNote,
+  });
   try {
     const res = await api.patch(`/scheduling/status/${scheduleId}`, {
       status,
       cost,
+      adminNote,
     });
     return res.data;
   } catch (error) {

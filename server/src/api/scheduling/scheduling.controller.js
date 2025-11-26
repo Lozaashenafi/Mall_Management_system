@@ -106,7 +106,7 @@ export const updateMaintenanceSchedule = async (req, res) => {
         title,
         description,
         startDate: new Date(startDate),
-        duedate: duedate ? new Date(duedate) : null,
+        duedate: new Date(duedate),
         recurrenceRule,
         category,
         frequency,
@@ -157,29 +157,45 @@ export const getThisWeekMaintenanceSchedules = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 export const updateStatusOfMaintenanceSchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
-    const { status, cost } = req.body;
+    if (!scheduleId) {
+      return res
+        .status(400)
+        .json({ message: "scheduleId is required in params" });
+    }
+
+    const scheduleIdNum = parseInt(scheduleId, 10);
+    if (isNaN(scheduleIdNum)) {
+      return res
+        .status(400)
+        .json({ message: "scheduleId must be a valid number" });
+    }
+
+    const { status, cost, adminNote } = req.body;
+
+    const updateData = { status };
+    if (adminNote !== undefined) updateData.adminNote = adminNote;
+
     const updatedSchedule = await prisma.maintenanceSchedule.update({
-      where: { scheduleId: Number(scheduleId) },
-      data: { status },
+      where: { scheduleId: scheduleIdNum },
+      data: updateData,
     });
-    // add maintenance if the status is completed
-    if (status === "Done") {
+
+    if (status === "Done" || status === "done") {
       await prisma.maintenance.create({
         data: {
           description: `Maintenance for schedule: ${updatedSchedule.title}`,
           maintenanceStartDate: new Date(updatedSchedule.startDate),
           maintenanceEndDate: new Date(),
+          status: "Completed",
           cost: cost || 0,
           roomId: null,
         },
       });
     }
 
-    // ✅ Audit log
     await createAuditLog({
       userId: req.user.userId,
       action: "updated_status",
@@ -187,6 +203,7 @@ export const updateStatusOfMaintenanceSchedule = async (req, res) => {
       recordId: updatedSchedule.scheduleId,
       newValue: updatedSchedule,
     });
+
     res.status(200).json({
       success: true,
       message: "Maintenance schedule status updated successfully",

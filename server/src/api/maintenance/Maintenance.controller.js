@@ -77,10 +77,10 @@ export const createMaintenance = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
-
 export const getAllMaintenances = async (req, res) => {
   try {
     const maintenances = await prisma.maintenance.findMany({
+      where: { roomId: { not: null } },
       include: {
         room: true,
         user: { select: { fullName: true } },
@@ -88,6 +88,22 @@ export const getAllMaintenances = async (req, res) => {
     });
     res.json({ success: true, maintenances });
   } catch (err) {
+    console.error("getAllMaintenances error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getGeneralMaintenances = async (req, res) => {
+  try {
+    const maintenances = await prisma.maintenance.findMany({
+      where: { roomId: null },
+      include: {
+        user: { select: { fullName: true } },
+      },
+    });
+    res.json({ success: true, maintenances });
+  } catch (err) {
+    console.error("getGeneralMaintenances error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

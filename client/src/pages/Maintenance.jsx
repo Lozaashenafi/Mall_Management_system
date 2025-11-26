@@ -8,6 +8,7 @@ import {
   getMaintenances,
   createMaintenance,
   deleteMaintenance,
+  getGeneralMaintenances,
 } from "../services/maintenanceService";
 import { getRooms } from "../services/roomService";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +19,7 @@ export default function AdminMaintenance() {
   const [rooms, setRooms] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [generalMaintenances, setGeneralMaintenances] = useState([]);
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -34,6 +36,7 @@ export default function AdminMaintenance() {
     fetchRequests();
     fetchMaintenances();
     fetchRooms();
+    fetchGeneralMaintenances();
   }, []);
 
   const fetchRequests = async () => {
@@ -51,6 +54,15 @@ export default function AdminMaintenance() {
       setMaintenances(data);
     } catch {
       toast.error("Failed to load maintenances");
+    }
+  };
+  const fetchGeneralMaintenances = async () => {
+    try {
+      const data = await getGeneralMaintenances();
+      console.log("General Maintenances:", data);
+      setGeneralMaintenances(data);
+    } catch {
+      toast.error("Failed to load general maintenances");
     }
   };
 
@@ -386,6 +398,55 @@ export default function AdminMaintenance() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* General Maintenances*/}
+      <div>
+        <h1 className="text-2xl font-bold mb-4">General Maintenance Records</h1>
+        <table className="w-full border text-sm">
+          <thead className="bg-gray-100 dark:bg-gray-800">
+            <tr>
+              <th className="p-2">Description</th>
+              <th className="p-2">Cost</th>
+              <th className="p-2">Start Date</th>
+              <th className="p-2">End Date</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Recorded By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {generalMaintenances.map((m) => (
+              <tr key={m.maintenanceId} className="border-b">
+                <td className="p-2">{m.description}</td>
+                <td className="p-2">${m.cost?.toFixed(2) || 0}</td>
+                <td className="p-2">
+                  {new Date(m.maintenanceStartDate).toLocaleDateString()}
+                </td>
+                <td className="p-2">
+                  {m.maintenanceEndDate
+                    ? new Date(m.maintenanceEndDate).toLocaleDateString()
+                    : "Ongoing"}
+                </td>
+                <td className="p-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium
+      ${
+        m.status === "Completed"
+          ? "bg-green-100 text-green-800"
+          : m.status === "InProgress"
+          ? "bg-yellow-100 text-yellow-800"
+          : m.status === "Pending"
+          ? "bg-indigo-100 text-indigo-800"
+          : "bg-gray-100 text-gray-800"
+      }`}
+                  >
+                    {m.status}
+                  </span>
+                </td>
+                <td className="p-2">{m.user?.fullName || "System"}</td>
               </tr>
             ))}
           </tbody>
