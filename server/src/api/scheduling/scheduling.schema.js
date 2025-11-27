@@ -14,7 +14,6 @@ const schedulingSchema = z.object({
       message: "Invalid due date",
     }),
 
-  recurrenceRule: z.string().optional(), // can be empty
   category: z.string().optional(),
 
   frequency: z.string().optional(),

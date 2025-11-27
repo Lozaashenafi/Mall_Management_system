@@ -11,20 +11,20 @@ import {
   FiClock,
   FiEdit,
   FiTrash2,
-  FiHome,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
-// --- Real API Imports from your service file ---
 import {
   getMaintenanceSchedules,
   createMaintenanceSchedule,
   updateMaintenanceSchedule,
-  updateMaintenanceScheduleStatus,
   deleteMaintenanceSchedule,
   getThisWeekMaintenanceSchedules,
-} from "../services/maintenanceService"; // Assuming this path is correct
+  updateMaintenanceScheduleOccurrenceStatus,
+  deleteMaintenanceScheduleOccurrence,
+} from "../services/maintenanceService";
 
 // --- Helper Functions ---
-
 const getStatusStyles = (status) => {
   switch (status?.toLowerCase()) {
     case "done":
@@ -36,7 +36,6 @@ const getStatusStyles = (status) => {
     case "pending":
     case "postponed":
       return "bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-300";
-
     default:
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-300";
   }
@@ -52,79 +51,372 @@ const getStatusIcon = (status) => {
       return <FiXCircle className="w-4 h-4" />;
     case "postponed":
       return <FiClock className="w-4 h-4" />;
-
     default:
       return <FiLoader className="w-4 h-4" />;
   }
 };
 
-// --- Main Component ---
+// --- Occurrences Dropdown Component ---
+const OccurrencesDropdown = ({
+  occurrences,
+  scheduleId,
+  onOccurrenceUpdate,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [statusModal, setStatusModal] = useState({
+    open: false,
+    occurrenceId: null,
+    action: null,
+    note: "",
+    cost: "",
+  });
 
+  const canShowOccurrenceActions = (status) => {
+    const lower = status?.toLowerCase();
+    return lower === "upcoming" || lower === "pending";
+  };
+
+  const isOccurrenceInProgress = (status) =>
+    status?.toLowerCase() === "pending";
+
+  const openOccurrenceStatusModal = (occurrenceId, action) => {
+    setStatusModal({ open: true, occurrenceId, action, note: "", cost: "" });
+  };
+
+  const submitOccurrenceStatusChange = async () => {
+    try {
+      const payload = {
+        status: statusModal.action,
+        adminNote: statusModal.note,
+      };
+
+      if (statusModal.action === "done") {
+        payload.cost = Number(statusModal.cost) || 0;
+      }
+
+      await updateMaintenanceScheduleOccurrenceStatus(
+        statusModal.occurrenceId,
+        payload
+      );
+      toast.success("Occurrence status updated");
+
+      setStatusModal({
+        open: false,
+        occurrenceId: null,
+        action: null,
+        note: "",
+        cost: "",
+      });
+
+      if (onOccurrenceUpdate) {
+        onOccurrenceUpdate();
+      }
+    } catch (err) {
+      toast.error("Failed to update occurrence status");
+    }
+  };
+
+  const handleDeleteOccurrence = async (occurrenceId, status) => {
+    if (status?.toLowerCase() !== "upcoming") {
+      toast.error("Only upcoming occurrences can be deleted");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this occurrence?")) {
+      return;
+    }
+
+    try {
+      await deleteMaintenanceScheduleOccurrence(occurrenceId);
+      toast.success("Occurrence deleted successfully");
+
+      if (onOccurrenceUpdate) {
+        onOccurrenceUpdate();
+      }
+    } catch (err) {
+      toast.error(
+        `Failed to delete occurrence: ${err.message || "Server Error"}`
+      );
+    }
+  };
+
+  const handleOccurrenceStatusChange = async (occurrenceId, newStatus) => {
+    if (newStatus.toLowerCase() === "pending") {
+      try {
+        await updateMaintenanceScheduleOccurrenceStatus(occurrenceId, {
+          status: newStatus,
+        });
+        toast.success(`Occurrence updated to ${newStatus}`);
+
+        if (onOccurrenceUpdate) {
+          onOccurrenceUpdate();
+        }
+      } catch (err) {
+        toast.error(
+          `Failed to update status: ${err.message || "Server Error"}`
+        );
+      }
+    } else {
+      openOccurrenceStatusModal(occurrenceId, newStatus.toLowerCase());
+    }
+  };
+
+  if (!occurrences || occurrences.length === 0) {
+    return (
+      <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+        No occurrences
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+      >
+        {occurrences.length} occurrence{occurrences.length !== 1 ? "s" : ""}
+        {isOpen ? (
+          <FiChevronUp className="w-3 h-3" />
+        ) : (
+          <FiChevronDown className="w-3 h-3" />
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="mt-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+          <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Occurrences:
+          </h4>
+          <div className="space-y-3">
+            {occurrences.map((occurrence) => (
+              <div
+                key={occurrence.occurrenceId}
+                className="text-xs p-3 bg-white dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500"
+              >
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-2 gap-1">
+                    <div>
+                      <span className="font-medium text-gray-600 dark:text-gray-300">
+                        Date:
+                      </span>
+                      <span className="ml-1 text-gray-700 dark:text-gray-200">
+                        {new Date(
+                          occurrence.occurrenceDate
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600 dark:text-gray-300">
+                        Status:
+                      </span>
+                      <span
+                        className={`ml-1 px-2 py-0.5 rounded-full text-xs ${getStatusStyles(
+                          occurrence.status
+                        )}`}
+                      >
+                        {occurrence.status}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium text-gray-600 dark:text-gray-300">
+                        Start:
+                      </span>
+                      <span className="ml-1 text-gray-700 dark:text-gray-200">
+                        {occurrence.startDateTime
+                          ? new Date(
+                              occurrence.startDateTime
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium text-gray-600 dark:text-gray-300">
+                        Due:
+                      </span>
+                      <span className="ml-1 text-gray-700 dark:text-gray-200">
+                        {occurrence.dueDate
+                          ? new Date(occurrence.dueDate).toLocaleDateString()
+                          : "N/A"}
+                      </span>
+                    </div>
+                    {occurrence.notified && (
+                      <div className="col-span-2">
+                        <span className="font-medium text-gray-600 dark:text-gray-300">
+                          Notified:
+                        </span>
+                        <span className="ml-1 text-green-600 dark:text-green-400">
+                          Yes{" "}
+                          {occurrence.notifiedAt &&
+                            `(${new Date(
+                              occurrence.notifiedAt
+                            ).toLocaleDateString()})`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {canShowOccurrenceActions(occurrence.status) && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-500">
+                      <select
+                        value={occurrence.status || "Upcoming"}
+                        onChange={(e) =>
+                          handleOccurrenceStatusChange(
+                            occurrence.occurrenceId,
+                            e.target.value
+                          )
+                        }
+                        className="p-1 border border-gray-300 rounded text-xs focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        title="Change Occurrence Status"
+                      >
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+
+                      <div className="flex gap-1">
+                        {!isOccurrenceInProgress(occurrence.status) && (
+                          <button
+                            onClick={() =>
+                              handleDeleteOccurrence(
+                                occurrence.occurrenceId,
+                                occurrence.status
+                              )
+                            }
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            title="Delete Occurrence"
+                          >
+                            <FiTrash2 className="w-3 h-3" />
+                          </button>
+                        )}
+
+                        {isOccurrenceInProgress(occurrence.status) && (
+                          <>
+                            <button
+                              onClick={() =>
+                                openOccurrenceStatusModal(
+                                  occurrence.occurrenceId,
+                                  "done"
+                                )
+                              }
+                              className="text-green-600 hover:text-green-800 transition-colors"
+                              title="Mark as Done"
+                            >
+                              <FiCheckCircle className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                openOccurrenceStatusModal(
+                                  occurrence.occurrenceId,
+                                  "cancelled"
+                                )
+                              }
+                              className="text-red-600 hover:text-red-800 transition-colors"
+                              title="Cancel Occurrence"
+                            >
+                              <FiXCircle className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                openOccurrenceStatusModal(
+                                  occurrence.occurrenceId,
+                                  "postponed"
+                                )
+                              }
+                              className="text-purple-600 hover:text-purple-800 transition-colors"
+                              title="Postpone Occurrence"
+                            >
+                              <FiClock className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Occurrence Status Modal */}
+      {statusModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4 capitalize">
+              {statusModal.action} Occurrence
+            </h2>
+
+            <textarea
+              placeholder="Enter note..."
+              className="w-full p-2 border rounded mb-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+              value={statusModal.note}
+              onChange={(e) =>
+                setStatusModal({ ...statusModal, note: e.target.value })
+              }
+            />
+
+            {statusModal.action === "done" && (
+              <input
+                type="number"
+                placeholder="Enter cost (optional)"
+                className="w-full p-2 border rounded mb-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
+                value={statusModal.cost}
+                onChange={(e) =>
+                  setStatusModal({ ...statusModal, cost: e.target.value })
+                }
+              />
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() =>
+                  setStatusModal({
+                    open: false,
+                    occurrenceId: null,
+                    action: null,
+                    note: "",
+                    cost: "",
+                  })
+                }
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-700 dark:text-white rounded hover:bg-gray-400 text-sm"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={submitOccurrenceStatusChange}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Main Component ---
 export default function MaintenanceSchedules() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [weeklySchedules, setWeeklySchedules] = useState([]);
-  const [editingScheduleId, setEditingScheduleId] = useState(null); // New state for editing
+  const [editingScheduleId, setEditingScheduleId] = useState(null);
   const [scheduleForm, setScheduleForm] = useState({
     title: "",
     description: "",
-    startDate: "", // Corresponds to backend's startDate
+    startDate: "",
     duedate: "",
-    recurrenceRule: "",
     category: "",
     frequency: "",
     priority: "",
-    status: "Upcoming", // Default status for new schedules
-  });
-  const [statusModal, setStatusModal] = useState({
-    open: false,
-    id: null,
-    action: null, // done | cancel | postpone
-    note: "",
-    cost: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const openStatusModal = (id, action) => {
-    setStatusModal({ open: true, id, action, note: "", cost: "" });
-  };
-
-  // --- Data Fetching ---
-  const canShowActions = (status) => {
-    const lower = status?.toLowerCase();
-    if (["done", "cancelled", "postponed"].includes(lower)) return false;
-    return true;
-  };
-  const isInProgress = (status) => status?.toLowerCase() === "pending";
-  const submitStatusChange = async () => {
-    try {
-      const payload = {
-        status: statusModal.action,
-        note: statusModal.note,
-        cost: statusModal.action === "done" ? Number(statusModal.cost) : 0,
-      };
-
-      if (statusModal.action === "done") {
-        payload.cost = Number(statusModal.cost);
-      }
-
-      await updateMaintenanceScheduleStatus(statusModal.id, payload);
-      toast.success("Status updated");
-
-      setStatusModal({
-        open: false,
-        id: null,
-        action: null,
-        note: "",
-        cost: "",
-      });
-      fetchSchedules();
-    } catch (err) {
-      toast.error("Failed to update status");
-    }
-  };
 
   const fetchSchedules = async () => {
     setLoading(true);
@@ -132,7 +424,6 @@ export default function MaintenanceSchedules() {
       const response = await getMaintenanceSchedules();
       const weeklyResponse = await getThisWeekMaintenanceSchedules();
       setWeeklySchedules(weeklyResponse || []);
-      console.log(response);
       setSchedules(response || []);
     } catch (err) {
       toast.error(err.message || "Failed to fetch maintenance schedules.");
@@ -141,8 +432,6 @@ export default function MaintenanceSchedules() {
     }
   };
 
-  // --- Modal Management and Form Reset ---
-
   const openModalForCreate = () => {
     setEditingScheduleId(null);
     setScheduleForm({
@@ -150,11 +439,9 @@ export default function MaintenanceSchedules() {
       description: "",
       startDate: "",
       duedate: "",
-      recurrenceRule: "",
       category: "",
       frequency: "",
       priority: "",
-      status: "Upcoming",
     });
     setModalOpen(true);
   };
@@ -173,11 +460,9 @@ export default function MaintenanceSchedules() {
       description: schedule.description || "",
       startDate: formattedStartDate,
       duedate: formattedDuedate,
-      recurrenceRule: schedule.recurrenceRule || "",
       category: schedule.category || "",
       frequency: schedule.frequency || "",
       priority: schedule.priority || "",
-      status: schedule.status || "Upcoming",
     });
     setModalOpen(true);
   };
@@ -186,8 +471,6 @@ export default function MaintenanceSchedules() {
     setModalOpen(false);
     setEditingScheduleId(null);
   };
-
-  // --- Handlers ---
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -208,65 +491,27 @@ export default function MaintenanceSchedules() {
     try {
       const payload = {
         ...scheduleForm,
+        // Ensure duedate is null if empty string
+        duedate: scheduleForm.duedate || null,
       };
 
       if (editingScheduleId) {
-        // UPDATE Logic
         await updateMaintenanceSchedule(editingScheduleId, payload);
         toast.success("Schedule updated successfully!", { id: toastId });
       } else {
-        // CREATE Logic
         await createMaintenanceSchedule(payload);
         toast.success("Schedule created successfully!", { id: toastId });
       }
 
       closeModal();
-      fetchSchedules(); // Re-fetch the list
+      fetchSchedules();
     } catch (err) {
       const errorMessage =
-        err.message ||
-        err.error[0]?.message || // Assuming Zod errors might come back structured
-        "Failed to save schedule.";
+        err.message || err.errors?.[0]?.message || "Failed to save schedule.";
       toast.error(errorMessage, { id: toastId });
     } finally {
       setSubmitting(false);
     }
-  };
-  const handleUpdateStatus = async (scheduleId, newStatus) => {
-    const originalSchedules = [...schedules];
-
-    // Build payload depending on status
-    const statusLower = String(newStatus).toLowerCase();
-    const payload = { status: newStatus };
-
-    // If it's Pending — we don't need note or cost (send only status)
-    if (statusLower === "pending") {
-      // optimistic update
-      setSchedules(
-        schedules.map((s) =>
-          s.scheduleId === scheduleId ? { ...s, status: newStatus } : s
-        )
-      );
-      const toastId = toast.loading(`Updating status to ${newStatus}...`);
-
-      try {
-        await updateMaintenanceScheduleStatus(scheduleId, payload);
-        toast.success(`Schedule updated to ${newStatus}.`, { id: toastId });
-        fetchSchedules();
-      } catch (err) {
-        toast.error(
-          `Failed to update status: ${err?.message || "Server Error"}`,
-          {
-            id: toastId,
-          }
-        );
-        setSchedules(originalSchedules); // rollback
-      }
-
-      return;
-    }
-
-    openStatusModal(scheduleId, newStatus.toLowerCase()); // action string in your modal
   };
 
   const handleDeleteSchedule = async (scheduleId) => {
@@ -275,7 +520,6 @@ export default function MaintenanceSchedules() {
     }
 
     const originalSchedules = [...schedules];
-    // Optimistic delete
     setSchedules(schedules.filter((s) => s.scheduleId !== scheduleId));
 
     const toastId = toast.loading("Deleting schedule...");
@@ -288,31 +532,17 @@ export default function MaintenanceSchedules() {
         `Failed to delete schedule: ${err.message || "Server Error"}`,
         { id: toastId }
       );
-      setSchedules(originalSchedules); // Rollback on failure
+      setSchedules(originalSchedules);
     }
   };
-
-  // --- Effects ---
 
   useEffect(() => {
     fetchSchedules();
   }, []);
-  const sortedSchedules = schedules.sort((a, b) => {
-    const statusOrder = { Upcoming: 1, Done: 3, Cancelled: 4, Pending: 2 };
-    const aStatus = statusOrder[a.status] || 99;
-    const bStatus = statusOrder[b.status] || 99;
-
-    if (aStatus !== bStatus) {
-      return aStatus - bStatus;
-    }
-    return new Date(a.startDate) - new Date(b.startDate);
-  });
-
-  // --- Render ---
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* 🌟 Header and Action */}
+      {/* Header and Action */}
       <div className="flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3 mb-4 sm:mb-0">
           <FiTool className="text-indigo-600" />
@@ -326,7 +556,7 @@ export default function MaintenanceSchedules() {
         </button>
       </div>
 
-      {/* 📋 Schedules List */}
+      {/* Schedules List */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <FiCalendar className="text-indigo-500" /> Scheduled Tasks (
@@ -339,7 +569,7 @@ export default function MaintenanceSchedules() {
               <FiLoader className="animate-spin w-5 h-5" /> Loading schedules...
             </p>
           </div>
-        ) : sortedSchedules.length > 0 ? (
+        ) : schedules.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-100 dark:bg-gray-700">
@@ -351,7 +581,7 @@ export default function MaintenanceSchedules() {
                     Start Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
+                    Priority
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Actions
@@ -359,7 +589,7 @@ export default function MaintenanceSchedules() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedSchedules.map((schedule) => (
+                {schedules.map((schedule) => (
                   <tr
                     key={schedule.scheduleId}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150"
@@ -372,9 +602,15 @@ export default function MaintenanceSchedules() {
                         {schedule.description || "No description provided."}
                       </p>
                       <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
-                        Category: {schedule.category || "N/A"} | Priority:{" "}
-                        {schedule.priority || "Low"}
+                        Category: {schedule.category || "N/A"} | Frequency:{" "}
+                        {schedule.frequency || "Once"}
                       </p>
+
+                      <OccurrencesDropdown
+                        occurrences={schedule.occurrences}
+                        scheduleId={schedule.scheduleId}
+                        onOccurrenceUpdate={fetchSchedules}
+                      />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
                       {new Date(schedule.startDate).toLocaleDateString()}
@@ -384,96 +620,32 @@ export default function MaintenanceSchedules() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium uppercase flex items-center gap-1 ${getStatusStyles(
-                          schedule.status
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles(
+                          schedule.priority
                         )}`}
                       >
-                        {getStatusIcon(schedule.status)} {schedule.status}
+                        {schedule.priority || "Low"}
                       </span>
                     </td>
-
                     <td className="px-6 py-4 text-sm flex justify-end items-center gap-2">
-                      {canShowActions(schedule.status) && (
-                        <>
-                          <select
-                            value={schedule.status || "Upcoming"}
-                            onChange={(e) =>
-                              handleUpdateStatus(
-                                schedule.scheduleId,
-                                e.target.value
-                              )
-                            }
-                            className="p-1 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white text-xs focus:ring-indigo-500 focus:border-indigo-500"
-                            title="Change Status"
-                          >
-                            <option value="Upcoming">Upcoming</option>
-                            <option value="Pending">Pending</option>
-                          </select>
-                          <div className="flex gap-2">
-                            {!isInProgress(schedule.status) && (
-                              <>
-                                {/* Edit Button */}
-                                <button
-                                  onClick={() => openModalForEdit(schedule)}
-                                  className="text-blue-600"
-                                >
-                                  <FiEdit />
-                                </button>
-
-                                {/* Delete Button */}
-                                <button
-                                  onClick={() => handleDeleteSchedule(schedule)}
-                                  className="text-red-600"
-                                >
-                                  <FiTrash2 />
-                                </button>
-                              </>
-                            )}
-
-                            {isInProgress(schedule.status) && (
-                              <>
-                                {/* Done */}
-                                <button
-                                  onClick={() =>
-                                    openStatusModal(schedule.scheduleId, "done")
-                                  }
-                                  className="text-green-600"
-                                >
-                                  <FiCheckCircle />
-                                </button>
-
-                                {/* Cancel */}
-                                <button
-                                  onClick={() =>
-                                    openStatusModal(
-                                      schedule.scheduleId,
-                                      "cancelled"
-                                    )
-                                  }
-                                  className="text-red-600"
-                                >
-                                  <FiXCircle />
-                                </button>
-
-                                {/* Postpone */}
-                                <button
-                                  onClick={() =>
-                                    openStatusModal(
-                                      schedule.scheduleId,
-                                      "postponed"
-                                    )
-                                  }
-                                  className="text-purple-600"
-                                >
-                                  <FiClock />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      <button
+                        onClick={() => openModalForEdit(schedule)}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Edit Schedule"
+                      >
+                        <FiEdit />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeleteSchedule(schedule.scheduleId)
+                        }
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Delete Schedule"
+                      >
+                        <FiTrash2 />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -486,55 +658,8 @@ export default function MaintenanceSchedules() {
           </p>
         )}
       </div>
-      {statusModal.open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
-            <h2 className="text-xl font-semibold mb-4 capitalize">
-              {statusModal.action} Maintenance
-            </h2>
 
-            <textarea
-              placeholder="Enter note..."
-              className="w-full p-2 border rounded mb-3"
-              value={statusModal.note}
-              onChange={(e) =>
-                setStatusModal({ ...statusModal, note: e.target.value })
-              }
-            />
-
-            {statusModal.action === "done" && (
-              <input
-                type="number"
-                placeholder="Enter cost"
-                className="w-full p-2 border rounded mb-3"
-                value={statusModal.cost}
-                onChange={(e) =>
-                  setStatusModal({ ...statusModal, cost: e.target.value })
-                }
-              />
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() =>
-                  setStatusModal({ open: false, id: null, action: null })
-                }
-                className="px-4 py-2 bg-gray-300 rounded"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={submitStatusChange}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* 📅 This Week's Scheduled Tasks */}
+      {/* This Week's Scheduled Tasks */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <FiCalendar className="text-indigo-500" /> This Week's Scheduled Tasks
@@ -542,26 +667,26 @@ export default function MaintenanceSchedules() {
         </h2>
         {weeklySchedules.length > 0 ? (
           <ul className="space-y-4">
-            {weeklySchedules.map((schedule) => (
+            {weeklySchedules.map((occurrence) => (
               <li
-                key={schedule.scheduleId}
+                key={occurrence.occurrenceId}
                 className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150"
               >
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {schedule.title}
+                  {occurrence.schedule?.title || "Untitled Schedule"}
                 </h3>
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Start Date:{" "}
-                  {new Date(schedule.startDate).toLocaleDateString()}
+                  Occurrence Date:{" "}
+                  {new Date(occurrence.occurrenceDate).toLocaleDateString()}
                 </p>
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   Status:{" "}
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium uppercase flex items-center gap-1 ${getStatusStyles(
-                      schedule.status
+                      occurrence.status
                     )}`}
                   >
-                    {getStatusIcon(schedule.status)} {schedule.status}
+                    {getStatusIcon(occurrence.status)} {occurrence.status}
                   </span>
                 </p>
               </li>
@@ -573,14 +698,15 @@ export default function MaintenanceSchedules() {
           </p>
         )}
       </div>
-      {/* --- Modal for Scheduling New/Edit Task --- */}
+
+      {/* Modal for Scheduling New/Edit Task */}
       {modalOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 z-50 flex justify-center items-center p-4 transition-opacity duration-300">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-4/5 max-w-5xl p-6">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
               <FiPlusCircle className="text-indigo-600 w-6 h-6" />{" "}
               {editingScheduleId
-                ? "Edit Maintenance"
+                ? "Edit Maintenance Schedule"
                 : "Schedule New Maintenance"}
             </h3>
             <form
@@ -593,7 +719,7 @@ export default function MaintenanceSchedules() {
                   htmlFor="title"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Title
+                  Title *
                 </label>
                 <input
                   type="text"
@@ -612,7 +738,7 @@ export default function MaintenanceSchedules() {
                   htmlFor="startDate"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Start Date
+                  Start Date *
                 </label>
                 <input
                   type="date"
@@ -621,7 +747,6 @@ export default function MaintenanceSchedules() {
                   value={scheduleForm.startDate}
                   onChange={handleInputChange}
                   required
-                  disabled={isInProgress(scheduleForm.status)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
@@ -640,7 +765,6 @@ export default function MaintenanceSchedules() {
                   name="duedate"
                   value={scheduleForm.duedate}
                   onChange={handleInputChange}
-                  disabled={isInProgress(scheduleForm.status)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
@@ -700,15 +824,16 @@ export default function MaintenanceSchedules() {
                   onChange={handleInputChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  <option value="">Select Frequency</option>
+                  <option value="">Once</option>
                   <option value="Daily">Daily</option>
                   <option value="Weekly">Weekly</option>
                   <option value="Monthly">Monthly</option>
+                  <option value="Quarterly">Quarterly</option>
                   <option value="Yearly">Yearly</option>
                 </select>
               </div>
 
-              {/* Description (spans full width) */}
+              {/* Description */}
               <div className="md:col-span-2">
                 <label
                   htmlFor="description"
@@ -726,7 +851,7 @@ export default function MaintenanceSchedules() {
                 ></textarea>
               </div>
 
-              {/* Form Actions (span full width) */}
+              {/* Form Actions */}
               <div className="md:col-span-2 flex justify-end gap-3 pt-4">
                 <button
                   type="button"

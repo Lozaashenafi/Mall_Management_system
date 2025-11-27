@@ -115,8 +115,7 @@ export const deleteRequest = async (requestId) => {
     throw error.response?.data || { message: "Failed to delete request" };
   }
 };
-
-// maintenanse scheduling service
+// maintenanceService.js - UPDATED
 export const createMaintenanceSchedule = async (scheduleData) => {
   try {
     const res = await api.post("/scheduling", scheduleData);
@@ -143,18 +142,12 @@ export const updateMaintenanceSchedule = async (scheduleId, scheduleData) => {
   }
 };
 
-export const updateMaintenanceScheduleStatus = async (
-  scheduleId,
-  { status, cost, note: adminNote }
+export const updateMaintenanceScheduleOccurrenceStatus = async (
+  occurrenceId,
+  { status, cost, adminNote }
 ) => {
-  console.log("Updating schedule status with:", {
-    scheduleId,
-    status,
-    cost,
-    adminNote,
-  });
   try {
-    const res = await api.patch(`/scheduling/status/${scheduleId}`, {
+    const res = await api.patch(`/scheduling/status/${occurrenceId}`, {
       status,
       cost,
       adminNote,
@@ -163,11 +156,12 @@ export const updateMaintenanceScheduleStatus = async (
   } catch (error) {
     throw (
       error.response?.data || {
-        message: "Failed to update maintenance schedule status",
+        message: "Failed to update maintenance schedule occurrence status",
       }
     );
   }
 };
+
 export const deleteMaintenanceSchedule = async (scheduleId) => {
   try {
     const res = await api.delete(`/scheduling/${scheduleId}`);
@@ -181,10 +175,22 @@ export const deleteMaintenanceSchedule = async (scheduleId) => {
   }
 };
 
+export const deleteMaintenanceScheduleOccurrence = async (occurrenceId) => {
+  try {
+    const res = await api.delete(`/scheduling/${occurrenceId}`);
+    return res.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: "Failed to delete maintenance schedule occurrence",
+      }
+    );
+  }
+};
+
 export const getMaintenanceSchedules = async () => {
   try {
     const res = await api.get("/scheduling");
-    console.log("Fetched maintenance schedules:", res.data);
     return res.data.data;
   } catch (error) {
     throw (
@@ -198,7 +204,6 @@ export const getMaintenanceSchedules = async () => {
 export const getThisWeekMaintenanceSchedules = async () => {
   try {
     const res = await api.get("/scheduling/week");
-    console.log("Fetched this week's maintenance schedules:", res.data);
     return res.data.data;
   } catch (error) {
     throw (

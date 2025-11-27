@@ -454,17 +454,33 @@ model MaintenanceSchedule {
   scheduleId     Int       @id @default(autoincrement())
   title          String
   description    String?
-  startDate  DateTime
-  duedate    DateTime?
-  recurrenceRule String?   // Yearly , Monthly, Weekly , Daily , Quarterly
-  category      String? // e.g., Electrical, Plumbing, HVAC
-  frequency  String?
-  priority    String? // Low, Medium, High
-  adminNote   String?
-  status         String    @default("Upcoming") // Upcoming, Done, Cancelled
+  startDate      DateTime
+  duedate        DateTime? 
+  category       String?
+  frequency      String?   // "Yearly", "Monthly", "Weekly", "Daily", "Quarterly"
+  priority       String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  occurrences MaintenanceScheduleOccurrence[]  // <-- added relation
 }
+
+model MaintenanceScheduleOccurrence {
+  occurrenceId   Int      @id @default(autoincrement())
+  scheduleId     Int
+  occurrenceDate DateTime
+  startDateTime  DateTime?
+  dueDate        DateTime?
+  status         String   @default("Upcoming") // Upcoming, Done, Missed, Cancelled
+  notified       Boolean  @default(false)
+  notifiedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  adminNote      String?
+  schedule MaintenanceSchedule @relation(fields: [scheduleId], references: [scheduleId])
+  @@unique([scheduleId, occurrenceDate]) // prevents duplicates
+  @@index([occurrenceDate])
+}
+
 
 model Budget {
   budgetId     Int      @id @default(autoincrement())

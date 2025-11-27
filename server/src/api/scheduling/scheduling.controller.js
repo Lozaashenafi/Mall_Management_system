@@ -1,7 +1,6 @@
 import prisma from "../../config/prismaClient.js";
 import schedulingSchema from "./scheduling.schema.js";
 import { createAuditLog } from "../../utils/audit.js";
-
 export const addMaintenanceSchedule = async (req, res) => {
   try {
     const parsedData = schedulingSchema.safeParse(req.body);
@@ -19,27 +18,36 @@ export const addMaintenanceSchedule = async (req, res) => {
       description,
       startDate,
       duedate,
-      recurrenceRule,
       category,
       frequency,
       priority,
     } = parsedData.data;
 
+    // Create the main schedule
     const newSchedule = await prisma.maintenanceSchedule.create({
       data: {
         title,
         description,
         startDate: new Date(startDate),
         duedate: duedate ? new Date(duedate) : null,
-        recurrenceRule,
         category,
         frequency,
         priority,
       },
     });
 
-    // Log
+    // ---- Create FIRST OCCURRENCE ----
+    await prisma.maintenanceScheduleOccurrence.create({
+      data: {
+        scheduleId: newSchedule.scheduleId,
+        occurrenceDate: new Date(startDate),
+        startDateTime: new Date(startDate),
+        dueDate: duedate ? new Date(duedate) : null,
+        status: "Upcoming", // add if your model has a status
+      },
+    });
 
+    // ---- Log audit ----
     await createAuditLog({
       userId: req.user.userId,
       action: "created",
@@ -48,14 +56,16 @@ export const addMaintenanceSchedule = async (req, res) => {
       newValue: newSchedule,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Maintenance schedule added successfully",
       data: newSchedule,
     });
   } catch (error) {
     console.error("Error adding maintenance schedule:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -63,7 +73,13 @@ export const getAllMaintenanceSchedules = async (req, res) => {
   try {
     const schedules = await prisma.maintenanceSchedule.findMany({
       orderBy: { startDate: "asc" },
+      include: {
+        occurrences: {
+          orderBy: { occurrenceDate: "asc" },
+        },
+      },
     });
+
     res.status(200).json({
       success: true,
       message: "Maintenance schedules retrieved successfully",
@@ -74,6 +90,7 @@ export const getAllMaintenanceSchedules = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 export const updateMaintenanceSchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
@@ -94,7 +111,6 @@ export const updateMaintenanceSchedule = async (req, res) => {
       description,
       startDate,
       duedate,
-      recurrenceRule,
       category,
       frequency,
       priority,
@@ -107,7 +123,6 @@ export const updateMaintenanceSchedule = async (req, res) => {
         description,
         startDate: new Date(startDate),
         duedate: new Date(duedate),
-        recurrenceRule,
         category,
         frequency,
         priority,
@@ -132,45 +147,58 @@ export const updateMaintenanceSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-// get this week schedules
-export const getThisWeekMaintenanceSchedules = async (req, res) => {
+export const getThisWeekMaintenanceOccurrences = async (req, res) => {
   try {
     const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1));
-    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7));
-    const schedules = await prisma.maintenanceSchedule.findMany({
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() - now.getDay() + 7); // Sunday
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const occurrences = await prisma.maintenanceScheduleOccurrence.findMany({
       where: {
-        startDate: {
+        occurrenceDate: {
           gte: startOfWeek,
           lte: endOfWeek,
         },
       },
-      orderBy: { startDate: "asc" },
+      include: {
+        schedule: true, // include schedule details if needed
+      },
+      orderBy: { occurrenceDate: "asc" },
     });
+
     res.status(200).json({
       success: true,
-      message: "This week's maintenance schedules retrieved successfully",
-      data: schedules,
+      message: "This week's maintenance occurrences retrieved successfully",
+      data: occurrences,
     });
   } catch (error) {
-    console.error("Error retrieving this week's maintenance schedules:", error);
+    console.error(
+      "Error retrieving this week's maintenance occurrences:",
+      error
+    );
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-export const updateStatusOfMaintenanceSchedule = async (req, res) => {
+
+export const updateStatusOfMaintenanceScheduleOccurrence = async (req, res) => {
   try {
-    const { scheduleId } = req.params;
-    if (!scheduleId) {
+    const { occurrenceId } = req.params;
+    if (!occurrenceId) {
       return res
         .status(400)
-        .json({ message: "scheduleId is required in params" });
+        .json({ message: "occurrenceId is required in params" });
     }
 
-    const scheduleIdNum = parseInt(scheduleId, 10);
-    if (isNaN(scheduleIdNum)) {
+    const occurrenceIdNum = parseInt(occurrenceId, 10);
+    if (isNaN(occurrenceIdNum)) {
       return res
         .status(400)
-        .json({ message: "scheduleId must be a valid number" });
+        .json({ message: "occurrenceId must be a valid number" });
     }
 
     const { status, cost, adminNote } = req.body;
@@ -178,66 +206,82 @@ export const updateStatusOfMaintenanceSchedule = async (req, res) => {
     const updateData = { status };
     if (adminNote !== undefined) updateData.adminNote = adminNote;
 
-    const updatedSchedule = await prisma.maintenanceSchedule.update({
-      where: { scheduleId: scheduleIdNum },
-      data: updateData,
-    });
+    const updatedOccurrence = await prisma.maintenanceScheduleOccurrence.update(
+      {
+        where: { occurrenceId: occurrenceIdNum },
+        data: updateData,
+        include: { schedule: true },
+      }
+    );
 
-    if (status === "Done" || status === "done") {
+    // If occurrence is marked Done, create actual maintenance record
+    if (status.toLowerCase() === "done") {
       await prisma.maintenance.create({
         data: {
-          description: `Maintenance for schedule: ${updatedSchedule.title}`,
-          maintenanceStartDate: new Date(updatedSchedule.startDate),
+          description: `Maintenance for schedule: ${updatedOccurrence.schedule.title}`,
+          maintenanceStartDate:
+            updatedOccurrence.startDateTime || updatedOccurrence.occurrenceDate,
           maintenanceEndDate: new Date(),
           status: "Completed",
           cost: cost || 0,
-          roomId: null,
+          roomId: null, // adjust if linked to a room
         },
       });
     }
 
     await createAuditLog({
       userId: req.user.userId,
-      action: "updated_status",
-      tableName: "MaintenanceSchedule",
-      recordId: updatedSchedule.scheduleId,
-      newValue: updatedSchedule,
+      action: "updated_occurrence_status",
+      tableName: "MaintenanceScheduleOccurrence",
+      recordId: updatedOccurrence.occurrenceId,
+      newValue: updatedOccurrence,
     });
 
     res.status(200).json({
       success: true,
-      message: "Maintenance schedule status updated successfully",
-      data: updatedSchedule,
+      message: "Maintenance schedule occurrence status updated successfully",
+      data: updatedOccurrence,
     });
   } catch (error) {
-    console.error("Error updating maintenance schedule status:", error);
+    console.error(
+      "Error updating maintenance schedule occurrence status:",
+      error
+    );
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-export const deleteMaintenanceSchedule = async (req, res) => {
+export const deleteMaintenanceScheduleOccurrence = async (req, res) => {
   try {
-    const { scheduleId } = req.params;
-    //  only upcomming schedules can be deleted
-    const schedule = await prisma.maintenanceSchedule.findUnique({
-      where: { scheduleId: Number(scheduleId) },
+    const { occurrenceId } = req.params;
+
+    const occurrence = await prisma.maintenanceScheduleOccurrence.findUnique({
+      where: { occurrenceId: Number(occurrenceId) },
     });
-    if (schedule.status !== "Upcoming") {
-      return res.status(400).json({
+
+    if (!occurrence) {
+      return res.status(404).json({
         success: false,
-        message: "Only upcoming schedules can be deleted",
+        message: "Occurrence not found",
       });
     }
 
-    await prisma.maintenanceSchedule.delete({
-      where: { scheduleId: Number(scheduleId) },
+    if (occurrence.status.toLowerCase() !== "upcoming") {
+      return res.status(400).json({
+        success: false,
+        message: "Only upcoming occurrences can be deleted",
+      });
+    }
+
+    await prisma.maintenanceScheduleOccurrence.delete({
+      where: { occurrenceId: Number(occurrenceId) },
     });
+
     res.status(200).json({
       success: true,
-      message: "Maintenance schedule deleted successfully",
+      message: "Maintenance schedule occurrence deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting maintenance schedule:", error);
+    console.error("Error deleting maintenance schedule occurrence:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

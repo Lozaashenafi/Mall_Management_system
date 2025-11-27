@@ -56,6 +56,14 @@ io.on("connection", (socket) => {
     }
   });
 });
+// --- ADD CRON JOB HERE ---
+import cron from "node-cron";
+import { generateMaintenanceOccurrences } from "./src/jobs/scheduleReminder.job.js";
+
+cron.schedule("0 0 * * *", () => {
+  console.log("Running daily maintenance occurrence job...");
+  generateMaintenanceOccurrences();
+});
 
 // Start server
 const PORT = config.PORT || 3300;

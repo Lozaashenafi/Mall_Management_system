@@ -1,11 +1,11 @@
 import express from "express";
 import {
   addMaintenanceSchedule,
-  deleteMaintenanceSchedule,
+  deleteMaintenanceScheduleOccurrence,
   getAllMaintenanceSchedules,
-  getThisWeekMaintenanceSchedules,
+  getThisWeekMaintenanceOccurrences,
   updateMaintenanceSchedule,
-  updateStatusOfMaintenanceSchedule,
+  updateStatusOfMaintenanceScheduleOccurrence,
 } from "./scheduling.controller.js";
 import { isAdmin, userAuth } from "../../middleware/auth.js";
 
@@ -15,12 +15,17 @@ router.post("/", userAuth, isAdmin, addMaintenanceSchedule);
 router.get("/", userAuth, isAdmin, getAllMaintenanceSchedules);
 router.put("/:scheduleId", userAuth, isAdmin, updateMaintenanceSchedule);
 router.patch(
-  "/status/:scheduleId",
+  "/status/:occurrenceId",
   userAuth,
   isAdmin,
-  updateStatusOfMaintenanceSchedule
+  updateStatusOfMaintenanceScheduleOccurrence
 );
-router.delete("/:scheduleId", userAuth, isAdmin, deleteMaintenanceSchedule);
-router.get("/week", userAuth, isAdmin, getThisWeekMaintenanceSchedules);
+router.delete(
+  "/:occurrenceId",
+  userAuth,
+  isAdmin,
+  deleteMaintenanceScheduleOccurrence
+);
+router.get("/week", userAuth, isAdmin, getThisWeekMaintenanceOccurrences);
 
 export default router;
