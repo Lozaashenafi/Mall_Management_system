@@ -49,6 +49,7 @@ import AddFloorPrice from "./pages/AddFloorPrice";
 import BankManage from "./pages/BankManage";
 import AddUtilityPaymentRequest from "./pages/tenant/AddUtilityPaymentRequest";
 import MaintenanceSchedules from "./pages/MaintenanceSchedules";
+import OverdueDashboard from "./pages/OverdueDashboard";
 
 function App() {
   return (
@@ -77,6 +78,8 @@ function App() {
 
             <Route path="/manage-rooms/add" element={<AddRoom />} />
             <Route path="/utilities" element={<UtiliySummary />} />
+            <Route path="/overdue" element={<OverdueDashboard />} />
+
             <Route
               path="/add-utility-payment/:id"
               element={<AddUtilityPayment />}

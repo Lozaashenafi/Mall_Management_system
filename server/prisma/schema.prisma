@@ -183,6 +183,10 @@ model Tenant {
   tinNumber     String?
   vatNumber     String?
   businessLicense String?
+  hasOverdueRent     Boolean   @default(false)
+  totalOverdueAmount Float     @default(0)
+  overdueCount       Int       @default(0) 
+  lastOverdueDate    DateTime? // When they were last overdue
   status        UserStatus @default(Active)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -242,12 +246,17 @@ model Invoice {
   rentId        Int
   invoiceDate   DateTime
   dueDate       DateTime
-  paperInvoiceNumber String? // ← Add this (manual invoice no. from paper book)
+  paperInvoiceNumber String? 
   baseRent      Float?
   taxPercentage Float?
   taxAmount     Float?
   totalAmount   Float
   status        InvoiceStatus
+  isOverdue     Boolean?     @default(false)
+  overdueDays   Int?         @default(0)
+  overdueSince  DateTime?
+  warningSent   Boolean?     @default(false) 
+  lastCheckedAt DateTime?    
   withholdingRate  Float?
   withholdingAmount Float?
   pdfUrl        String? 
@@ -505,3 +514,4 @@ model InventoryItem {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
+

@@ -7,6 +7,7 @@ import config from "./src/config/index.js";
 import middleware from "./src/middleware/index.js";
 import routes from "./src/route/index.js";
 import "./src/jobs/paymentReminder.job.js";
+import "./src/jobs/overdueCacheJob.js";
 
 const app = express();
 

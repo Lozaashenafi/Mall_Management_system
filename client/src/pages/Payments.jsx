@@ -555,7 +555,7 @@ export default function Payments() {
                       ).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {util.payment?.amount} ETB
+                      {util.amount} ETB
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {util.payment?.method || "N/A"}
@@ -903,7 +903,7 @@ export default function Payments() {
                   Receipt
                 </h3>
 
-                {selectedPayment.receipt ? (
+                {selectedPayment.receiptFilePath ? (
                   <a
                     href={`${BASE_URL}${selectedPayment.receipt}`}
                     target="_blank"

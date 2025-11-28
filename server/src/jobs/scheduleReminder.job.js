@@ -25,7 +25,6 @@ export const generateMaintenanceOccurrences = async () => {
       let nextDate = lastOccurrence
         ? new Date(lastOccurrence.occurrenceDate)
         : new Date(schedule.startDate);
-
       const today = new Date();
       today.setHours(0, 0, 0, 0); // normalize
 

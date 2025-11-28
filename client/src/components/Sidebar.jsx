@@ -49,6 +49,7 @@ export function Sidebar({ collapsed, onToggle }) {
       items: [
         { title: "Dashboard", icon: LayoutDashboard, url: "/" },
         { title: "Reports", icon: FileText, url: "/reports" },
+        { title: "Overdue Invoice", icon: FileText, url: "/overdue" },
       ],
     },
     {
