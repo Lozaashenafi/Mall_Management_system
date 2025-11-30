@@ -348,7 +348,7 @@ export default function Payments() {
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
-                    {inv.status === "Unpaid" && (
+                    {inv.status != "Paid" && (
                       <>
                         <Link
                           to={`/payments/add/${inv.invoiceId}`}

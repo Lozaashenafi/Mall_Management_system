@@ -51,7 +51,7 @@ const StatsCard = ({
     <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
   </div>
 );
-
+// Update the OverdueTenantsList component in OverdueDashboard.jsx
 const OverdueTenantsList = ({
   tenants,
   title,
@@ -59,6 +59,8 @@ const OverdueTenantsList = ({
   showMaxOverdue = false,
   showOverdueCount = false,
 }) => {
+  console.log("OverdueTenantsList received:", { tenants, title, loading });
+
   if (loading) {
     return (
       <div className="p-6 text-center">
@@ -70,7 +72,18 @@ const OverdueTenantsList = ({
     );
   }
 
-  if (!tenants || tenants.length === 0) {
+  // Handle different response structures
+  const tenantsData = Array.isArray(tenants)
+    ? tenants
+    : tenants?.data
+    ? tenants.data
+    : tenants?.tenants
+    ? tenants.tenants
+    : [];
+
+  console.log("Processed tenants data:", tenantsData);
+
+  if (!tenantsData || tenantsData.length === 0) {
     return (
       <div className="p-6 text-center text-gray-500 dark:text-gray-400">
         <p>No overdue tenants found</p>
@@ -82,39 +95,83 @@ const OverdueTenantsList = ({
   }
 
   const getMaxOverdueDays = (tenant) => {
-    if (!tenant.rental?.invoices?.length) return 0;
-    return Math.max(
-      ...tenant.rental.invoices.map((inv) => inv.overdueDays || 0)
+    // Get invoices from the first rental or directly from tenant
+    const rental = tenant.rental?.[0];
+    const invoices = rental?.invoices || tenant.invoices || [];
+    if (!invoices.length) return 0;
+    return Math.max(...invoices.map((inv) => inv.overdueDays || 0));
+  };
+
+  const getTenantName = (tenant) => {
+    return (
+      tenant.user?.fullName ||
+      tenant.contactPerson ||
+      tenant.companyName ||
+      "Unknown Tenant"
     );
+  };
+
+  const getUnitInfo = (tenant) => {
+    // Get room info from the first rental
+    const rental = tenant.rental?.[0];
+    const unit = rental?.room?.unitNumber || "N/A";
+    const floor = rental?.room?.floor || "N/A";
+    return `Unit ${unit} • Floor ${floor}`;
+  };
+
+  const getOverdueInvoices = (tenant) => {
+    // Get invoices from the first rental
+    const rental = tenant.rental?.[0];
+    return rental?.invoices || tenant.invoices || [];
+  };
+
+  const getTotalOverdueAmount = (tenant) => {
+    return tenant.totalOverdueAmount || 0;
+  };
+
+  const getOverdueCount = (tenant) => {
+    return tenant.overdueCount || 0;
   };
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-        {title}
+        {title} ({tenantsData.length})
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {tenants.map((tenant) => {
+        {tenantsData.map((tenant) => {
           const maxOverdueDays = showMaxOverdue ? getMaxOverdueDays(tenant) : 0;
+          const overdueInvoices = getOverdueInvoices(tenant);
+          const totalOverdueAmount = getTotalOverdueAmount(tenant);
+          const overdueCount = getOverdueCount(tenant);
 
           return (
             <div
-              key={tenant.tenantId}
+              key={tenant.tenantId || tenant.id}
               className="p-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
             >
               {/* Tenant Header */}
               <div className="flex items-start space-x-3 mb-3">
                 <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-semibold dark:bg-indigo-900 dark:text-indigo-300">
-                  {tenant.user?.fullName?.charAt(0) || "T"}
+                  {getTenantName(tenant).charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                    {tenant.user?.fullName || "Unknown Tenant"}
+                    {getTenantName(tenant)}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Unit {tenant.rental?.room?.unitNumber} • Floor{" "}
-                    {tenant.rental?.room?.floor}
+                    {getUnitInfo(tenant)}
                   </p>
+                  {tenant.user?.email && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {tenant.user.email}
+                    </p>
+                  )}
+                  {tenant.phone && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      📞 {tenant.phone}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -125,7 +182,7 @@ const OverdueTenantsList = ({
                     Total Overdue:
                   </span>
                   <span className="font-semibold text-red-600 dark:text-red-400">
-                    ETB {tenant.totalOverdueAmount?.toLocaleString() || "0"}
+                    ETB {totalOverdueAmount.toLocaleString()}
                   </span>
                 </div>
 
@@ -134,9 +191,7 @@ const OverdueTenantsList = ({
                     <span className="text-gray-600 dark:text-gray-400">
                       Overdue Count:
                     </span>
-                    <span className="font-semibold">
-                      {tenant.overdueCount || 0} times
-                    </span>
+                    <span className="font-semibold">{overdueCount} times</span>
                   </div>
                 )}
 
@@ -157,50 +212,51 @@ const OverdueTenantsList = ({
               </div>
 
               {/* Overdue Invoices */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Overdue Invoices:
-                </h4>
-                <div className="space-y-2">
-                  {tenant.rental?.invoices?.slice(0, 3).map((invoice) => (
-                    <div
-                      key={invoice.invoiceId}
-                      className="flex justify-between items-center text-sm"
-                    >
-                      <div>
-                        <span className="font-medium">
-                          #{invoice.invoiceId}
-                        </span>
-                        <span className="text-gray-600 dark:text-gray-400 ml-2">
-                          ETB {invoice.totalAmount?.toLocaleString()}
+              {overdueInvoices.length > 0 && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Overdue Invoices ({overdueInvoices.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {overdueInvoices.slice(0, 3).map((invoice) => (
+                      <div
+                        key={invoice.invoiceId || invoice.id}
+                        className="flex justify-between items-center text-sm"
+                      >
+                        <div>
+                          <span className="font-medium">
+                            #{invoice.invoiceId || invoice.id}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400 ml-2">
+                            ETB {(invoice.totalAmount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColorClass(
+                            invoice.overdueDays
+                          )}`}
+                        >
+                          {invoice.overdueDays || 0} days
                         </span>
                       </div>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColorClass(
-                          invoice.overdueDays
-                        )}`}
-                      >
-                        {invoice.overdueDays} days
-                      </span>
-                    </div>
-                  ))}
-                  {tenant.rental?.invoices?.length > 3 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      +{tenant.rental.invoices.length - 3} more invoices
-                    </p>
-                  )}
+                    ))}
+                    {overdueInvoices.length > 3 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        +{overdueInvoices.length - 3} more invoices
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Actions */}
-              <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <button className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-indigo-700 transition-colors">
-                  Send Reminder
-                </button>
-                <button className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded text-sm font-medium hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  View Details
-                </button>
-              </div>
+              {/* Show message if no invoices but tenant is marked overdue */}
+              {overdueInvoices.length === 0 && totalOverdueAmount > 0 && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 text-center">
+                    paid
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
@@ -335,7 +391,7 @@ const OverdueDashboard = () => {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Overdue Tenants"
           value={stats.totalOverdueTenants || 0}
@@ -360,13 +416,6 @@ const OverdueDashboard = () => {
           description="Longest overdue period"
           icon={Clock}
           color="yellow"
-        />
-        <StatsCard
-          title="Overdue Invoices"
-          value={stats.totalOverdueInvoices || 0}
-          description="Total overdue invoices"
-          icon={FileText}
-          color="blue"
         />
         <StatsCard
           title="Most Frequent"
@@ -414,7 +463,7 @@ const OverdueDashboard = () => {
           {activeTab === "most-overdue" && (
             <OverdueTenantsList
               tenants={mostOverdueTenants}
-              title="Most Overdue Tenants (by days)"
+              title="Most Overdue Tenants"
               loading={loading}
               showMaxOverdue={true}
             />

@@ -1,4 +1,4 @@
-// src/api/overdue/overdue.controller.js
+// src/api/overdue/overdue.controller.js - FIXED IMPORT
 import {
   cacheInvoicesAndDueDates,
   getOverdueTenants,
@@ -17,6 +17,7 @@ export const runCacheUpdate = async (req, res) => {
       data: result,
     });
   } catch (error) {
+    console.error("Error in runCacheUpdate:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update cache",
@@ -33,6 +34,7 @@ export const getAllOverdueTenants = async (req, res) => {
       data: tenants,
     });
   } catch (error) {
+    console.error("Error in getAllOverdueTenants:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch overdue tenants",
@@ -49,6 +51,7 @@ export const getMostOverdue = async (req, res) => {
       data: tenants,
     });
   } catch (error) {
+    console.error("Error in getMostOverdue:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch most overdue tenants",
@@ -65,6 +68,7 @@ export const getFrequentOverdue = async (req, res) => {
       data: tenants,
     });
   } catch (error) {
+    console.error("Error in getFrequentOverdue:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch frequent overdue tenants",
@@ -76,11 +80,13 @@ export const getFrequentOverdue = async (req, res) => {
 export const getOverdueStatistics = async (req, res) => {
   try {
     const stats = await getOverdueStats();
+    console.log("Sending stats response:", stats);
     res.json({
       success: true,
       data: stats,
     });
   } catch (error) {
+    console.error("Error in getOverdueStatistics:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch overdue statistics",
@@ -97,6 +103,7 @@ export const getAllOverdueInvoices = async (req, res) => {
       data: invoices,
     });
   } catch (error) {
+    console.error("Error in getAllOverdueInvoices:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch overdue invoices",
