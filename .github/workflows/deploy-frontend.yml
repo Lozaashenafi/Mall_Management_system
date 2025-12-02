@@ -38,3 +38,16 @@ jobs:
           local-dir: client/dist/ # ✅ Vite outputs to dist/
           server-dir: /
           dangerous-clean-slate: true
+
+      # 5️⃣ Deploy Express server
+      - name: 🚀 Deploy Server (Express)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER_SERVER }}
+          username: ${{ secrets.FTP_USER_SERVER }}
+          password: ${{ secrets.FTP_PASSWORD_SERVER }}
+          local-dir: /
+          server-dir: / # Change based on your cPanel Node app directory
+          exclude: |
+            **/node_modules/**
+            **/.git/**
