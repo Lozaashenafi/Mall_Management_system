@@ -19,7 +19,7 @@ app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use("/api", routes);
-
+//
 app.get("/", (req, res) => res.send("Running..."));
 
 // Create HTTP server for socket.io
