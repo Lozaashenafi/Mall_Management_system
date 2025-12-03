@@ -88,13 +88,15 @@ export const generateUtilityCharge = async (req, res) => {
     const { month } = req.body;
     if (!month)
       return res.status(400).json({ message: "Month is required (YYYY-MM)" });
-
+    const monthName = month;
     // Prevent duplicate generation (any charges for this month)
-    const existing = await prisma.utilityCharge.findMany({ where: { month } });
+    const existing = await prisma.utilityCharge.findMany({
+      where: { monthName },
+    });
     if (existing.length > 0) {
-      return res
-        .status(200)
-        .json({ message: `Utility charges for ${month} already generated.` });
+      return res.status(200).json({
+        message: `Utility charges for ${monthName} already generated.`,
+      });
     }
     const ALLOWED_TYPES = ["Water", "Generator", "Electricity"];
 
@@ -124,7 +126,7 @@ export const generateUtilityCharge = async (req, res) => {
     }
 
     // Date range for month
-    const start = dayjs(`${month}-01`).startOf("month").toDate();
+    const start = dayjs(`${monthName}-01`).startOf("month").toDate();
     const end = dayjs(start).endOf("month").toDate();
 
     // Group expenses by utilityTypeId
@@ -168,9 +170,9 @@ export const generateUtilityCharge = async (req, res) => {
       const charge = await prisma.utilityCharge.create({
         data: {
           utilityTypeId,
-          month,
+          monthName,
           totalCost,
-          description: `Utility charge for ${utilityName} (${month})`,
+          description: `Utility charge for ${utilityName} (${monthName})`,
           generated: true,
         },
       });
@@ -320,7 +322,7 @@ export const generateUtilityCharge = async (req, res) => {
             rentId,
             utilityChargeId: chargeId, // <-- correct chargeId
             amount: Number(amount.toFixed(2)),
-            description: `${type} charge for ${month}: ${amount.toFixed(
+            description: `${type} charge for ${monthName}: ${amount.toFixed(
               2
             )} ETB`,
             status: "UNPAID",
@@ -335,7 +337,7 @@ export const generateUtilityCharge = async (req, res) => {
           tenantId: rental.tenant.tenantId,
           userId: rental.tenant.userId,
           type: "UtilityAlert",
-          message: `Your utility invoices for ${month} are generated.`,
+          message: `Your utility invoices for ${monthName} are generated.`,
           sentVia: "System",
         });
       }
@@ -397,10 +399,10 @@ export const TenantsInvoiceOfthisMonth = async (req, res) => {
     const { month } = req.query; // e.g., "2025-10"
     if (!month)
       return res.status(400).json({ message: "Month is required (YYYY-MM)" });
-
+    const monthName = month;
     const invoices = await prisma.utilityInvoice.findMany({
       where: {
-        utilityCharge: { month },
+        utilityCharge: { monthName },
       },
       include: {
         rental: {
@@ -427,9 +429,10 @@ export const getUtilityChargesByMonth = async (req, res) => {
     const { month } = req.query; // e.g., "2025-10"
     if (!month)
       return res.status(400).json({ message: "Month is required (YYYY-MM)" });
+    const monthName = month;
 
     const charges = await prisma.utilityCharge.findMany({
-      where: { month },
+      where: { monthName },
       orderBy: { createdAt: "desc" },
     });
 

@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  icons,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +20,7 @@ const tenantSidebarItems = [
   { title: "My Rentals", icon: House, url: "/tenant/myrentals" },
   { title: "Payments", icon: DollarSign, url: "/tenant/payments" },
   { title: "Invoice", icon: DollarSign, url: "/tenant/invoice" },
+  { title: "Exit", icon: Wrench, url: "/tenant/exit-requests" },
   { title: "Maintenance", icon: Wrench, url: "/tenant/maintenance" },
   { title: "Notifications", icon: Bell, url: "/tenant/notifications" },
   { title: "Settings", icon: Settings, url: "/tenant/settings" },

@@ -20,6 +20,7 @@ import bankAccountRoutes from "../api/bankAccount/bank.route.js";
 import bankTransactionRoutes from "../api/bankTransaction/bankTransaction.route.js";
 import schedullingRoutes from "../api/scheduling/scheduling.route.js";
 import overdueRoutes from "../api/overdue/overdue.routes.js";
+import exitRequestRoutes from "../api/exitRequest/exitRequest.route.js";
 // Auth routes
 router.use("/auth", authRoutes);
 router.use("/tenants", tenantRoutes);
@@ -41,5 +42,6 @@ router.use("/bank", bankAccountRoutes);
 router.use("/bank-transaction", bankTransactionRoutes);
 router.use("/scheduling", schedullingRoutes);
 router.use("/overdue", overdueRoutes);
+router.use("/exit", exitRequestRoutes);
 
 export default router;

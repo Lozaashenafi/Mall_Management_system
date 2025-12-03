@@ -372,7 +372,7 @@ const UtilityPage = () => {
     });
 
   const chartData = {
-    labels: utilityInvoices.map((u) => u.utilityCharge?.month || "N/A"),
+    labels: utilityInvoices.map((u) => u.utilityCharge?.monthName || "N/A"),
     datasets: [
       {
         label: "Utility Costs",
@@ -560,7 +560,9 @@ const UtilityInvoiceTable = ({
                 {Icon && <Icon className="w-4 h-4 text-indigo-500" />}
                 {utilityType || "Unknown"}
               </td>
-              <td className="p-2">{invoice.utilityCharge?.month || "N/A"}</td>
+              <td className="p-2">
+                {invoice.utilityCharge?.monthName || "N/A"}
+              </td>
               <td className="p-2">
                 ETB {invoice.amount?.toLocaleString() || "0"}
               </td>

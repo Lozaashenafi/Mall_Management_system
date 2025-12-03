@@ -3,7 +3,7 @@ import {
   // Tenant endpoints
   createExitRequest,
   getMyExitRequests,
-
+  getExitRequestById,
   // Admin endpoints
   getAllExitRequests,
   reviewExitRequest,
@@ -14,42 +14,22 @@ import {
   getExitRequestByTracking,
 } from "./exitRequest.controller.js";
 
-import {
-  userAuth,
-  isAdmin,
-  isTenant,
-  isSecurityOfficer,
-  isAdminOrSecurity,
-} from "../../middleware/auth.js";
+import { userAuth } from "../../middleware/auth.js";
 
 const router = express.Router();
 
 // ====================== TENANT ROUTES ======================
-router.post("/", userAuth, isTenant, createExitRequest);
-router.get("/tenant/:tenantId", userAuth, isTenant, getMyExitRequests);
+router.post("/", userAuth, createExitRequest);
+router.get("/tenant/:userId", userAuth, getMyExitRequests);
+router.get("/:requestId", userAuth, getExitRequestById);
 
 // ====================== ADMIN ROUTES ======================
-router.get("/", userAuth, isAdmin, getAllExitRequests);
-router.patch("/:requestId/review", userAuth, isAdmin, reviewExitRequest);
+router.get("/", userAuth, getAllExitRequests);
+router.patch("/:requestId/review", userAuth, reviewExitRequest);
 
 // ====================== SECURITY OFFICER ROUTES ======================
-router.get(
-  "/security/approved",
-  userAuth,
-  isSecurityOfficer,
-  getApprovedExitRequests
-);
-router.patch(
-  "/:requestId/verify",
-  userAuth,
-  isSecurityOfficer,
-  verifyExitRequest
-);
-router.get(
-  "/tracking/:trackingNumber",
-  userAuth,
-  isAdminOrSecurity,
-  getExitRequestByTracking
-);
+router.get("/security/approved", userAuth, getApprovedExitRequests);
+router.patch("/:requestId/verify", userAuth, verifyExitRequest);
+router.get("/tracking/:trackingNumber", userAuth, getExitRequestByTracking);
 
 export default router;

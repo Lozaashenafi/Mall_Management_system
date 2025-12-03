@@ -23,7 +23,7 @@ router.put(
   editProfile
 );
 router.put("/change-password", userAuth, changePassword);
-router.get("/all-users", userAuth, isAdmin, getAllUsers);
+router.get("/all-users", getAllUsers);
 router.delete("/:userId", userAuth, isAdmin, deleteUserRequest);
 
 export default router;

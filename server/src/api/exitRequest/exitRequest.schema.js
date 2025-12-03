@@ -10,26 +10,25 @@ export default {
     items: Joi.array()
       .items(
         Joi.object({
-          itemName: Joi.string().required().max(200),
-          description: Joi.string().max(500),
+          itemName: Joi.string().trim().required().max(200),
+          description: Joi.string().trim().max(500).allow("", null),
           quantity: Joi.number().integer().min(1).required(),
-          serialNumber: Joi.string().max(100),
-          estimatedValue: Joi.number().precision(2).min(0),
+          serialNumber: Joi.optional(),
+          estimatedValue: Joi.optional(),
         })
       )
       .min(1)
       .required(),
   }),
 
-  // Other schemas remain the same...
   adminReview: Joi.object({
     status: Joi.string().valid("Approved", "Rejected").required(),
-    adminNote: Joi.string().max(1000).optional(),
+    adminNote: Joi.string().max(1000).empty(""),
   }),
 
   securityVerify: Joi.object({
     status: Joi.string().valid("Verified", "Blocked").required(),
-    securityNote: Joi.string().max(1000).optional(),
+    securityNote: Joi.string().max(1000).empty(""),
   }),
 
   filter: Joi.object({

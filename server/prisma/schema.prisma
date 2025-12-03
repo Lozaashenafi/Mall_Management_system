@@ -360,7 +360,7 @@ model Notification {
 model UtilityCharge {
   utilityChargeId Int        @id @default(autoincrement())
   utilityTypeId   Int
-  monthName           String
+  monthName           String?
   totalCost       Float
   description     String?
   createdAt       DateTime    @default(now())
@@ -518,7 +518,7 @@ model Budget {
   budgetId     Int      @id @default(autoincrement())
   catagoryId  Int
   year         Int
-  monthName        Int
+  monthName      Int
   plannedAmount Float
   actualAmount  Float?  @default(0)
   notes        String?

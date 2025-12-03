@@ -155,13 +155,14 @@ export const createExitRequest = async (req, res) => {
 
 /**
  * Get tenant's exit requests (Tenant)
+ */ /**
+ * Get tenant's exit requests (Tenant)
  */
 export const getMyExitRequests = async (req, res) => {
   try {
-    // Get userId from authenticated user (from middleware)
-    const userId = req.user.userId;
+    const userId = parseInt(req.params.userId);
 
-    // First, find the tenant associated with this userId
+    // Find the tenant
     const tenant = await prisma.tenant.findFirst({
       where: {
         userId: userId,
@@ -176,64 +177,59 @@ export const getMyExitRequests = async (req, res) => {
       });
     }
 
-    const { error, value } = exitRequestSchema.filter.validate(req.query);
-
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message,
-      });
-    }
-
-    const { status, type, startDate, endDate, page, limit } = value;
-    const skip = (page - 1) * limit;
-
-    const where = {
-      tenantId: tenant.tenantId, // Use the resolved tenantId
-    };
-
-    if (status) where.status = status;
-    if (type) where.type = type;
-    if (startDate || endDate) {
-      where.exitDate = {};
-      if (startDate) where.exitDate.gte = new Date(startDate);
-      if (endDate) where.exitDate.lte = new Date(endDate);
-    }
-
-    const [requests, total] = await Promise.all([
-      prisma.exitRequest.findMany({
-        where,
-        include: {
-          items: true,
-          rental: {
-            include: {
-              room: true,
-            },
-          },
-          securityOfficer: {
-            select: {
-              userId: true,
-              fullName: true,
-              email: true,
+    // Get all exit requests for this tenant
+    const requests = await prisma.exitRequest.findMany({
+      where: {
+        tenantId: tenant.tenantId,
+      },
+      include: {
+        items: true,
+        tenant: {
+          include: {
+            user: {
+              select: {
+                userId: true,
+                fullName: true,
+                email: true,
+                phone: true,
+              },
             },
           },
         },
-        orderBy: { requestDate: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.exitRequest.count({ where }),
-    ]);
+        rental: {
+          include: {
+            room: true,
+          },
+        },
+        securityOfficer: {
+          select: {
+            userId: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        // NO adminOfficer field exists - remove it
+      },
+      orderBy: { requestDate: "desc" },
+      take: 500,
+    });
+
+    // Get total count
+    const total = await prisma.exitRequest.count({
+      where: {
+        tenantId: tenant.tenantId,
+      },
+    });
 
     res.json({
       success: true,
       data: requests,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      total: total,
+      message:
+        total > 500
+          ? `Showing latest 500 of ${total} requests. Use filters to find older requests.`
+          : undefined,
     });
   } catch (err) {
     console.error("getMyExitRequests error:", err);
@@ -244,7 +240,56 @@ export const getMyExitRequests = async (req, res) => {
     });
   }
 };
+// backend controller
+export const getExitRequestById = async (req, res) => {
+  try {
+    const requestId = parseInt(req.params.requestId);
 
+    if (isNaN(requestId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request ID format",
+      });
+    }
+
+    const exitRequest = await prisma.exitRequest.findUnique({
+      where: {
+        requestId: requestId,
+      },
+      include: {
+        // Add necessary includes based on what your frontend expects
+        rental: {
+          include: {
+            room: true,
+          },
+        },
+        tenant: true,
+        items: true,
+        securityOfficer: true,
+      },
+    });
+
+    if (!exitRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Exit request not found",
+      });
+    }
+
+    // Wrap the response in a data property
+    res.json({
+      success: true,
+      data: exitRequest, // Wrap it here
+    });
+  } catch (err) {
+    console.error("getExitRequestById error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
 // ====================== ADMIN ENDPOINTS ======================
 
 /**

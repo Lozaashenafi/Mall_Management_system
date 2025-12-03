@@ -50,6 +50,9 @@ import BankManage from "./pages/BankManage";
 import AddUtilityPaymentRequest from "./pages/tenant/AddUtilityPaymentRequest";
 import MaintenanceSchedules from "./pages/MaintenanceSchedules";
 import OverdueDashboard from "./pages/OverdueDashboard";
+import ExitRequestDetails from "./pages/tenant/ExitRequestDetails";
+import CreateExitRequest from "./pages/tenant/CreateExitRequest";
+import ExitRequests from "./pages/tenant/ExitRequests";
 
 function App() {
   return (
@@ -141,6 +144,12 @@ function App() {
             <Route
               path="terminate-request"
               element={<TenantTerminateRequest />}
+            />
+            <Route path="exit-requests" element={<ExitRequests />} />
+            <Route path="exit-requests/new" element={<CreateExitRequest />} />
+            <Route
+              path="exit-requests/:requestId"
+              element={<ExitRequestDetails />}
             />
           </Route>
         </Routes>
