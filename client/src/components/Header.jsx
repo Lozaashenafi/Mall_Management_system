@@ -97,6 +97,7 @@ function Header() {
 
   const goTo = (path) => {
     if (user?.role === "Tenant") navigate(`/tenant${path}`);
+    if (user?.role === "SecurityOfficer") navigate(`/security${path}`);
     else navigate(path);
   };
 

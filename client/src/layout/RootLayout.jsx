@@ -5,10 +5,10 @@ import { Sidebar } from "../components/Sidebar";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { TenantSidebar } from "../components/TenantSidebar";
-
+import { SecurityOfficerSidebar } from "../components/SecurityOfficerSidebar";
 function RootLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { isTenant } = useAuth();
+  const { isTenant, isSecurityOfficer } = useAuth();
 
   function toggleSidebar() {
     setCollapsed((prev) => !prev);
@@ -19,6 +19,11 @@ function RootLayout() {
       <div className="h-screen bg-background flex overflow-hidden">
         {isTenant ? (
           <TenantSidebar collapsed={collapsed} onToggle={toggleSidebar} />
+        ) : isSecurityOfficer ? (
+          <SecurityOfficerSidebar
+            collapsed={collapsed}
+            onToggle={toggleSidebar}
+          />
         ) : (
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
         )}

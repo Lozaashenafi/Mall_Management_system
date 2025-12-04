@@ -12,7 +12,7 @@ export const register = async (req, res) => {
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
-    const { fullName, email, password, phone } = req.body;
+    const { fullName, email, password, phone, role } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -28,7 +28,7 @@ export const register = async (req, res) => {
         fullName,
         email,
         passwordHash: hashedPassword,
-        role: req.body.role || UserRole.Admin,
+        role: role || UserRole.Admin,
         status: UserStatus.Active,
         phone: phone || null,
       },
@@ -108,7 +108,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
 
     const { email, password } = req.body;
-
+    console.log(email, password);
     // Find the user by email
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });

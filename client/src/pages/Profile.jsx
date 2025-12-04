@@ -44,7 +44,7 @@ const ListItem = ({ icon: Icon, label, value }) => {
 };
 
 const Profile = () => {
-  const { user, logout, isTenant } = useAuth();
+  const { user, logout, isTenant, isSecurityOfficer } = useAuth();
   console.log("user:", user);
   const navigate = useNavigate();
 
@@ -90,6 +90,8 @@ const Profile = () => {
           onClick={() =>
             isTenant
               ? navigate("/tenant/edit-profile")
+              : isSecurityOfficer
+              ? navigate("/security/edit-profile")
               : navigate("/edit-profile")
           }
           className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors"
@@ -116,6 +118,8 @@ const Profile = () => {
             onClick={() =>
               isTenant
                 ? navigate("/tenant/change-password")
+                : isSecurityOfficer
+                ? navigate("/security/change-password")
                 : navigate("/change-password")
             }
             className="flex justify-between items-center w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg transition-colors"

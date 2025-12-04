@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 const ChangePassword = () => {
   const navigate = useNavigate();
-  const { changePassword, isTenant } = useAuth();
+  const { changePassword, isTenant, isSecurityOfficer } = useAuth();
 
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -84,7 +84,11 @@ const ChangePassword = () => {
             <button
               type="button"
               onClick={() =>
-                isTenant ? navigate("/tenant/profile") : navigate("/profile")
+                isTenant
+                  ? navigate("/tenant/profile")
+                  : isSecurityOfficer
+                  ? navigate("/security/profile")
+                  : navigate("/profile")
               }
               className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             >

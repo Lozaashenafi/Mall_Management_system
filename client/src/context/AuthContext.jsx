@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 import {
   loginRequest,
   registerRequest,
@@ -39,28 +39,44 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
   }, []);
-
   const login = async (email, password) => {
     try {
-      setError("");
+      setError(""); // Clear previous errors
+
+      // Input validation
+      if (!email || !password) {
+        throw new Error("Email and password are required");
+      }
+
       const data = await loginRequest(email, password);
+
+      // Validate response structure
+      if (!data || !data.user || !data.token) {
+        throw new Error("Invalid response from server");
+      }
+
       setUser(data.user);
+
+      // Consider using a more secure storage method
+      // For sensitive data, especially tokens
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("token", data.token);
-      if (data.user.role === "Tenant" && data.user.rentals) {
-        localStorage.setItem("rentals", JSON.stringify(data.user.rentals));
-      } else {
-        // Optional: Clear old rental data if another user logs in
-        localStorage.removeItem("rentals");
+
+      // Role-based data handling
+      if (data.user.role?.toLowerCase() === "tenant") {
+        if (data.user.rentals) {
+          localStorage.setItem("rentals", JSON.stringify(data.user.rentals));
+        }
       }
+
       return data;
     } catch (err) {
-      setError(err.message || "Login failed");
-      toast.error(err.message || "Login failed"); // ✅ toast
-      throw err;
+      const errorMessage = err.message || "Login failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err; // Only throw if you want calling code to handle it too
     }
   };
-
   const register = async (userData) => {
     try {
       setError("");
@@ -76,13 +92,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ New editProfile function
   const editProfile = async (formData) => {
     try {
       const data = await editProfileRequest(formData);
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
-      toast.success("Profile updated successfully"); // ✅ toast
+      toast.success("Profile updated successfully");
       return data;
     } catch (err) {
       setError(err.message);
@@ -90,6 +105,7 @@ export const AuthProvider = ({ children }) => {
       throw err;
     }
   };
+
   const changePassword = async (oldPassword, newPassword) => {
     try {
       const data = await changePasswordRequest({ oldPassword, newPassword });
@@ -100,13 +116,33 @@ export const AuthProvider = ({ children }) => {
       throw err;
     }
   };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("rentals");
+    localStorage.removeItem("assignedProperty");
   };
 
+  // Role check helper functions
   const isTenant = user?.role?.toLowerCase() === "tenant";
+  const isSecurityOfficer = user?.role?.toLowerCase() === "securityofficer";
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isSuperAdmin = user?.role?.toLowerCase() === "superadmin";
+
+  // Combined role check functions
+  const isStaff = () => {
+    const role = user?.role?.toLowerCase();
+    return (
+      role === "securityofficer" || role === "admin" || role === "superadmin"
+    );
+  };
+
+  const hasAdminAccess = () => {
+    const role = user?.role?.toLowerCase();
+    return role === "admin" || role === "superadmin";
+  };
 
   return (
     <AuthContext.Provider
@@ -114,7 +150,13 @@ export const AuthProvider = ({ children }) => {
         user,
         login,
         register,
+        // Individual role checkers
         isTenant,
+        isSecurityOfficer,
+        isAdmin,
+        isSuperAdmin,
+        isStaff: isStaff(),
+        hasAdminAccess: hasAdminAccess(),
         editProfile,
         changePassword,
         logout,

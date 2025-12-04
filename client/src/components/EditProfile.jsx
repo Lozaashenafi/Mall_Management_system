@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../config";
 const EditProfile = () => {
-  const { user, editProfile, isTenant } = useAuth(); // ✅ use from context
+  const { user, editProfile, isTenant, isSecurityOfficer } = useAuth(); // ✅ use from context
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -122,7 +122,11 @@ const EditProfile = () => {
             <button
               type="button"
               onClick={() =>
-                isTenant ? navigate("/tenant/profile") : navigate("/profile")
+                isTenant
+                  ? navigate("/tenant/profile")
+                  : isSecurityOfficer
+                  ? navigate("/security/profile")
+                  : navigate("/profile")
               }
               className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             >

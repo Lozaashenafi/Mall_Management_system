@@ -6,7 +6,9 @@ export default {
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
     phone: Joi.string().optional(),
-    role: Joi.string().valid("Admin", "SuperAdmin", "Tenant").optional(),
+    role: Joi.string()
+      .valid("Admin", "SuperAdmin", "Tenant", "SecurityOfficer")
+      .optional(),
   }),
 
   login: Joi.object({

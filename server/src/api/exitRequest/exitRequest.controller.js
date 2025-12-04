@@ -106,19 +106,6 @@ export const createExitRequest = async (req, res) => {
       return completeRequest;
     });
 
-    // Create audit log
-    await createAuditLog({
-      userId: tenant.userId,
-      action: "created",
-      tableName: "ExitRequest",
-      recordId: result.requestId,
-      newValue: {
-        trackingNumber: result.trackingNumber,
-        status: result.status,
-        type: result.type,
-      },
-    });
-
     // Send notification to admin
     const admins = await prisma.user.findMany({
       where: { role: { in: ["Admin", "SuperAdmin"] } },

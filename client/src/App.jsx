@@ -53,6 +53,8 @@ import OverdueDashboard from "./pages/OverdueDashboard";
 import ExitRequestDetails from "./pages/tenant/ExitRequestDetails";
 import CreateExitRequest from "./pages/tenant/CreateExitRequest";
 import ExitRequests from "./pages/tenant/ExitRequests";
+import SecurityDashboard from "./pages/security/SecurityDashboard";
+import SecurityOfficerNotifications from "./pages/security/SecurityOfficerNotifications";
 
 function App() {
   return (
@@ -150,6 +152,27 @@ function App() {
             <Route
               path="exit-requests/:requestId"
               element={<ExitRequestDetails />}
+            />
+          </Route>
+          {/* Security Officer Routes */}
+          <Route
+            path="/security"
+            element={
+              <PrivateRoute securityOnly>
+                <RootLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<SecurityDashboard />} />
+            {/* Shared profile pages */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="change-password" element={<ChangePassword />} />
+            <Route path="settings" element={<Settings />} />
+            {/* Security-specific pages */}
+            <Route
+              path="notifications"
+              element={<SecurityOfficerNotifications />}
             />
           </Route>
         </Routes>
